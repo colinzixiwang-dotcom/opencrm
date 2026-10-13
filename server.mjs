@@ -4,7 +4,7 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, createHash } from 'node:crypto';
-import { DomainError, mutate, seedState, publicState, verifyPassword, report } from './lib/domain.mjs';
+import { DomainError, mutate, seedState, publicState, verifyPassword, report, migrateState } from './lib/domain.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const securityHeaders = {
@@ -22,6 +22,7 @@ export function createApp({ databasePath = process.env.DB_PATH || resolve(root, 
   db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS request_receipts (key TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload_hash TEXT NOT NULL, result TEXT NOT NULL, created INTEGER NOT NULL);');
   if (!db.prepare('SELECT id FROM app_state WHERE id=1').get()) db.prepare('INSERT INTO app_state(id,data) VALUES(1,?)').run(JSON.stringify(seedState()));
   const getState = () => JSON.parse(db.prepare('SELECT data FROM app_state WHERE id=1').get().data);
+  const initial=getState();if(migrateState(initial))db.prepare('UPDATE app_state SET data=? WHERE id=1').run(JSON.stringify(initial));
   const loginAttempts = new Map();
   const send = (res, status, value, extra={}) => {
     res.writeHead(status, {...securityHeaders,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...extra}); res.end(JSON.stringify(value));
@@ -78,7 +79,9 @@ export function createApp({ databasePath = process.env.DB_PATH || resolve(root, 
           try {
             const payloadHash=digest(JSON.stringify(input));
             if(key){const existing=db.prepare('SELECT * FROM request_receipts WHERE key=?').get(key);if(existing){if(existing.user_id!==user.id||existing.payload_hash!==payloadHash)throw new DomainError('Idempotency key was already used for another request.',409);db.exec('COMMIT');send(res,200,{...JSON.parse(existing.result),replayed:true});return;}}
-            const {state,result}=mutate(getState(),input.action,input.payload,user);
+            const current=getState();const actor=current.users.find(x=>x.id===user.id&&x.active);
+            if(!actor)throw new DomainError('Your account no longer has access.',401);
+            const {state,result}=mutate(current,input.action,input.payload,actor);
             db.prepare('UPDATE app_state SET data=? WHERE id=1').run(JSON.stringify(state));const response={result,version:state.version};
             if(key)db.prepare('INSERT INTO request_receipts(key,user_id,payload_hash,result,created) VALUES(?,?,?,?,?)').run(key,user.id,payloadHash,JSON.stringify(response),Date.now());
             db.exec('COMMIT');send(res,200,response);return;
