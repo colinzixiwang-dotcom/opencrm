@@ -135,10 +135,10 @@ npm test
 ./scripts/go.sh vet ./...
 ./scripts/go.sh test -race ./...
 npx playwright install chromium
-npm run test:browser
+npm run test:browser   # ERP, RMA and expanded UI/API/SQLite audit
 ```
 
-An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and temporary SQLite database. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`.
+An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and temporary SQLite database. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`. `npm run test:all` runs lint, build, Go/frontend tests, vet and all three browser suites. GitHub Actions repeats these checks and the race detector for pushes and pull requests.
 
 `npm run test:migration` verifies migration of the existing local legacy database on a temporary copy; set `MIGRATION_DB` to choose another legacy database. It requires the original example administrator credentials. This is an optional local migration check, separate from the portable unit/browser suites.
 

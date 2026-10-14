@@ -32,6 +32,7 @@ func active(rows []M, id string) M {
 	return r
 }
 func Ensure(s M) {
+	defer normalize(s)
 	for _, k := range []string{"rmas", "rmaTasks", "supportOrders", "serials", "benefitHistory"} {
 		if s[k] == nil {
 			s[k] = []M{}
@@ -48,7 +49,7 @@ func Ensure(s M) {
 		types = append(types, M{"id": x.id, "name": x.name, "enabled": true, "direction": x.direction, "hasAmount": x.amount, "requiresCode": x.code, "requiresProduct": x.direction != "none", "builtIn": true})
 	}
 	node := func(key, kind string, deps ...string) M {
-		return M{"key": key, "typeId": kind, "dependsOn": deps, "amountCents": int64(0), "qty": int64(1), "productId": ""}
+		return M{"key": key, "typeId": kind, "dependsOn": append([]string{}, deps...), "amountCents": int64(0), "qty": int64(1), "productId": ""}
 	}
 	s["supportConfig"] = M{"revision": int64(1), "taskTypes": types, "platforms": []M{{"id": "Amazon", "name": "Amazon", "enabled": true}, {"id": "Shopify", "name": "Shopify", "enabled": true}, {"id": "Direct", "name": "Direct", "enabled": true}, {"id": "Wholesale", "name": "Wholesale", "enabled": true}}, "rootCauses": []M{{"id": "device_fault", "name": "Device malfunction", "primary": "device_issue", "enabled": true, "productIds": []string{}}, {"id": "setup_help", "name": "Setup or usage issue", "primary": "user_issue", "enabled": true, "productIds": []string{}}, {"id": "transit_damage", "name": "Damaged in transit", "primary": "logistics_issue", "enabled": true, "productIds": []string{}}}, "solutions": []M{{"id": "replacement", "name": "Return and replace", "enabled": true, "nodes": []M{node("return", "return_device"), node("replacement", "send_device", "return")}}, {"id": "refund", "name": "Return and refund", "enabled": true, "nodes": []M{node("return", "return_device"), node("refund", "refund", "return")}}, {"id": "parts", "name": "Send replacement parts", "enabled": true, "nodes": []M{node("parts", "send_parts")}}, {"id": "goodwill", "name": "Gift card and promo code", "enabled": true, "nodes": []M{node("gift", "gift_card"), node("promo", "promo_code")}}}, "rules": []M{{"id": "gift_over_100", "name": "Gift card above $100", "enabled": true, "typeId": "gift_card", "field": "amountCents", "operator": "gt", "value": int64(10000)}}, "fields": []M{}}
 }
@@ -257,22 +258,7 @@ func values(s, c, t, b M) {
 	t["amountCents"] = domain.Int(domain.Default(b["amountCents"], 0), "Amount", 0, 500000000)
 	t["qty"] = domain.Int(domain.Default(b["qty"], 1), "Quantity", 1, 1000000)
 	p := domain.Str(b["productId"])
-	if p != "" {
-		prod := domain.Find(s, "products", p)
-		if t["typeId"] == "send_parts" && prod["productType"] != "part" {
-			domain.Fail("Choose a support part SKU.")
-		}
-		if domain.In(domain.Str(t["typeId"]), "send_device", "return_device") && prod["productType"] != "device" {
-			domain.Fail("Choose a device SKU.")
-		}
-	}
-	if p != "" && t["typeId"] == "send_parts" {
-		part := domain.Find(s, "products", p)
-		ids := domain.Strings(part["deviceIds"])
-		if len(ids) > 0 && p != domain.Str(t["affectedProductId"]) && !domain.In(domain.Str(t["affectedProductId"]), ids...) {
-			domain.Fail("This part is not compatible with the affected device.")
-		}
-	}
+	validateProduct(s, t, p)
 	t["productId"] = p
 	t["customFields"] = custom(c, "task", domain.Str(t["typeId"]), b["customFields"], t["customFields"])
 }
@@ -293,6 +279,9 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 	c := Config(s)
 	if !domain.HasAction(u, action) {
 		domain.Fail("Your role does not permit this action.", 403)
+	}
+	if domain.In(action, "rmaconfig.save", "rma.create") && b["expectedConfigRevision"] != nil && domain.Int(b["expectedConfigRevision"], "Configuration revision", 1, 1000000000) != domain.N(c["revision"]) {
+		domain.Fail("Support configuration changed. Close this form and reopen it before saving.", 409)
 	}
 	switch action {
 	case "rmaconfig.save":
@@ -327,6 +316,22 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 		kind := domain.Choice(b["kind"], "device", "printhead")
 		if (kind == "device" && product["productType"] != "device") || (kind == "printhead" && (product["productType"] != "part" || product["partKind"] != "printhead")) {
 			domain.Fail("Serial type must match the selected device or printhead SKU.")
+		}
+		if id != "" {
+			old := lookup(domain.Rows(s, "serials"), id)
+			changed := old["sn"] != sn || old["kind"] != kind || old["productId"] != product["id"]
+			if changed {
+				linked := false
+				for _, r := range domain.Rows(s, "rmas") {
+					linked = linked || strings.EqualFold(domain.Str(r["sn"]), domain.Str(old["sn"]))
+				}
+				for _, r := range domain.Rows(s, "serials") {
+					linked = linked || strings.EqualFold(domain.Str(r["parentSn"]), domain.Str(old["sn"]))
+				}
+				if linked {
+					domain.Fail("Serial identity is linked to a device or RMA and cannot be changed. Status, order and parent links remain editable.", 409)
+				}
+			}
 		}
 		parent := domain.Str(b["parentSn"])
 		if parent != "" {
@@ -460,6 +465,7 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 			if domain.Bool(typ["hasAmount"]) && domain.N(t["amountCents"]) <= 0 {
 				domain.Fail("Enter a positive task amount before execution.")
 			}
+			validateProduct(s, t, domain.Str(t["productId"]))
 			if domain.Bool(typ["requiresProduct"]) && domain.Str(t["productId"]) == "" {
 				domain.Fail("Choose a task SKU before execution.")
 			}
@@ -546,13 +552,13 @@ func saveConfig(s, b M) M {
 		id = domain.ID("CFG")
 		r["id"] = id
 	}
-	if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(id) {
+	if !safeKey(id) {
 		domain.Fail("Use letters, digits, underscores or hyphens for keys.")
 	}
 	switch entity {
 	case "rootCauses":
 		r["primary"] = domain.Choice(r["primary"], primary...)
-		ids := domain.Strings(r["productIds"])
+		ids := stringList(r["productIds"], "Product IDs")
 		for _, id := range ids {
 			domain.Find(s, "products", id)
 		}
@@ -565,9 +571,11 @@ func saveConfig(s, b M) M {
 		keys := map[string]bool{}
 		for _, n := range nodes {
 			key := domain.Required(n["key"], "Node key", 64)
-			if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(key) || keys[key] {
+			if !safeKey(key) || keys[key] {
 				domain.Fail("Task node keys must be unique letters, digits, underscores or hyphens.")
 			}
+			n["key"] = key
+			n["dependsOn"] = stringList(n["dependsOn"], "Dependencies")
 			keys[key] = true
 			active(domain.Rows(c, "taskTypes"), domain.Str(n["typeId"]))
 			n["amountCents"] = domain.Int(domain.Default(n["amountCents"], 0), "Default amount", 0, 500000000)
@@ -626,6 +634,9 @@ func saveConfig(s, b M) M {
 		if _, ok := r["required"].(bool); !ok {
 			domain.Fail("Required must be a boolean.")
 		}
+		if r["fieldType"] == "select" {
+			r["options"] = stringList(r["options"], "Field options")
+		}
 		if r["fieldType"] == "select" && len(domain.Strings(r["options"])) == 0 {
 			domain.Fail("Select fields need options.")
 		}
@@ -634,6 +645,11 @@ func saveConfig(s, b M) M {
 		}
 	case "taskTypes":
 		r["direction"] = domain.Choice(r["direction"], "none", "outbound", "inbound")
+		if v, ok := r["alwaysApprove"]; ok {
+			if _, valid := v.(bool); !valid {
+				domain.Fail("alwaysApprove must be a boolean.")
+			}
+		}
 		for _, key := range []string{"hasAmount", "requiresCode", "requiresProduct"} {
 			if _, ok := r[key].(bool); !ok {
 				domain.Fail(key + " must be a boolean.")
@@ -682,6 +698,11 @@ func ProductFields(s, r, b M) (value M, err error) {
 			}
 		}
 	}()
+	for _, serial := range domain.Rows(s, "serials") {
+		if serial["productId"] == r["id"] && ((serial["kind"] == "device" && r["productType"] != "device") || (serial["kind"] == "printhead" && (r["productType"] != "part" || r["partKind"] != "printhead"))) {
+			domain.Fail("This SKU has registered serials. Its device/printhead classification cannot be changed.", 409)
+		}
+	}
 	input := b["customFields"]
 	if input == nil {
 		input = r["customFields"]
@@ -695,4 +716,90 @@ func priorFields(s M, col, id string) M {
 		return M{}
 	}
 	return domain.Obj(lookup(domain.Rows(s, col), id)["customFields"])
+}
+
+func safeKey(key string) bool {
+	return len(key) <= 128 && !domain.In(key, "__proto__", "prototype", "constructor") && regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(key)
+}
+func stringList(value any, label string) []string {
+	out := []string{}
+	if value == nil {
+		return out
+	}
+	switch values := value.(type) {
+	case []string:
+		for _, v := range values {
+			out = append(out, domain.Required(v, label, 200))
+		}
+	case []any:
+		for _, v := range values {
+			out = append(out, domain.Required(v, label, 200))
+		}
+	default:
+		domain.Fail(label + " must be an array of nonempty strings.")
+	}
+	seen := map[string]bool{}
+	for _, v := range out {
+		if seen[v] {
+			domain.Fail(label + " must not contain duplicates.")
+		}
+		seen[v] = true
+	}
+	return out
+}
+func normalize(s M) {
+	c := Config(s)
+	for _, key := range []string{"solutions", "rootCauses", "rules", "platforms", "taskTypes", "fields"} {
+		if c[key] == nil {
+			c[key] = []M{}
+		}
+	}
+	normalizeSolution := func(sol M) {
+		for _, n := range domain.Rows(sol, "nodes") {
+			n["dependsOn"] = append([]string{}, domain.Strings(n["dependsOn"])...)
+		}
+	}
+	for _, sol := range domain.Rows(c, "solutions") {
+		normalizeSolution(sol)
+	}
+	for _, r := range domain.Rows(c, "rootCauses") {
+		if r["productIds"] == nil {
+			r["productIds"] = []string{}
+		}
+	}
+	for _, f := range domain.Rows(c, "fields") {
+		if f["options"] == nil {
+			f["options"] = []string{}
+		}
+	}
+	for _, r := range domain.Rows(s, "rmas") {
+		normalizeSolution(domain.Obj(r["solutionSnapshot"]))
+	}
+	for _, t := range domain.Rows(s, "rmaTasks") {
+		for _, key := range []string{"dependsOn", "events", "approvalReasons"} {
+			if t[key] == nil {
+				t[key] = []any{}
+			}
+		}
+	}
+}
+
+func validateProduct(s, t M, p string) {
+	if p != "" {
+		prod := domain.Find(s, "products", p)
+		if t["typeId"] == "send_parts" && prod["productType"] != "part" {
+			domain.Fail("Choose a support part SKU.")
+		}
+		if domain.In(domain.Str(t["typeId"]), "send_device", "return_device") && prod["productType"] != "device" {
+			domain.Fail("Choose a device SKU.")
+		}
+	}
+	if p != "" && t["typeId"] == "send_parts" {
+		part := domain.Find(s, "products", p)
+		ids := domain.Strings(part["deviceIds"])
+		if len(ids) > 0 && p != domain.Str(t["affectedProductId"]) && !domain.In(domain.Str(t["affectedProductId"]), ids...) {
+			domain.Fail("This part is not compatible with the affected device.")
+		}
+	}
+
 }

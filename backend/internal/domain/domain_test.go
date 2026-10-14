@@ -225,3 +225,15 @@ func TestHistoricalCostAndTimezoneReporting(t *testing.T) {
 	eq(t, Report(f.s, "2026-10-14", "2026-10-14", "Direct")["cogsCents"], 3000)
 	eq(t, Report(f.s, "2026-10-14", "2026-10-14", "Direct")["revenueCents"], 9000)
 }
+
+func TestMalformedDatesAndCompatibilityAreRejectedAtomically(t *testing.T) {
+	f := newFlow(t)
+	for _, date := range []any{42, true, []any{"2026-10-15"}, M{"date": "2026-10-15"}} {
+		b := poInput()
+		b["expectedDate"] = date
+		f.reject("purchase.create", b, "valid date")
+	}
+	for _, ids := range []any{"PRD-1", []any{42}, M{"id": "PRD-1"}} {
+		f.reject("product.create", M{"sku": "BAD-SKU", "name": "Bad", "category": "Test", "costCents": 100, "priceCents": 200, "reorderPoint": 1, "leadDays": 7, "deviceIds": ids}, "array of device IDs")
+	}
+}

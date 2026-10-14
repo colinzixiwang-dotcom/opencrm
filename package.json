@@ -17,14 +17,16 @@
     "dev": "vite --config frontend/vite.config.js",
     "build": "vite build --config frontend/vite.config.js",
     "start": "./start.sh",
-    "test": "./scripts/go.sh test ./...",
+    "test": "./scripts/go.sh test ./... && node --test tests/frontend.test.mjs",
     "test:e2e": "node tests/e2e.mjs",
     "check": "npm run lint && npm run build",
     "test:migration": "node tests/migration.mjs",
     "vet": "./scripts/go.sh vet ./...",
     "lint": "eslint frontend/src",
     "test:rma": "node tests/rma-e2e.mjs",
-    "test:browser": "node tests/e2e.mjs && node tests/rma-e2e.mjs"
+    "test:browser": "node tests/e2e.mjs && node tests/rma-e2e.mjs && node tests/audit-e2e.mjs",
+    "test:audit": "node tests/audit-e2e.mjs",
+    "test:all": "npm run check && npm test && npm run vet && npm run test:browser"
   },
   "dependencies": {
     "react": "^19.2.0",

@@ -157,10 +157,13 @@ func Choice(v any, opts ...string) string {
 	return x
 }
 func Date(v any) string {
-	if v == nil || Str(v) == "" {
+	if v == nil || v == "" {
 		return time.Now().UTC().Format("2006-01-02")
 	}
-	s := Str(v)
+	s, ok := v.(string)
+	if !ok {
+		Fail("Enter a valid date.")
+	}
 	d, e := time.Parse("2006-01-02", s)
 	if e != nil || d.Format("2006-01-02") != s {
 		Fail("Enter a valid date.")
@@ -402,7 +405,22 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 			values["partKind"] = Choice(v, "other", "printhead", "accessory", "component")
 		}
 		if v, ok := b["deviceIds"]; ok {
-			ids := Strings(v)
+			ids := []string{}
+			switch x := v.(type) {
+			case nil:
+			case []string:
+				ids = append(ids, x...)
+			case []any:
+				for _, item := range x {
+					id, ok := item.(string)
+					if !ok || id == "" {
+						Fail("Compatible SKUs must be an array of device IDs.")
+					}
+					ids = append(ids, id)
+				}
+			default:
+				Fail("Compatible SKUs must be an array of device IDs.")
+			}
 			for _, id := range ids {
 				device := Find(s, "products", id)
 				if device["productType"] != "device" || device["id"] == p["id"] {

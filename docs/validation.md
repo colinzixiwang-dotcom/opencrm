@@ -4,11 +4,12 @@ Verified on **15 October 2026** on macOS arm64 with Go **1.27.2**, Gin **1.11.0*
 
 ## Results
 
-- **38 passing Go tests:** 13 ERP domain, 12 HTTP/integration, and 13 support workflow tests.
+- **42 passing Go tests:** 14 ERP domain, 12 HTTP/integration, and 16 support workflow tests.
+- **2 passing frontend normalization tests**, including legacy null collections and retention of configured DAG edges.
 - `go test -race ./...` and `go vet ./...` passed.
 - Frontend ESLint and production build passed.
-- **29 browser checkpoints:** 19 existing ERP workflows plus 10 RMA workflows.
-- Both browser suites reported zero JavaScript page errors.
+- **36 browser checkpoints:** 19 ERP, 10 RMA, and 7 expanded audit checkpoints.
+- All three browser suites reported zero JavaScript page errors.
 - Existing workspace migration passed on an isolated copy. A direct comparison of the running app with `data/pre-rma-v3.sqlite` also confirmed that all 14 original business collections, settings, and revision were retained. Seven new pages and starter support configuration were added, with no QA RMAs/orders/serials added to the real workspace.
 
 ## RMA browser checkpoints
@@ -23,6 +24,24 @@ Verified on **15 October 2026** on macOS arm64 with Go **1.27.2**, Gin **1.11.0*
 8. sent gift card and promo code history supports type filters and code search.
 9. admin-configured product and execution fields work; changing a gift value triggers a new approval.
 10. owner case notes, completed-case visibility, responsive layout, and zero JavaScript errors.
+
+## Blank-page fix and expanded audit
+
+The shipped solution nodes encoded empty dependencies as JSON `null`. Selecting one made React read `dependsOn.length` and crash. The server now writes empty arrays and normalizes existing configurations, historical solution snapshots, and task collections on opening a workspace. The frontend also normalizes legacy responses. The audit deliberately injects the old null response and selects every starter solution. An error boundary provides recovery for unexpected rendering failures; normal-flow tests assert it is never displayed.
+
+Additional fixes protect stale configuration/task forms, preserve case notes after a failed save, reuse idempotency receipts after a successful POST followed by a failed reload, and prevent rapid duplicate submissions. Changing an order to another device clears incompatible solution inputs. Serial identity and SKU classifications cannot break existing links; task execution rechecks current SKU compatibility. Configuration keys, dependency lists, field options, date values and product compatibility inputs receive stricter validation.
+
+The expanded browser suite verifies:
+
+1. All four starter solutions render with old null dependencies; saved dependencies are arrays.
+2. All four solutions create RMAs; a simulated reload failure and retry creates exactly one case.
+3. Returns, replacements, refunds, parts, gift cards and promo codes pass independent approval/execution; SQLite, task status, logistics queues and benefit history agree.
+4. All five custom field types and six form scopes save; order/serial custom values and status edits persist.
+5. Configuration creation, edits and disabling persist for platforms, root causes, rules, task types and fields. The RMA suite separately creates a custom solution DAG.
+6. Stale configuration edits fail without overwriting a newer administrator save.
+7. All 20 pages, unsupported routes, support CSV exports and authenticated server restart pass.
+
+The running demo was also rebuilt and restarted after a consistent SQLite backup in ignored `data/pre-rma-bugfix.sqlite`. All four solution selections passed there. Business records, settings and configuration revision were unchanged; only legacy nullable collections were normalized. CRUD tests run against disposable databases, not the user's workspace.
 
 ## Backend edge cases
 
@@ -46,4 +65,4 @@ Reviewed desktop RMA list and workflow configuration, task center, benefit histo
 
 These results apply to the documented local workflows and representative edge cases. They do not establish production load capacity, complete Lingxing/RuoYi parity, external carrier/payment/marketplace compatibility, tenant isolation, general department data scopes, or exhaustive security/accessibility coverage. RMA ownership is implemented. Issuing/sending gift cards or promo codes, refunds and shipments are performed externally and recorded here.
 
-See [the RMA guide](rma.md) for configuration, permissions, execution and recovery. Repeat with `npm run check`, `npm test`, `npm run vet`, `./scripts/go.sh test -race ./...`, `npm run test:browser`, and optional `npm run test:migration`. Browser screenshots and JSON reports are generated under ignored `test-results/`; committed screenshots show only test data.
+See [the RMA guide](rma.md) for configuration, permissions, execution and recovery. Repeat with `npm run test:all`, `./scripts/go.sh test -race ./...`, and optional `npm run test:migration`. GitHub Actions runs the portable checks and saves browser reports. Browser screenshots and JSON reports are generated under ignored `test-results/`; committed screenshots show only test data.

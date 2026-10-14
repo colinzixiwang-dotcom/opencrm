@@ -4,7 +4,9 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
+import { normalizeWorkspace } from "./state";
 export const Workspace = createContext(null);
 export const useWorkspace = () => useContext(Workspace);
 export const money = (c) =>
@@ -68,7 +70,7 @@ export function Provider({ children }) {
   }, []);
   const reload = useCallback(async () => {
     try {
-      const s = await api("/api/bootstrap");
+      const s = normalizeWorkspace(await api("/api/bootstrap"));
       setState(s);
       setReport(s.report);
       return s;
@@ -126,16 +128,23 @@ export function Provider({ children }) {
       cancelled = true;
     };
   }, [state, period, filters, notify]);
+  const acting = useRef(false),
+    retry = useRef(null);
   const act = async (action, payload, message = "Record saved.") => {
-    if (busy) return false;
+    if (acting.current) return false;
+    acting.current = true;
+    const signature = JSON.stringify({ action, payload });
+    if (retry.current?.signature !== signature)
+      retry.current = { signature, key: crypto.randomUUID() };
     setBusy(true);
     try {
       await api("/api/action", {
         method: "POST",
-        headers: { "Idempotency-Key": crypto.randomUUID() },
+        headers: { "Idempotency-Key": retry.current.key },
         body: JSON.stringify({ action, payload }),
       });
       await reload();
+      retry.current = null;
       setModal(null);
       notify(message);
       return true;
@@ -143,6 +152,7 @@ export function Provider({ children }) {
       if (e.status === 401) setState(null);
       throw e;
     } finally {
+      acting.current = false;
       setBusy(false);
     }
   };

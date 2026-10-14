@@ -221,8 +221,8 @@ function App() {
       .sort((a, b) => a.orderNum - b.orderNum),
     navigation = menus
       .map((m) => [m.url, m.menuName])
-      .filter(([p]) => views[p]),
-    View = views[page],
+      .filter(([p]) => Object.hasOwn(views, p)),
+    View = Object.hasOwn(views, page) ? views[page] : null,
     allowed = permitted(page);
   const navigate = (p) => {
     setMobile(false);
@@ -410,8 +410,46 @@ function App() {
     </div>
   );
 }
+class WorkspaceBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed)
+      return (
+        <main className="main-content">
+          <section className="panel permission-empty" role="alert">
+            <h1>Workspace could not be displayed</h1>
+            <p>
+              Your saved records are intact. Reload the workspace to try again.
+            </p>
+            <button className="btn primary" onClick={() => location.reload()}>
+              Reload workspace
+            </button>
+            <a
+              className="btn secondary"
+              href="#home"
+              onClick={() => {
+                location.hash = "home";
+                location.reload();
+              }}
+            >
+              Return to overview
+            </a>
+          </section>
+        </main>
+      );
+    return this.props.children;
+  }
+}
 createRoot(document.getElementById("root")).render(
-  <Provider>
-    <App />
-  </Provider>,
+  <WorkspaceBoundary>
+    <Provider>
+      <App />
+    </Provider>
+  </WorkspaceBoundary>,
 );

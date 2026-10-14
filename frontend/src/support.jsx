@@ -323,10 +323,12 @@ function useSupportAction(onClose) {
   const submit = async (action, payload, message) => {
     try {
       setError("");
-      await act(action, payload, message);
-      onClose?.();
+      const saved = await act(action, payload, message);
+      if (saved) onClose?.();
+      return saved;
     } catch (e) {
       setError(e.message);
+      return false;
     }
   };
   return { submit, busy, error, setError };
@@ -439,6 +441,7 @@ function RMAForm({ onClose, initial = {} }) {
       customFields: {},
     }),
     [inputs, setInputs] = useState({});
+  const [configRevision] = useState(cfg.revision);
   const { submit, busy, error } = useSupportAction(onClose),
     set = (k, x) => setV({ ...v, [k]: x }),
     solution = cfg.solutions.find((x) => x.id === v.solutionId),
@@ -487,7 +490,7 @@ function RMAForm({ onClose, initial = {} }) {
           }
           submit(
             "rma.create",
-            { ...v, taskInputs },
+            { ...v, taskInputs, expectedConfigRevision: configRevision },
             "RMA created. Solution tasks generated.",
           );
         }}
@@ -509,6 +512,8 @@ function RMAForm({ onClose, initial = {} }) {
               value={v.orderNumber}
               onChange={(x) => {
                 const o = orders.find((o) => o.orderNumber === x);
+                const changedProduct =
+                  o?.productId && o.productId !== v.productId;
                 setV({
                   ...v,
                   orderNumber: x,
@@ -518,7 +523,11 @@ function RMAForm({ onClose, initial = {} }) {
                         productId: o.productId || v.productId,
                       }
                     : {}),
+                  ...(changedProduct
+                    ? { rootCauseId: "", sn: "", solutionId: "" }
+                    : {}),
                 });
+                if (changedProduct) setInputs({});
               }}
               required
               maxLength="160"
@@ -625,8 +634,8 @@ function RMAForm({ onClose, initial = {} }) {
                         <div>
                           <strong>{type?.name || n.typeId}</strong>
                           <small>
-                            {n.dependsOn.length
-                              ? "After " + n.dependsOn.join(", ")
+                            {(n.dependsOn || []).length
+                              ? "After " + (n.dependsOn || []).join(", ")
                               : "Independent task"}{" "}
                             ·{" "}
                             {["refund", "return_device"].includes(n.typeId)
@@ -848,7 +857,7 @@ function RMADetail({ id, onClose }) {
                   <Badge value={t.status} />
                 </div>
                 <p className="help-text">
-                  {t.dependsOn.length
+                  {(t.dependsOn || []).length
                     ? "Requires " +
                       t.dependsOn
                         .map(
@@ -896,10 +905,16 @@ function RMADetail({ id, onClose }) {
           {can("rma.note") && (
             <form
               className="support-note-form"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                submit("rma.note", { id, text: note }, "Case note added.");
-                setNote("");
+                if (
+                  await submit(
+                    "rma.note",
+                    { id, text: note },
+                    "Case note added.",
+                  )
+                )
+                  setNote("");
               }}
             >
               <TextArea
@@ -932,6 +947,7 @@ function TaskDialog({ id, onClose }) {
     t = s.rmaTasks.find((x) => x.id === id),
     r = s.rmas.find((x) => x.id === t?.rmaId),
     [mode, setMode] = useState("history"),
+    [openedRevision] = useState(t?.revision),
     [v, setV] = useState({
       amount: ((t?.amountCents || 0) / 100).toFixed(2),
       qty: t?.qty || 1,
@@ -1058,7 +1074,7 @@ function TaskDialog({ id, onClose }) {
                 "rmatask.update",
                 {
                   id,
-                  expectedRevision: t.revision,
+                  expectedRevision: openedRevision,
                   amountCents: cents(v.amount),
                   qty: Number(v.qty),
                   productId: v.productId,
@@ -1072,7 +1088,7 @@ function TaskDialog({ id, onClose }) {
                 "rmatask.review",
                 {
                   id,
-                  expectedRevision: t.revision,
+                  expectedRevision: openedRevision,
                   decision: v.decision,
                   note: v.note,
                 },
@@ -1081,7 +1097,7 @@ function TaskDialog({ id, onClose }) {
             else
               submit(
                 "rmatask.execute",
-                { id, ...v, expectedRevision: t.revision },
+                { id, ...v, expectedRevision: openedRevision },
                 "Task execution recorded locally.",
               );
           }}
@@ -2064,6 +2080,7 @@ function ConfigEditor({ entity, record, onClose }) {
   };
   const [v, setV] = useState({ ...defaults, ...record }),
     [amount, setAmount] = useState(((record.value || 0) / 100).toFixed(2)),
+    [configRevision] = useState(cfg.revision),
     { submit, busy, error, setError } = useSupportAction(onClose),
     set = (k, x) => setV({ ...v, [k]: x });
   const nodeSet = (i, key, value) =>
@@ -2115,7 +2132,7 @@ function ConfigEditor({ entity, record, onClose }) {
               }));
             submit(
               "rmaconfig.save",
-              { entity, record: r },
+              { entity, record: r, expectedConfigRevision: configRevision },
               "Support configuration saved.",
             );
           } catch (e) {

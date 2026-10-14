@@ -276,3 +276,55 @@ func TestDisabledFieldsRetainSavedValuesAndIgnoreNewInput(t *testing.T) {
 		t.Fatal("disabled field accepted new data")
 	}
 }
+
+func TestStarterJSONAndLegacyDependencyMigration(t *testing.T) {
+	s := fixture()
+	for _, sol := range domain.Rows(Config(s), "solutions") {
+		for _, n := range domain.Rows(sol, "nodes") {
+			if n["dependsOn"] == nil {
+				t.Fatal("starter dependencies must be []")
+			}
+		}
+	}
+	sol := lookup(domain.Rows(Config(s), "solutions"), "goodwill")
+	domain.Rows(sol, "nodes")[0]["dependsOn"] = nil
+	r := M{"id": "old", "solutionSnapshot": domain.Clone(sol)}
+	s["rmas"] = []M{r}
+	before := domain.N(Config(s)["revision"])
+	Ensure(s)
+	encoded, _ := json.Marshal(s)
+	if strings.Contains(string(encoded), `"dependsOn":null`) {
+		t.Fatal("persisted legacy null dependency was not repaired")
+	}
+	if domain.N(Config(s)["revision"]) != before {
+		t.Fatal("normalization changed revision")
+	}
+}
+func TestConfigurationValidationAndConcurrency(t *testing.T) {
+	s := fixture()
+	a := actor("admin", true)
+	for _, key := range []string{"constructor", "__proto__", "prototype"} {
+		reject(t, s, a, "rmaconfig.save", M{"entity": "platforms", "record": M{"id": key, "name": "Bad key", "enabled": true}}, "keys")
+	}
+	for _, deps := range []any{"not-an-array", []any{12}, []any{"x", "x"}} {
+		reject(t, s, a, "rmaconfig.save", M{"entity": "solutions", "record": M{"id": "invalid", "name": "Invalid", "enabled": true, "nodes": []M{{"key": "one", "typeId": "promo_code", "dependsOn": deps}}}}, "")
+	}
+	revision := Config(s)["revision"]
+	run(t, &s, a, "rmaconfig.save", M{"entity": "platforms", "record": M{"id": "new", "name": "New", "enabled": true}, "expectedConfigRevision": revision})
+	reject(t, s, a, "rmaconfig.save", M{"entity": "platforms", "record": M{"id": "stale", "name": "Stale", "enabled": true}, "expectedConfigRevision": revision}, "configuration changed")
+	b := input("goodwill")
+	b["expectedConfigRevision"] = revision
+	reject(t, s, actor("owner", false), "rma.create", b, "configuration changed")
+}
+func TestSerialEditsPreserveLinksAndExecutionRechecksSKU(t *testing.T) {
+	s := fixture()
+	a, u := actor("admin", true), actor("owner", false)
+	dev := run(t, &s, a, "serial.save", M{"sn": "DEVICE-LINK", "kind": "device", "productId": "PRD-1", "status": "sold"})
+	run(t, &s, a, "serial.save", M{"sn": "HEAD-LINK", "kind": "printhead", "productId": "PRD-2", "parentSn": "DEVICE-LINK", "status": "sold"})
+	reject(t, s, a, "serial.save", M{"id": dev["id"], "sn": "CHANGED", "kind": "device", "productId": "PRD-1", "status": "sold"}, "identity is linked")
+	run(t, &s, a, "serial.save", M{"id": dev["id"], "sn": "DEVICE-LINK", "kind": "device", "productId": "PRD-1", "status": "returned"})
+	r := run(t, &s, u, "rma.create", input("parts"))
+	part := task(s, r, "send_parts")
+	domain.Find(s, "products", "PRD-2")["productType"] = "general"
+	reject(t, s, a, "rmatask.execute", M{"id": part["id"], "operation": "complete", "carrier": "x", "tracking": "x"}, "support part SKU")
+}
