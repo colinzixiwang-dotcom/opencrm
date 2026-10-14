@@ -1,0 +1,32 @@
+export const paths = {
+  home: "M3 10l9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M9 21v-8h6v8",
+  product: "m12 3 9 5-9 5-9-5 9-5z M3 8v9l9 5 9-5V8 M12 13v9",
+  sales: "M4 4h2l3 12h10l2-8H7 M10 21h.01 M18 21h.01",
+  fba: "M3 9h18v12H3z M2 9l10-6 10 6 M8 13v8 M16 13v8",
+  purchase: "M7 3h10v4H7z M5 5H3v16h18V5h-2 M7 12h10 M7 16h6",
+  warehouse: "M3 21V9l9-6 9 6v12 M3 21h18 M7 21V11h10v10 M7 15h10",
+  logistics:
+    "M1 5h13v12H1z M14 9h4l4 4v4h-8 M6 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4 M18 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4",
+  advertising: "M3 10h4l13-5v14L7 14H3z M7 14l2 7h4l-2-6",
+  service: "M21 11a9 9 0 0 1-9 9H4l-2 2v-9a10 10 0 0 1 19-2z M7 10h10 M7 14h6",
+  finance: "M3 5h18v15H3z M3 9h18 M15 14h3 M7 14h2",
+  statistics: "M4 21V11h4v10 M10 21V3h4v18 M16 21V7h4v14",
+  tools: "m14 6 4-4 4 4-4 4-3-1-9 12-4-4L14 6z",
+  settings:
+    "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 3-2 2 1 4-3 2-3-1-2 3-3-1-1-3-3-1-2-3 2-2-1-4 3-2 3 1z",
+  search: "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M15 15l6 6",
+  plus: "M12 5v14 M5 12h14",
+  arrow: "M5 12h14 M13 6l6 6-6 6",
+  check: "m5 12 4 4 10-10",
+  close: "m6 6 12 12 M18 6 6 18",
+  download: "M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2",
+  logout: "M9 3H3v18h6 M9 12h12 M16 7l5 5-5 5",
+  alert: "m12 3 10 18H2L12 3z M12 9v5 M12 17h.01",
+  chevron: "m9 5 7 7-7 7",
+  filter: "M3 5h18 M6 12h12 M9 19h6",
+  edit: "m16 3 5 5-13 13H3v-5L16 3z",
+  refresh: "M20 7v5h-5 M4 17v-5h5 M6 6a8 8 0 0 1 14 6 M18 18A8 8 0 0 1 4 12",
+  users:
+    "M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M2 21v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4 M17 4a4 4 0 0 1 0 7 M19 13a5 5 0 0 1 3 4v4",
+};

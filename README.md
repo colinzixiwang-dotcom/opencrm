@@ -10,19 +10,23 @@ A working, local ERP inspired by the Lingxing frontend investigation. It connect
 ./start.sh
 ```
 
-Open **http://127.0.0.1:4317**. The launcher uses a supported `node` from your path, or the installed Codex bundled Node runtime when available. To select one explicitly:
+Open **http://127.0.0.1:4317**. The launcher installs missing npm dependencies, builds the React frontend with Vite, compiles the Gin server, and runs the Go binary. Node is used only for development/build/test tooling; the running application is served by Go.
+
+Requirements: **Node 22.19+ (22.x), 24.11+ (24.x), or 26+**, **Go 1.25+**, and a C compiler for the SQLite driver (Xcode command-line tools on macOS). The launcher can use the installed Codex Node runtime and the workspace-local Go toolchain. Elsewhere, install these tools on PATH or provide `HARBOR_NODE` / `HARBOR_GO`:
 
 ```sh
-HARBOR_NODE=/absolute/path/to/node ./start.sh
+HARBOR_NODE=/absolute/path/to/node HARBOR_GO=/absolute/path/to/go ./start.sh
 ```
 
-Node **24.15+ within 24.x, or 26+** is required for the built-in SQLite API. There are **no runtime package dependencies and no build step**. Alternatively, with a supported Node version:
+`PORT` changes the listening port. `DB_PATH` changes the SQLite path. `DIST_DIR` changes the built frontend directory. The server binds only to `127.0.0.1`. Data defaults to `data/harbor.sqlite`, with SQLite WAL sidecars. Runtime data is ignored by Git.
+
+For frontend development, run the Go backend on 4317 and `npm run dev` in another terminal. Vite serves React on 5173 and proxies `/api` to Gin. For a prebuilt launch without Node:
 
 ```sh
-node server.mjs
+npm ci && npm run build
+./scripts/go.sh build -o ../.bin/harbor ./cmd/harbor
+./.bin/harbor
 ```
-
-`PORT` changes the listening port. `DB_PATH` changes the SQLite path. The server binds only to `127.0.0.1`. Data defaults to `data/harbor.sqlite`, with SQLite WAL sidecars. Runtime data is ignored by Git.
 
 ### Example accounts
 
@@ -32,7 +36,7 @@ node server.mjs
 | Operator | `operator@harbor.local` | `HarborDemo!2026` | Products, suppliers, purchases, inventory, transfers, sales, campaigns, tickets, tasks |
 | Analyst | `analyst@harbor.local` | `HarborDemo!2026` | Read-only |
 
-The sign-in screen has shortcuts for these accounts. They use example data. New users can be created in Settings → Users & roles. Permissions are checked by the server for every mutation, not just hidden in the interface. Disabled users lose access on their next authenticated request.
+The sign-in screen has shortcuts for these accounts. They use example data. New users can be created in Settings → Users & roles. Settings also includes **Role permissions**, **Menus & buttons**, and **Assign roles**. Permissions are checked by the server for every mutation and protected read. Disabled users lose access on their next authenticated request.
 
 ## Implemented workflows
 
@@ -50,7 +54,7 @@ The sign-in screen has shortcuts for these accounts. They use example data. New 
 | Finance | Revenue/COGS/profit, operating expenses, recorded payments, receivables, payables, on-hand/transit inventory values |
 | Statistics | Date/channel filters, SKU performance, daily chart, real CSV download |
 | Tools | Tasks, completion/reopening, unit-profit calculator with explicit inputs |
-| Settings | Company/timezone preferences, user roles/access, audit trail, business snapshot export, transparent integration status |
+| Settings | Company/timezone preferences, users, custom roles, multiple-role assignment, page/button permissions, menu visibility/order, audit trail, business snapshot export, integration status |
 
 Search tables, sort supported column headings, use the global product/document search, and export the record collections. Forms validate inputs in the browser and on the server. All tables display all matching records; pagination and large-data virtualization are not implemented.
 
@@ -81,11 +85,11 @@ Search tables, sort supported column headings, use the global product/document s
 - Report day boundaries use the company timezone. Expense/payment date fields are explicit calendar dates. Channel filters apply to sales; expenses are not allocated by channel.
 - The stock coverage setting is stored for future forecasting. The implemented suggestions use each product's reorder point, not a demand forecasting model.
 
-Every mutation operates on a cloned snapshot, validates invariants, and commits in a SQLite `BEGIN IMMEDIATE` transaction. Failed multi-line actions roll back. Mutations support `Idempotency-Key`: replaying the same key and payload returns the prior result without applying it twice; reuse for a different payload is rejected.
+Every mutation operates on a cloned snapshot, validates invariants, and commits in a serialized GORM/SQLite transaction. Failed multi-line actions roll back. Mutations support `Idempotency-Key`: replaying the same key and payload returns the prior result without applying it twice; reuse for a different payload is rejected.
 
 ## Data and recovery
 
-The application persists its business state in a SQLite JSON document (`app_state`), with separate `sessions` and `request_receipts` tables. This small-workspace design serializes mutations and is not intended as a multi-tenant, high-volume ERP storage architecture.
+The application persists its business state in a SQLite JSON document (`app_state`), with separate `sessions` and `request_receipts` tables. RuoYi permissions use normalized `sys_user`, `sys_role`, `sys_menu`, `sys_user_role`, and `sys_role_menu` tables. Those normalized tables are authoritative for access; the legacy user entries are retained for migration compatibility. This small-workspace design serializes mutations and is not intended as a multi-tenant, high-volume ERP storage architecture.
 
 To back up everything, stop the server, then copy the `data/` directory. Restore by replacing that directory while the server is stopped. Settings also offers a portable **business snapshot** JSON export; it excludes users/passwords/sessions and has no import/restore UI. CSV exports are real downloads and neutralize spreadsheet formula-like text.
 
@@ -95,44 +99,59 @@ To start a fresh example workspace, stop the server and choose a new `DB_PATH`. 
 
 Amazon, Shopify, 1688, carrier services, and Lingxing are **not connected**. No store authorization or external messaging occurs. Advertising status changes affect the local record only. There is no ASIN/MSKU pairing engine, external STA execution, marketplace data sync, tax/FX, statutory accounting, rich dashboard builder, or the complete 203-feature Lingxing navigation catalog.
 
-This is a local implementation with tested workflows, not a production deployment. The example accounts, single-currency accounting, coarse roles, and lack of multi-tenant isolation are explicit design boundaries. Only local HTTP is supported; the session cookie is HttpOnly/SameSite Strict and is not a hosted TLS deployment configuration.
+This is a local implementation with tested workflows, not a production deployment. The example accounts, single-currency accounting, lack of department/row-level data scopes, and lack of multi-tenant isolation are explicit design boundaries. Only local HTTP is supported; the session cookie is HttpOnly/SameSite Strict and is not a hosted TLS deployment configuration.
+
+## Permissions: RuoYi-Go adaptation
+
+The backend adapts the MIT-licensed community Go port [lostvip-com/ruoyi-go](https://github.com/lostvip-com/ruoyi-go), discovered through [RuoYi](https://ruoyi.vip/). It reuses the role/menu/user model and menu-permission evaluation approach. This is a focused adaptation, not the complete upstream application. No RuoYi frontend, templates, or visual styles are used. See [provenance and license](THIRD_PARTY_NOTICES.md).
+
+- Custom roles grant page access and individual actions such as `erp:product:add` and `system:role:edit`.
+- Users can hold multiple roles; enabled-role grants are combined.
+- Disabled roles, accounts, and permissions are re-evaluated on authenticated requests; no re-login is needed for server enforcement. Refresh the workspace to update visible buttons/menus.
+- A hidden menu retains its permission; a disabled menu loses its own permission. Page and action grants are separate, following RuoYi's flat permission model. The role editor selects a parent page when granting an action and clears its action grants when unchecking that page.
+- Administrator access is protected against removal of the last active administrator and self-lockout. Administrator has wildcard access.
+- Route/permission identifiers are fixed by backend code. Administrators may edit menu labels, order, visibility, and enabled state.
+- Products, warehouses, and company settings are shared reference data available to authenticated users for document forms. Business document collections, reports, exports, user lists, and permission management have server-side access checks. Page access is not a field-level confidentiality policy.
+- Department trees, organization/row-level data scopes, tenant isolation, SSO, Redis, job scheduling, code generation, and arbitrary new route creation are not included. These are not implied by the RuoYi adaptation.
+
+## Migration
+
+The Go server opens the existing SQLite database and initializes RuoYi user/role/menu tables on first launch. Business collections and preferences are retained. Existing scrypt password hashes remain valid; new accounts use bcrypt. Existing session rows are compatible. Stop the old server before launching Go; do not run both against the same database.
+
+Before replacing the old server, the existing local database was tested on a consistent copy: all 14 business collections and settings were unchanged and the legacy administrator login worked. A complete SQLite backup is retained in ignored `data/pre-react-gin.sqlite` after the final switch.
 
 ## Tests
 
-Domain and HTTP tests require no third-party packages:
-
 ```sh
-npm test
+npm ci
 npm run check
-```
-
-For browser tests, install the optional development dependency and a browser:
-
-```sh
-npm install
+npm test
+./scripts/go.sh vet ./...
+./scripts/go.sh test -race ./...
 npx playwright install chromium
 npm run test:e2e
 ```
 
-An existing Chrome executable may be used instead of installing a browser:
+An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and temporary SQLite database. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`.
 
-```sh
-CHROME_EXECUTABLE="/absolute/path/to/chrome" npm run test:e2e
-```
+`npm run test:migration` verifies migration of the existing local legacy database on a temporary copy; set `MIGRATION_DB` to choose another legacy database. It requires the original example administrator credentials. This is an optional local migration check, separate from the portable unit/browser suites.
 
-`PLAYWRIGHT_PATH` can point to an existing Playwright installation. The browser suite starts a separate server and temporary SQLite database; it does not modify your running workspace. Screenshots and its result JSON go to ignored `test-results/`.
-
-Coverage includes atomic partial receipts, reservation isolation, over-receipt/return/payment rejection, transfer valuation, fractional-cost cent conservation, historical COGS, timezone reporting, persistent sessions/data after restart, idempotency replay, role enforcement, disabled-user sessions, formula-safe export, all 12 module screens, connected browser workflows, mobile navigation, and no browser errors. See `docs/validation.md` for the delivered verification result.
+See [validation results](docs/validation.md) for coverage and limitations.
 
 ## Structure
 
 ```text
-server.mjs          HTTP, authentication, SQLite transactions, exports
-lib/domain.mjs      Validation, workflow rules, valuation, reports, example data
-public/app.js       Browser UI, forms, navigation, charting, downloads
-public/style.css    Responsive desktop/mobile interface
-tests/              Domain, HTTP, and browser workflow tests
-data/               Runtime database (ignored)
+frontend/src/             React components, forms, pages, context, Harbor styling
+frontend/vite.config.js   Build and development proxy
+backend/cmd/harbor/       Go server entry point
+backend/internal/httpapi/ Gin routes, authentication, exports
+backend/internal/domain/ ERP validation, workflows, valuation, reporting
+backend/internal/ruoyi/   Adapted RuoYi RBAC models and permission service
+backend/internal/store/   SQLite persistence and transactional mutations
+backend/third_party/      Upstream MIT license
+scripts/go.sh             Go toolchain resolver
+tests/                    Browser workflows and legacy migration verification
+data/                     Runtime database and migration backup (ignored)
 ```
 
-Source is tracked in a standalone Git repository on `codex/lingxing-erp`. No database, credentials from external services, downloaded Lingxing code, or test-generated business data is committed.
+Source is tracked in a standalone Git repository on `codex/react-gin-ruoyi`. The previous vanilla-JS/Node implementation remains in Git history. No database, external credentials, or private Lingxing code is committed.

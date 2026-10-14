@@ -1,17 +1,22 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")"
-task_node_bin="${HARBOR_NODE:-node}"
 supported_node() {
-  "$1" -e 'const [major,minor]=process.versions.node.split(".").map(Number);process.exit((major===24&&minor>=15)||major>=26?0:1)' >/dev/null 2>&1
+ "$1" -e 'const [m,n]=process.versions.node.split(".").map(Number);process.exit((m===22&&n>=19)||(m===24&&n>=11)||m>=26?0:1)' >/dev/null 2>&1
 }
-if ! supported_node "$task_node_bin"; then
-  task_bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
-  if [ -x "$task_bundled_node" ] && supported_node "$task_bundled_node"; then
-    task_node_bin="$task_bundled_node"
-  else
-    printf '%s\n' 'Harbor ERP needs Node.js 24.15+ (24.x) or 26+.' 'Install a supported Node version, or set HARBOR_NODE to its executable path.' >&2
-    exit 1
-  fi
+task_node=${HARBOR_NODE:-node}
+if ! supported_node "$task_node"; then
+ task_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+ if ! supported_node "$task_node"; then
+  printf '%s\n' 'Install Node 22.19+, 24.11+, or 26+, or set HARBOR_NODE to its executable.' >&2
+  exit 1
+ fi
 fi
-exec "$task_node_bin" server.mjs
+if [ ! -d node_modules ]; then
+ task_node_dir=$(dirname "$task_node")
+ PATH="$task_node_dir:$PATH" npm ci
+fi
+"$task_node" node_modules/vite/bin/vite.js build --config frontend/vite.config.js
+mkdir -p .bin
+./scripts/go.sh build -o ../.bin/harbor ./cmd/harbor
+exec ./.bin/harbor

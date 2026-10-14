@@ -1,0 +1,1641 @@
+{
+  "version": 104,
+  "settings": {
+    "company": "Harbor Supply Co.",
+    "currency": "USD",
+    "timezone": "Asia/Shanghai",
+    "lowStockDays": 14
+  },
+  "users": [
+    {
+      "id": "USR-ADMIN",
+      "name": "Alex Morgan",
+      "email": "admin@harbor.local",
+      "role": "admin",
+      "active": true,
+      "passwordHash": "0f756ccdc5f750b400ec133d23b8b915:54eb6000b99c441bc6e7ee80362de0f2b3bfda6821d8a47b5739a3eec237a2c63f64efdf49d3a00694d83918e92d24a8a66b2ebd13f8a61a38fc5618d7473292"
+    },
+    {
+      "id": "USR-OPERATOR",
+      "name": "Jamie Chen",
+      "email": "operator@harbor.local",
+      "role": "operator",
+      "active": true,
+      "passwordHash": "849978c6b6f317375ddbf7dc34d3ba5e:ab06e334807b9a4b99afa9032053c1a80e9e81652dfc8aa554258ab336c31d9f1960cb6d09171e103f58b987be55e190e0f56ce2d4d1addac2a81f4f2c8d4884"
+    },
+    {
+      "id": "USR-ANALYST",
+      "name": "Sam Rivera",
+      "email": "analyst@harbor.local",
+      "role": "analyst",
+      "active": true,
+      "passwordHash": "e2a00e9b04f76af79bd0a0711614a772:37ba17a39c1cb6d4eb4886e2197d98eb6d541c576b3023fbdb50e479fa7a7f12c4e53c831287dd92dbc2cea3a1cf9ad6ca053fd9516df5061056ee10cf587a1b"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "SUP-1",
+      "name": "Evergreen Manufacturing",
+      "contact": "Mia Lin",
+      "email": "mia@example.com",
+      "terms": "Net 30"
+    },
+    {
+      "id": "SUP-2",
+      "name": "Northstar Goods",
+      "contact": "David Park",
+      "email": "david@example.com",
+      "terms": "Net 15"
+    }
+  ],
+  "warehouses": [
+    {
+      "id": "WH-1",
+      "name": "Shenzhen Hub",
+      "location": "Shenzhen, CN",
+      "type": "local"
+    },
+    {
+      "id": "WH-2",
+      "name": "Amazon West",
+      "location": "California, US",
+      "type": "fba"
+    },
+    {
+      "id": "WH-3",
+      "name": "London Fulfillment",
+      "location": "London, UK",
+      "type": "overseas"
+    }
+  ],
+  "products": [
+    {
+      "id": "PRD-1",
+      "sku": "HB-TMB-001",
+      "spu": "HB-TMB",
+      "name": "Insulated Travel Tumbler",
+      "category": "Drinkware",
+      "unit": "pcs",
+      "costCents": 850,
+      "priceCents": 2890,
+      "reorderPoint": 80,
+      "supplierId": "SUP-1",
+      "leadDays": 18,
+      "createdAt": "2026-10-14T15:47:34.145Z"
+    },
+    {
+      "id": "PRD-2",
+      "sku": "HB-DSK-002",
+      "spu": "HB-DSK",
+      "name": "Oak Desk Organizer",
+      "category": "Workspace",
+      "unit": "pcs",
+      "costCents": 1240,
+      "priceCents": 3990,
+      "reorderPoint": 35,
+      "supplierId": "SUP-2",
+      "leadDays": 14,
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "PRD-3",
+      "sku": "HB-LMP-003",
+      "spu": "HB-LMP",
+      "name": "Rechargeable Reading Lamp",
+      "category": "Lighting",
+      "unit": "pcs",
+      "costCents": 1680,
+      "priceCents": 5490,
+      "reorderPoint": 45,
+      "supplierId": "SUP-1",
+      "leadDays": 21,
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "PRD-4",
+      "sku": "HB-BAG-004",
+      "spu": "HB-BAG",
+      "name": "Everyday Canvas Tote",
+      "category": "Accessories",
+      "unit": "pcs",
+      "costCents": 620,
+      "priceCents": 2290,
+      "reorderPoint": 60,
+      "supplierId": "SUP-2",
+      "leadDays": 12,
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "PRD-5",
+      "sku": "HB-JAR-005",
+      "spu": "HB-JAR",
+      "name": "Glass Storage Set",
+      "category": "Kitchen",
+      "unit": "set",
+      "costCents": 1120,
+      "priceCents": 3490,
+      "reorderPoint": 40,
+      "supplierId": "SUP-1",
+      "leadDays": 16,
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "PRD-6",
+      "sku": "HB-MAT-006",
+      "spu": "HB-MAT",
+      "name": "Cork Desk Mat",
+      "category": "Workspace",
+      "unit": "pcs",
+      "costCents": 740,
+      "priceCents": 2690,
+      "reorderPoint": 30,
+      "supplierId": "SUP-2",
+      "leadDays": 10,
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    }
+  ],
+  "stocks": [
+    {
+      "id": "STK-e40cc3c2",
+      "productId": "PRD-1",
+      "warehouseId": "WH-1",
+      "onHand": 260,
+      "locked": 0,
+      "averageCostCents": 850,
+      "valueCents": 221000
+    },
+    {
+      "id": "STK-75acab29",
+      "productId": "PRD-1",
+      "warehouseId": "WH-2",
+      "onHand": 248,
+      "locked": 0,
+      "averageCostCents": 850,
+      "valueCents": 210800
+    },
+    {
+      "id": "STK-fb96d2fd",
+      "productId": "PRD-1",
+      "warehouseId": "WH-3",
+      "onHand": 246,
+      "locked": 0,
+      "averageCostCents": 850,
+      "valueCents": 209100
+    },
+    {
+      "id": "STK-1ba8b9b6",
+      "productId": "PRD-2",
+      "warehouseId": "WH-1",
+      "onHand": 145,
+      "locked": 0,
+      "averageCostCents": 1240,
+      "valueCents": 179800
+    },
+    {
+      "id": "STK-a22c22df",
+      "productId": "PRD-2",
+      "warehouseId": "WH-2",
+      "onHand": 130,
+      "locked": 0,
+      "averageCostCents": 1240,
+      "valueCents": 161200
+    },
+    {
+      "id": "STK-42bde890",
+      "productId": "PRD-2",
+      "warehouseId": "WH-3",
+      "onHand": 131,
+      "locked": 0,
+      "averageCostCents": 1240,
+      "valueCents": 162440
+    },
+    {
+      "id": "STK-72a99452",
+      "productId": "PRD-3",
+      "warehouseId": "WH-1",
+      "onHand": 23,
+      "locked": 0,
+      "averageCostCents": 1680,
+      "valueCents": 38640
+    },
+    {
+      "id": "STK-da0f7721",
+      "productId": "PRD-3",
+      "warehouseId": "WH-2",
+      "onHand": 9,
+      "locked": 0,
+      "averageCostCents": 1680,
+      "valueCents": 15120
+    },
+    {
+      "id": "STK-a794b210",
+      "productId": "PRD-3",
+      "warehouseId": "WH-3",
+      "onHand": 9,
+      "locked": 0,
+      "averageCostCents": 1680,
+      "valueCents": 15120
+    },
+    {
+      "id": "STK-cfba2d92",
+      "productId": "PRD-4",
+      "warehouseId": "WH-1",
+      "onHand": 190,
+      "locked": 0,
+      "averageCostCents": 620,
+      "valueCents": 117800
+    },
+    {
+      "id": "STK-0bcb918c",
+      "productId": "PRD-4",
+      "warehouseId": "WH-2",
+      "onHand": 173,
+      "locked": 0,
+      "averageCostCents": 620,
+      "valueCents": 107260
+    },
+    {
+      "id": "STK-8e35aadc",
+      "productId": "PRD-4",
+      "warehouseId": "WH-3",
+      "onHand": 176,
+      "locked": 0,
+      "averageCostCents": 620,
+      "valueCents": 109120
+    },
+    {
+      "id": "STK-82ff0971",
+      "productId": "PRD-5",
+      "warehouseId": "WH-1",
+      "onHand": 78,
+      "locked": 0,
+      "averageCostCents": 1120,
+      "valueCents": 87360
+    },
+    {
+      "id": "STK-c562efc1",
+      "productId": "PRD-5",
+      "warehouseId": "WH-2",
+      "onHand": 66,
+      "locked": 0,
+      "averageCostCents": 1120,
+      "valueCents": 73920
+    },
+    {
+      "id": "STK-97691d3c",
+      "productId": "PRD-5",
+      "warehouseId": "WH-3",
+      "onHand": 64,
+      "locked": 0,
+      "averageCostCents": 1120,
+      "valueCents": 71680
+    },
+    {
+      "id": "STK-8182fe7f",
+      "productId": "PRD-6",
+      "warehouseId": "WH-1",
+      "onHand": 95,
+      "locked": 0,
+      "averageCostCents": 740,
+      "valueCents": 70300
+    },
+    {
+      "id": "STK-da78de56",
+      "productId": "PRD-6",
+      "warehouseId": "WH-2",
+      "onHand": 80,
+      "locked": 0,
+      "averageCostCents": 740,
+      "valueCents": 59200
+    },
+    {
+      "id": "STK-7bcf1ed9",
+      "productId": "PRD-6",
+      "warehouseId": "WH-3",
+      "onHand": 81,
+      "locked": 0,
+      "averageCostCents": 740,
+      "valueCents": 59940
+    }
+  ],
+  "movements": [
+    {
+      "id": "MOV-0af752c7",
+      "productId": "PRD-6",
+      "warehouseId": "WH-2",
+      "delta": -2,
+      "kind": "sale",
+      "reference": "SO-05db3fa3",
+      "unitCostCents": 740,
+      "totalCostCents": 1480,
+      "onHandAfter": 80,
+      "valueCentsAfter": 59200,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.170Z"
+    },
+    {
+      "id": "MOV-3113767b",
+      "productId": "PRD-5",
+      "warehouseId": "WH-2",
+      "delta": -1,
+      "kind": "sale",
+      "reference": "SO-639c618d",
+      "unitCostCents": 1120,
+      "totalCostCents": 1120,
+      "onHandAfter": 66,
+      "valueCentsAfter": 73920,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.169Z"
+    },
+    {
+      "id": "MOV-b4115a23",
+      "productId": "PRD-4",
+      "warehouseId": "WH-2",
+      "delta": -4,
+      "kind": "sale",
+      "reference": "SO-db6086ca",
+      "unitCostCents": 620,
+      "totalCostCents": 2480,
+      "onHandAfter": 173,
+      "valueCentsAfter": 107260,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.168Z"
+    },
+    {
+      "id": "MOV-527010cf",
+      "productId": "PRD-3",
+      "warehouseId": "WH-2",
+      "delta": -3,
+      "kind": "sale",
+      "reference": "SO-547d6359",
+      "unitCostCents": 1680,
+      "totalCostCents": 5040,
+      "onHandAfter": 9,
+      "valueCentsAfter": 15120,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.167Z"
+    },
+    {
+      "id": "MOV-cadd7c2c",
+      "productId": "PRD-2",
+      "warehouseId": "WH-2",
+      "delta": -2,
+      "kind": "sale",
+      "reference": "SO-d65d78b1",
+      "unitCostCents": 1240,
+      "totalCostCents": 2480,
+      "onHandAfter": 130,
+      "valueCentsAfter": 161200,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.166Z"
+    },
+    {
+      "id": "MOV-4b69264c",
+      "productId": "PRD-1",
+      "warehouseId": "WH-2",
+      "delta": -1,
+      "kind": "sale",
+      "reference": "SO-dad49bb6",
+      "unitCostCents": 850,
+      "totalCostCents": 850,
+      "onHandAfter": 248,
+      "valueCentsAfter": 210800,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.165Z"
+    },
+    {
+      "id": "MOV-6d5f3001",
+      "productId": "PRD-6",
+      "warehouseId": "WH-2",
+      "delta": -4,
+      "kind": "sale",
+      "reference": "SO-e2837d35",
+      "unitCostCents": 740,
+      "totalCostCents": 2960,
+      "onHandAfter": 82,
+      "valueCentsAfter": 60680,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.164Z"
+    },
+    {
+      "id": "MOV-6213fc7c",
+      "productId": "PRD-5",
+      "warehouseId": "WH-2",
+      "delta": -3,
+      "kind": "sale",
+      "reference": "SO-ae755d8f",
+      "unitCostCents": 1120,
+      "totalCostCents": 3360,
+      "onHandAfter": 67,
+      "valueCentsAfter": 75040,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.163Z"
+    },
+    {
+      "id": "MOV-c65ef12a",
+      "productId": "PRD-4",
+      "warehouseId": "WH-2",
+      "delta": -2,
+      "kind": "sale",
+      "reference": "SO-ab287d42",
+      "unitCostCents": 620,
+      "totalCostCents": 1240,
+      "onHandAfter": 177,
+      "valueCentsAfter": 109740,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.162Z"
+    },
+    {
+      "id": "MOV-63325cf2",
+      "productId": "PRD-3",
+      "warehouseId": "WH-2",
+      "delta": -1,
+      "kind": "sale",
+      "reference": "SO-4b88afee",
+      "unitCostCents": 1680,
+      "totalCostCents": 1680,
+      "onHandAfter": 12,
+      "valueCentsAfter": 20160,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.161Z"
+    },
+    {
+      "id": "MOV-4b910c99",
+      "productId": "PRD-2",
+      "warehouseId": "WH-2",
+      "delta": -4,
+      "kind": "sale",
+      "reference": "SO-f4a8294c",
+      "unitCostCents": 1240,
+      "totalCostCents": 4960,
+      "onHandAfter": 132,
+      "valueCentsAfter": 163680,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.160Z"
+    },
+    {
+      "id": "MOV-6a6910f2",
+      "productId": "PRD-1",
+      "warehouseId": "WH-2",
+      "delta": -3,
+      "kind": "sale",
+      "reference": "SO-81beb76e",
+      "unitCostCents": 850,
+      "totalCostCents": 2550,
+      "onHandAfter": 249,
+      "valueCentsAfter": 211650,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.160Z"
+    },
+    {
+      "id": "MOV-6d04a1c7",
+      "productId": "PRD-6",
+      "warehouseId": "WH-2",
+      "delta": -2,
+      "kind": "sale",
+      "reference": "SO-a542688e",
+      "unitCostCents": 740,
+      "totalCostCents": 1480,
+      "onHandAfter": 86,
+      "valueCentsAfter": 63640,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.159Z"
+    },
+    {
+      "id": "MOV-aca6c986",
+      "productId": "PRD-5",
+      "warehouseId": "WH-2",
+      "delta": -1,
+      "kind": "sale",
+      "reference": "SO-d1e21923",
+      "unitCostCents": 1120,
+      "totalCostCents": 1120,
+      "onHandAfter": 70,
+      "valueCentsAfter": 78400,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.159Z"
+    },
+    {
+      "id": "MOV-86e4e38e",
+      "productId": "PRD-4",
+      "warehouseId": "WH-2",
+      "delta": -4,
+      "kind": "sale",
+      "reference": "SO-13437eab",
+      "unitCostCents": 620,
+      "totalCostCents": 2480,
+      "onHandAfter": 179,
+      "valueCentsAfter": 110980,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.158Z"
+    },
+    {
+      "id": "MOV-cd9f61b4",
+      "productId": "PRD-3",
+      "warehouseId": "WH-2",
+      "delta": -3,
+      "kind": "sale",
+      "reference": "SO-71b2d786",
+      "unitCostCents": 1680,
+      "totalCostCents": 5040,
+      "onHandAfter": 13,
+      "valueCentsAfter": 21840,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.157Z"
+    },
+    {
+      "id": "MOV-cb4962e1",
+      "productId": "PRD-2",
+      "warehouseId": "WH-2",
+      "delta": -2,
+      "kind": "sale",
+      "reference": "SO-6a0a9838",
+      "unitCostCents": 1240,
+      "totalCostCents": 2480,
+      "onHandAfter": 136,
+      "valueCentsAfter": 168640,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.157Z"
+    },
+    {
+      "id": "MOV-a3349ff7",
+      "productId": "PRD-1",
+      "warehouseId": "WH-2",
+      "delta": -1,
+      "kind": "sale",
+      "reference": "SO-b561fbfa",
+      "unitCostCents": 850,
+      "totalCostCents": 850,
+      "onHandAfter": 252,
+      "valueCentsAfter": 214200,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.154Z"
+    },
+    {
+      "id": "MOV-93f07425",
+      "productId": "PRD-6",
+      "warehouseId": "WH-3",
+      "delta": 81,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 740,
+      "totalCostCents": 59940,
+      "onHandAfter": 81,
+      "valueCentsAfter": 59940,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-ec5d15ab",
+      "productId": "PRD-6",
+      "warehouseId": "WH-2",
+      "delta": 88,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 740,
+      "totalCostCents": 65120,
+      "onHandAfter": 88,
+      "valueCentsAfter": 65120,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-d43c91c8",
+      "productId": "PRD-6",
+      "warehouseId": "WH-1",
+      "delta": 95,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 740,
+      "totalCostCents": 70300,
+      "onHandAfter": 95,
+      "valueCentsAfter": 70300,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-9566189d",
+      "productId": "PRD-5",
+      "warehouseId": "WH-3",
+      "delta": 64,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1120,
+      "totalCostCents": 71680,
+      "onHandAfter": 64,
+      "valueCentsAfter": 71680,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-cc8e08ac",
+      "productId": "PRD-5",
+      "warehouseId": "WH-2",
+      "delta": 71,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1120,
+      "totalCostCents": 79520,
+      "onHandAfter": 71,
+      "valueCentsAfter": 79520,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-6036a0db",
+      "productId": "PRD-5",
+      "warehouseId": "WH-1",
+      "delta": 78,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1120,
+      "totalCostCents": 87360,
+      "onHandAfter": 78,
+      "valueCentsAfter": 87360,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-266a0d05",
+      "productId": "PRD-4",
+      "warehouseId": "WH-3",
+      "delta": 176,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 620,
+      "totalCostCents": 109120,
+      "onHandAfter": 176,
+      "valueCentsAfter": 109120,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-414af634",
+      "productId": "PRD-4",
+      "warehouseId": "WH-2",
+      "delta": 183,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 620,
+      "totalCostCents": 113460,
+      "onHandAfter": 183,
+      "valueCentsAfter": 113460,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-e49a92dd",
+      "productId": "PRD-4",
+      "warehouseId": "WH-1",
+      "delta": 190,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 620,
+      "totalCostCents": 117800,
+      "onHandAfter": 190,
+      "valueCentsAfter": 117800,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-948bc061",
+      "productId": "PRD-3",
+      "warehouseId": "WH-3",
+      "delta": 9,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1680,
+      "totalCostCents": 15120,
+      "onHandAfter": 9,
+      "valueCentsAfter": 15120,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-8363f208",
+      "productId": "PRD-3",
+      "warehouseId": "WH-2",
+      "delta": 16,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1680,
+      "totalCostCents": 26880,
+      "onHandAfter": 16,
+      "valueCentsAfter": 26880,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-ac8262ba",
+      "productId": "PRD-3",
+      "warehouseId": "WH-1",
+      "delta": 23,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1680,
+      "totalCostCents": 38640,
+      "onHandAfter": 23,
+      "valueCentsAfter": 38640,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-c382fa7e",
+      "productId": "PRD-2",
+      "warehouseId": "WH-3",
+      "delta": 131,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1240,
+      "totalCostCents": 162440,
+      "onHandAfter": 131,
+      "valueCentsAfter": 162440,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.152Z"
+    },
+    {
+      "id": "MOV-651cccd5",
+      "productId": "PRD-2",
+      "warehouseId": "WH-2",
+      "delta": 138,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1240,
+      "totalCostCents": 171120,
+      "onHandAfter": 138,
+      "valueCentsAfter": 171120,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "MOV-2373ffe8",
+      "productId": "PRD-2",
+      "warehouseId": "WH-1",
+      "delta": 145,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 1240,
+      "totalCostCents": 179800,
+      "onHandAfter": 145,
+      "valueCentsAfter": 179800,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "MOV-83677911",
+      "productId": "PRD-1",
+      "warehouseId": "WH-3",
+      "delta": 246,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 850,
+      "totalCostCents": 209100,
+      "onHandAfter": 246,
+      "valueCentsAfter": 209100,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "MOV-965b6cbf",
+      "productId": "PRD-1",
+      "warehouseId": "WH-2",
+      "delta": 253,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 850,
+      "totalCostCents": 215050,
+      "onHandAfter": 253,
+      "valueCentsAfter": 215050,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    },
+    {
+      "id": "MOV-798d9c97",
+      "productId": "PRD-1",
+      "warehouseId": "WH-1",
+      "delta": 260,
+      "kind": "opening_balance",
+      "reference": "Example opening stock",
+      "unitCostCents": 850,
+      "totalCostCents": 221000,
+      "onHandAfter": 260,
+      "valueCentsAfter": 221000,
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.151Z"
+    }
+  ],
+  "purchases": [
+    {
+      "id": "PO-8bd5c2cc",
+      "supplierId": "SUP-2",
+      "warehouseId": "WH-1",
+      "lines": [
+        {
+          "productId": "PRD-4",
+          "qty": 80,
+          "unitCents": 620,
+          "received": 0,
+          "returned": 0
+        }
+      ],
+      "status": "ordered",
+      "paidCents": 0,
+      "expectedDate": "2026-10-14",
+      "note": "Next restock cycle.",
+      "createdAt": "2026-10-14T15:47:34.171Z",
+      "updatedAt": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "PO-7d032e62",
+      "supplierId": "SUP-1",
+      "warehouseId": "WH-1",
+      "lines": [
+        {
+          "productId": "PRD-3",
+          "qty": 120,
+          "unitCents": 1680,
+          "received": 0,
+          "returned": 0
+        }
+      ],
+      "status": "pending",
+      "paidCents": 0,
+      "expectedDate": "2026-10-14",
+      "note": "Priority replenishment for reading lamps.",
+      "createdAt": "2026-10-14T15:47:34.170Z",
+      "updatedAt": "2026-10-14T15:47:34.171Z"
+    }
+  ],
+  "sales": [
+    {
+      "id": "SO-05db3fa3",
+      "customer": "River & Stone",
+      "channel": "Shopify",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-6",
+          "qty": 2,
+          "unitCents": 2690,
+          "received": 0,
+          "returned": 0,
+          "costCents": 740,
+          "costTotalCents": 1480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 5380,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-14T15:47:34.170Z",
+      "updatedAt": "2026-10-14T15:47:34.170Z",
+      "shippedAt": "2026-10-14T15:47:34.170Z"
+    },
+    {
+      "id": "SO-639c618d",
+      "customer": "Juniper Market",
+      "channel": "Amazon",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-5",
+          "qty": 1,
+          "unitCents": 3490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1120,
+          "costTotalCents": 1120,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 3490,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-13T15:47:34.169Z",
+      "updatedAt": "2026-10-14T15:47:34.169Z",
+      "shippedAt": "2026-10-13T15:47:34.169Z"
+    },
+    {
+      "id": "SO-db6086ca",
+      "customer": "Direct customer",
+      "channel": "Wholesale",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-4",
+          "qty": 4,
+          "unitCents": 2290,
+          "received": 0,
+          "returned": 0,
+          "costCents": 620,
+          "costTotalCents": 2480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 9160,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-12T15:47:34.168Z",
+      "updatedAt": "2026-10-14T15:47:34.168Z",
+      "shippedAt": "2026-10-12T15:47:34.168Z"
+    },
+    {
+      "id": "SO-547d6359",
+      "customer": "Atlas Retail",
+      "channel": "Direct",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-3",
+          "qty": 3,
+          "unitCents": 5490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1680,
+          "costTotalCents": 5040,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 16470,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-11T15:47:34.168Z",
+      "updatedAt": "2026-10-14T15:47:34.168Z",
+      "shippedAt": "2026-10-11T15:47:34.168Z"
+    },
+    {
+      "id": "SO-d65d78b1",
+      "customer": "River & Stone",
+      "channel": "Shopify",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-2",
+          "qty": 2,
+          "unitCents": 3990,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1240,
+          "costTotalCents": 2480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 7980,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-10T15:47:34.166Z",
+      "updatedAt": "2026-10-14T15:47:34.166Z",
+      "shippedAt": "2026-10-10T15:47:34.166Z"
+    },
+    {
+      "id": "SO-dad49bb6",
+      "customer": "Juniper Market",
+      "channel": "Amazon",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-1",
+          "qty": 1,
+          "unitCents": 2890,
+          "received": 0,
+          "returned": 0,
+          "costCents": 850,
+          "costTotalCents": 850,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 2890,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-09T15:47:34.165Z",
+      "updatedAt": "2026-10-14T15:47:34.165Z",
+      "shippedAt": "2026-10-09T15:47:34.165Z"
+    },
+    {
+      "id": "SO-e2837d35",
+      "customer": "Direct customer",
+      "channel": "Wholesale",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-6",
+          "qty": 4,
+          "unitCents": 2690,
+          "received": 0,
+          "returned": 0,
+          "costCents": 740,
+          "costTotalCents": 2960,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 10760,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-08T15:47:34.164Z",
+      "updatedAt": "2026-10-14T15:47:34.164Z",
+      "shippedAt": "2026-10-08T15:47:34.164Z"
+    },
+    {
+      "id": "SO-ae755d8f",
+      "customer": "Atlas Retail",
+      "channel": "Direct",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-5",
+          "qty": 3,
+          "unitCents": 3490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1120,
+          "costTotalCents": 3360,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 10470,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-07T15:47:34.163Z",
+      "updatedAt": "2026-10-14T15:47:34.163Z",
+      "shippedAt": "2026-10-07T15:47:34.163Z"
+    },
+    {
+      "id": "SO-ab287d42",
+      "customer": "River & Stone",
+      "channel": "Shopify",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-4",
+          "qty": 2,
+          "unitCents": 2290,
+          "received": 0,
+          "returned": 0,
+          "costCents": 620,
+          "costTotalCents": 1240,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 4580,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-06T15:47:34.162Z",
+      "updatedAt": "2026-10-14T15:47:34.162Z",
+      "shippedAt": "2026-10-06T15:47:34.162Z"
+    },
+    {
+      "id": "SO-4b88afee",
+      "customer": "Juniper Market",
+      "channel": "Amazon",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-3",
+          "qty": 1,
+          "unitCents": 5490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1680,
+          "costTotalCents": 1680,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 5490,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-05T15:47:34.162Z",
+      "updatedAt": "2026-10-14T15:47:34.162Z",
+      "shippedAt": "2026-10-05T15:47:34.162Z"
+    },
+    {
+      "id": "SO-f4a8294c",
+      "customer": "Direct customer",
+      "channel": "Wholesale",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-2",
+          "qty": 4,
+          "unitCents": 3990,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1240,
+          "costTotalCents": 4960,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 15960,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-04T15:47:34.160Z",
+      "updatedAt": "2026-10-14T15:47:34.160Z",
+      "shippedAt": "2026-10-04T15:47:34.160Z"
+    },
+    {
+      "id": "SO-81beb76e",
+      "customer": "Atlas Retail",
+      "channel": "Direct",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-1",
+          "qty": 3,
+          "unitCents": 2890,
+          "received": 0,
+          "returned": 0,
+          "costCents": 850,
+          "costTotalCents": 2550,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 8670,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-03T15:47:34.160Z",
+      "updatedAt": "2026-10-14T15:47:34.160Z",
+      "shippedAt": "2026-10-03T15:47:34.160Z"
+    },
+    {
+      "id": "SO-a542688e",
+      "customer": "River & Stone",
+      "channel": "Shopify",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-6",
+          "qty": 2,
+          "unitCents": 2690,
+          "received": 0,
+          "returned": 0,
+          "costCents": 740,
+          "costTotalCents": 1480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 5380,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-02T15:47:34.159Z",
+      "updatedAt": "2026-10-14T15:47:34.159Z",
+      "shippedAt": "2026-10-02T15:47:34.159Z"
+    },
+    {
+      "id": "SO-d1e21923",
+      "customer": "Juniper Market",
+      "channel": "Amazon",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-5",
+          "qty": 1,
+          "unitCents": 3490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1120,
+          "costTotalCents": 1120,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 3490,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-10-01T15:47:34.159Z",
+      "updatedAt": "2026-10-14T15:47:34.159Z",
+      "shippedAt": "2026-10-01T15:47:34.159Z"
+    },
+    {
+      "id": "SO-13437eab",
+      "customer": "Direct customer",
+      "channel": "Wholesale",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-4",
+          "qty": 4,
+          "unitCents": 2290,
+          "received": 0,
+          "returned": 0,
+          "costCents": 620,
+          "costTotalCents": 2480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 9160,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-09-30T15:47:34.158Z",
+      "updatedAt": "2026-10-14T15:47:34.158Z",
+      "shippedAt": "2026-09-30T15:47:34.158Z"
+    },
+    {
+      "id": "SO-71b2d786",
+      "customer": "Atlas Retail",
+      "channel": "Direct",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-3",
+          "qty": 3,
+          "unitCents": 5490,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1680,
+          "costTotalCents": 5040,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 16470,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-09-29T15:47:34.158Z",
+      "updatedAt": "2026-10-14T15:47:34.158Z",
+      "shippedAt": "2026-09-29T15:47:34.158Z"
+    },
+    {
+      "id": "SO-6a0a9838",
+      "customer": "River & Stone",
+      "channel": "Shopify",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-2",
+          "qty": 2,
+          "unitCents": 3990,
+          "received": 0,
+          "returned": 0,
+          "costCents": 1240,
+          "costTotalCents": 2480,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 7980,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-09-28T15:47:34.157Z",
+      "updatedAt": "2026-10-14T15:47:34.157Z",
+      "shippedAt": "2026-09-28T15:47:34.157Z"
+    },
+    {
+      "id": "SO-b561fbfa",
+      "customer": "Juniper Market",
+      "channel": "Amazon",
+      "warehouseId": "WH-2",
+      "lines": [
+        {
+          "productId": "PRD-1",
+          "qty": 1,
+          "unitCents": 2890,
+          "received": 0,
+          "returned": 0,
+          "costCents": 850,
+          "costTotalCents": 850,
+          "returnedCostCents": 0
+        }
+      ],
+      "status": "completed",
+      "paidCents": 2890,
+      "refundCents": 0,
+      "note": "",
+      "createdAt": "2026-09-27T15:47:34.156Z",
+      "updatedAt": "2026-10-14T15:47:34.156Z",
+      "shippedAt": "2026-09-27T15:47:34.156Z"
+    }
+  ],
+  "shipments": [],
+  "payments": [
+    {
+      "id": "PAY-20d09548",
+      "kind": "inflow",
+      "reference": "SO-05db3fa3",
+      "amountCents": 5380,
+      "date": "2026-10-14",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.170Z"
+    },
+    {
+      "id": "PAY-15f4a535",
+      "kind": "inflow",
+      "reference": "SO-639c618d",
+      "amountCents": 3490,
+      "date": "2026-10-13",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.169Z"
+    },
+    {
+      "id": "PAY-dfae0443",
+      "kind": "inflow",
+      "reference": "SO-db6086ca",
+      "amountCents": 9160,
+      "date": "2026-10-12",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.169Z"
+    },
+    {
+      "id": "PAY-755a8c9d",
+      "kind": "inflow",
+      "reference": "SO-547d6359",
+      "amountCents": 16470,
+      "date": "2026-10-11",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.168Z"
+    },
+    {
+      "id": "PAY-58524be9",
+      "kind": "inflow",
+      "reference": "SO-d65d78b1",
+      "amountCents": 7980,
+      "date": "2026-10-10",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.166Z"
+    },
+    {
+      "id": "PAY-b2b72383",
+      "kind": "inflow",
+      "reference": "SO-dad49bb6",
+      "amountCents": 2890,
+      "date": "2026-10-09",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.165Z"
+    },
+    {
+      "id": "PAY-25c2c65d",
+      "kind": "inflow",
+      "reference": "SO-e2837d35",
+      "amountCents": 10760,
+      "date": "2026-10-08",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.164Z"
+    },
+    {
+      "id": "PAY-374b71ef",
+      "kind": "inflow",
+      "reference": "SO-ae755d8f",
+      "amountCents": 10470,
+      "date": "2026-10-07",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.163Z"
+    },
+    {
+      "id": "PAY-5cd4c601",
+      "kind": "inflow",
+      "reference": "SO-ab287d42",
+      "amountCents": 4580,
+      "date": "2026-10-06",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.162Z"
+    },
+    {
+      "id": "PAY-519de2dc",
+      "kind": "inflow",
+      "reference": "SO-4b88afee",
+      "amountCents": 5490,
+      "date": "2026-10-05",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.162Z"
+    },
+    {
+      "id": "PAY-f5a439a5",
+      "kind": "inflow",
+      "reference": "SO-f4a8294c",
+      "amountCents": 15960,
+      "date": "2026-10-04",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.161Z"
+    },
+    {
+      "id": "PAY-6dad5d40",
+      "kind": "inflow",
+      "reference": "SO-81beb76e",
+      "amountCents": 8670,
+      "date": "2026-10-03",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.160Z"
+    },
+    {
+      "id": "PAY-8207ef3f",
+      "kind": "inflow",
+      "reference": "SO-a542688e",
+      "amountCents": 5380,
+      "date": "2026-10-02",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.159Z"
+    },
+    {
+      "id": "PAY-b171de88",
+      "kind": "inflow",
+      "reference": "SO-d1e21923",
+      "amountCents": 3490,
+      "date": "2026-10-01",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.159Z"
+    },
+    {
+      "id": "PAY-cfba8fd0",
+      "kind": "inflow",
+      "reference": "SO-13437eab",
+      "amountCents": 9160,
+      "date": "2026-09-30",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.158Z"
+    },
+    {
+      "id": "PAY-3eca737f",
+      "kind": "inflow",
+      "reference": "SO-71b2d786",
+      "amountCents": 16470,
+      "date": "2026-09-29",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.158Z"
+    },
+    {
+      "id": "PAY-40ed0732",
+      "kind": "inflow",
+      "reference": "SO-6a0a9838",
+      "amountCents": 7980,
+      "date": "2026-09-28",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.157Z"
+    },
+    {
+      "id": "PAY-e60465ec",
+      "kind": "inflow",
+      "reference": "SO-b561fbfa",
+      "amountCents": 2890,
+      "date": "2026-09-27",
+      "note": "",
+      "actor": "Alex Morgan",
+      "createdAt": "2026-10-14T15:47:34.156Z"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "EXP-3fd2a50e",
+      "category": "Logistics",
+      "amountCents": 7400,
+      "date": "2026-10-14",
+      "description": "Example transport charges",
+      "createdAt": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "EXP-4c9f89a5",
+      "category": "Advertising",
+      "amountCents": 18600,
+      "date": "2026-10-14",
+      "description": "Example campaign spend",
+      "createdAt": "2026-10-14T15:47:34.172Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "AD-18ce8770",
+      "name": "Workspace collection",
+      "channel": "Shopify",
+      "budgetCents": 25000,
+      "spendCents": 8200,
+      "attributedSalesCents": 43600,
+      "status": "active",
+      "createdAt": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AD-acc3d9f5",
+      "name": "Tumbler · everyday essentials",
+      "channel": "Amazon",
+      "budgetCents": 35000,
+      "spendCents": 18600,
+      "attributedSalesCents": 98640,
+      "status": "active",
+      "createdAt": "2026-10-14T15:47:34.172Z"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "TKT-65e46951",
+      "customer": "Juniper Market",
+      "subject": "Confirm tumbler packaging specification",
+      "category": "Order",
+      "priority": "normal",
+      "orderId": "",
+      "status": "open",
+      "notes": [
+        {
+          "text": "Please confirm the packaging dimensions for the next order.",
+          "actor": "Alex Morgan",
+          "at": "2026-10-14T15:47:34.172Z"
+        }
+      ],
+      "createdAt": "2026-10-14T15:47:34.172Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "TASK-82231d47",
+      "title": "Check supplier quotes for next month",
+      "owner": "Alex Morgan",
+      "dueDate": "2026-10-14",
+      "priority": "normal",
+      "status": "open",
+      "createdAt": "2026-10-14T15:47:34.173Z"
+    },
+    {
+      "id": "TASK-609d22e1",
+      "title": "Review reading lamp replenishment",
+      "owner": "Jamie Chen",
+      "dueDate": "2026-10-14",
+      "priority": "high",
+      "status": "open",
+      "createdAt": "2026-10-14T15:47:34.173Z"
+    }
+  ],
+  "audit": [
+    {
+      "id": "AUD-4d3dcbca",
+      "action": "task.create",
+      "reference": "TASK-82231d47",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.173Z"
+    },
+    {
+      "id": "AUD-22cbc75c",
+      "action": "task.create",
+      "reference": "TASK-609d22e1",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.173Z"
+    },
+    {
+      "id": "AUD-98b4ca57",
+      "action": "ticket.create",
+      "reference": "TKT-65e46951",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AUD-0298bf6b",
+      "action": "campaign.create",
+      "reference": "AD-18ce8770",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AUD-75ecf265",
+      "action": "campaign.create",
+      "reference": "AD-acc3d9f5",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AUD-a6aa6754",
+      "action": "expense.create",
+      "reference": "EXP-3fd2a50e",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AUD-50b6ab41",
+      "action": "expense.create",
+      "reference": "EXP-4c9f89a5",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    },
+    {
+      "id": "AUD-7e73404d",
+      "action": "purchase.transition",
+      "reference": "PO-8bd5c2cc",
+      "actor": "Alex Morgan",
+      "at": "2026-10-14T15:47:34.172Z"
+    }
+  ]
+}

@@ -1,50 +1,60 @@
 # Validation record
 
-Verified on **14 October 2026** on macOS with Node **24.19.0**, built-in SQLite **3.53.3**, Playwright **1.62.1**, and Chrome for Testing **147.0.7727.15**.
+Verified on **15 October 2026** on macOS arm64 with **Go 1.27.2**, Gin **1.11.0**, GORM **1.31.1**, Node **24.19.0**, React/React DOM **19.3.0**, Vite **7.3.7**, and Playwright **1.62.1**.
 
 ## Automated checks
 
-- **33 passing Node test checks**, including 20 domain tests and 12 HTTP subtests inside their integration test.
-- **18 passing end-to-end browser checkpoints**.
-- JavaScript syntax checks passed for the server, domain, and browser app.
-- Browser tests reported **zero JavaScript page errors** and **zero unexpected failed requests**.
-- All tests used isolated in-memory or temporary SQLite data. Browser changes do not appear in the delivered example workspace.
+- **22 passing Go tests:** 13 domain tests and 9 HTTP/integration tests.
+- `go test -race ./...` passed, including concurrent transactional writes.
+- `go vet ./...` passed.
+- Frontend ESLint undefined-variable checks and Vite production build passed.
+- **19 passing end-to-end browser checkpoints** against the built React frontend and compiled Gin server.
+- Browser result: **zero JavaScript page errors** and **zero unexpected failed requests**.
+- Existing legacy SQLite migration verified on a consistent temporary copy; original business collections/settings/version were unchanged, legacy login worked, and three RuoYi roles initialized.
+- `./start.sh` successfully rebuilt and launched the migrated application at port 4317 with the existing database. `/api/health` identifies React, Go/Gin, RuoYi-adapted RBAC, and SQLite.
 
-### Domain and HTTP coverage
+## Domain and server coverage
 
-Atomic partial/multi-line receipts; quantity validation; approval and ordering transitions; reservation and insufficient-stock rejection; reservation release; shipment and return recognition; payment bounds; exact inventory-cent conservation across mixed costs and transfers; original-cost returns; historical COGS stability; expense effects; company-timezone/date/channel reporting; authentication; persistent database and sessions after server restart; HttpOnly/SameSite cookies; idempotent request replay/conflict rejection; role-based write restrictions; disabled-user session rejection; cross-origin write rejection; password exclusion from API exports; CSV formula neutralization; logout invalidation.
+Partial and final purchase receipts; atomic failed multi-line receipts; duplicate/fractional quantity rejection; payment bounds and paid-document cancellation rejection; sales reservation, shipment recognition, insufficient-stock rollback, cancellation release; returns and refunds; exact cent conservation across mixed-cost inventory, transit, transfers, and repeated returns; reserved-stock isolation; historical cost stability; timezone/date/channel reporting and original-date return restatement; expenses; legacy scrypt and new bcrypt verification.
 
-### Browser checkpoints
+Authentication and secret exclusion; cookie flags and logout; built-in role enforcement; custom page/action grants; multi-role union; role disablement and live permission revocation; account disablement; protected reads and bootstrap document redaction; menu visibility versus disabled permissions; administrator protection; failed permission changes rolling back; persistent permissions/sessions after database reopen; idempotent replay/conflict rejection; concurrent writes; report validation; origin/host checks; CSV formula neutralization; login throttling.
 
-1. Administrator login and live dashboard.
-2. All 12 operational module screens.
-3. Product creation, editing, persistence, and table search.
-4. Multi-line purchasing, approval, partial/final receipt, payment.
-5. Sales confirmation, shipping, payment, return, refund, stock reversal.
-6. Warehouse transfer reservation, dispatch, receipt.
-7. Inventory adjustment and searchable movement ledger.
-8. Insufficient-stock error and preserved draft state.
-9. Expense entry and a real CSV download.
-10. Manual campaign tracking and pause state.
-11. Ticket creation, internal notes, progress, resolution.
-12. Task completion and zero-price-safe profit calculator.
-13. Date/channel report filters and empty results.
-14. Settings, user creation, and reload persistence.
-15. Global product search.
-16. Mobile navigation and no page-level horizontal overflow at 390 × 844.
-17. Analyst read-only UI and server-enforced rejection.
-18. No browser JavaScript errors or unexpected failed requests.
+## Browser checkpoints
 
-## Visual review
+1. administrator login and live dashboard.
+2. all 12 operational modules render without page errors.
+3. product creation, editing, persistence, and table search.
+4. multi-line purchasing: approval, partial receipt, final receipt, and payment.
+5. sales confirmation, fulfillment, payment, return, refund, and inventory reversal.
+6. warehouse transfer: reservation, transit, and destination receipt.
+7. inventory adjustment and searchable movement ledger.
+8. insufficient-stock rejection is displayed and draft state is preserved.
+9. finance expense entry and real CSV export.
+10. manual campaign tracking and pause state.
+11. ticket creation, internal note, progress, and resolution.
+12. operational tasks and zero-price-safe profit calculator.
+13. reports recompute by date and channel with proper empty states.
+14. company settings, user creation, and reload persistence.
+15. custom role editor, user assignment, multi-role union, hidden actions, and live server revocation.
+16. global product search routes to a filtered catalog.
+17. mobile layout has no page overflow and navigation works.
+18. analyst has read-only UI and server-enforced write rejection.
+19. no browser JavaScript errors or unexpected failed requests.
 
-Desktop dashboard reviewed at **1440 × 1000**; mobile product catalog at **390 × 844**. Wide tables scroll within their containers on mobile. Supporting text contrast and sizing were increased after visual inspection. Forms use native modal dialogs, labels, browser validation, keyboard focus containment, and visible server errors. This is not a formal accessibility certification.
+## Data preservation and visual review
 
-![Desktop dashboard](screenshots/overview.png)
+Migration compared all 14 business collections: products (6), suppliers (2), warehouses (3), stocks (18), purchases (4), sales (18), shipments (0), movements (37), payments (19), expenses (2), campaigns (2), tickets (1), tasks (2), and audit (15). These were exactly unchanged, along with preferences and revision. A complete pre-switch backup is retained at ignored `data/pre-react-gin.sqlite`. Tests use temporary databases and do not add their QA records to the delivered workspace.
 
-![Mobile catalog](screenshots/mobile.png)
+Reviewed the React dashboard at 1440 × 1000, catalog at 390 × 844, and custom role editor. The established Harbor colors, typography, spacing, cards, sidebar and form treatment are retained. Wide tables scroll within their containers; mobile has no page-level overflow. Dialogs retain native focus management and labels. This is not a formal accessibility certification.
+
+![React dashboard](screenshots/overview.png)
+
+![React mobile catalog](screenshots/mobile.png)
+
+![Harbor permission editor](screenshots/role-editor.png)
 
 ## Verification boundaries
 
-These results apply to the documented local workflows and representative edge cases. They do not establish production load capacity, complete Lingxing parity, external marketplace/carrier compatibility, tax/FX/statutory accounting compliance, or exhaustive security/accessibility coverage.
+These results cover the documented local workflows and representative edge cases. They do not establish production load capacity, full Lingxing or RuoYi feature parity, external marketplace/carrier compatibility, department/row-level data scopes, tenant isolation, statutory accounting, or exhaustive security/accessibility coverage. RuoYi-Go is a focused, attributed RBAC adaptation; no upstream UI is used.
 
-Run `npm test`, `npm run check`, and `npm run test:e2e` as documented in the README to repeat the checks. Browser result JSON and detailed screenshots are generated in ignored `test-results/`.
+Repeat with `npm run check`, `npm test`, `npm run vet`, `./scripts/go.sh test -race ./...`, and `npm run test:e2e`. Optional legacy-data migration check: `npm run test:migration`. See README for runtime/browser setup. Detailed JSON reports and generated screenshots are in ignored `test-results/`.
