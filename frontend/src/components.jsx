@@ -3,6 +3,13 @@ import { paths } from "./icons";
 import { useWorkspace, title, money, num, formatDate } from "./context";
 export const nav = [
   ["home", "Overview"],
+  ["rma", "RMAs"],
+  ["rmatasks", "Task center"],
+  ["rmalogistics", "Awaiting dispatch"],
+  ["supportorders", "Support orders"],
+  ["serials", "Serial numbers"],
+  ["benefits", "Cards & promo codes"],
+  ["rmaconfig", "Support configuration"],
   ["product", "Product"],
   ["sales", "Sales"],
   ["fba", "FBA"],
@@ -17,6 +24,34 @@ export const nav = [
   ["settings", "Settings"],
 ];
 export const info = {
+  rma: [
+    "Return merchandise authorizations",
+    "Every case, its solution, and the work needed to resolve it.",
+  ],
+  rmatasks: [
+    "Support task center",
+    "Review approvals and coordinate each step of every RMA.",
+  ],
+  rmalogistics: [
+    "Awaiting dispatch",
+    "A focused queue for replacements, parts, and returns that have not shipped.",
+  ],
+  supportorders: [
+    "Support order search",
+    "Find purchases across platforms and connect them to customer care.",
+  ],
+  serials: [
+    "Serial number registry",
+    "Trace devices and printheads by serial, SKU, and order.",
+  ],
+  benefits: [
+    "Gift cards & promo codes",
+    "A searchable history of recorded customer goodwill.",
+  ],
+  rmaconfig: [
+    "Support configuration",
+    "Configure solutions, approvals, root causes, and custom fields.",
+  ],
   home: [
     "Your operation, at a glance.",
     "A connected view of sales, stock, and the work ahead.",
@@ -309,7 +344,7 @@ export function Table({
   idKey = "id",
   limit,
 }) {
-  const {state}=useWorkspace();
+  const { state } = useWorkspace();
   const [query, setQuery] = useState(initialQuery),
     [status, setStatus] = useState("all"),
     [sort, setSort] = useState({ key: "", dir: 1 });

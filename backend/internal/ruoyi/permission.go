@@ -16,6 +16,7 @@ type Service struct{ DB *gorm.DB }
 
 var Modules = []string{"home", "product", "sales", "fba", "purchase", "warehouse", "logistics", "advertising", "service", "finance", "statistics", "tools", "settings"}
 var ActionModule = map[string]string{
+	"rma.create": "rma", "rma.note": "rma", "rmatask.update": "rma", "rmatask.review": "rmatasks", "rmatask.execute": "rmatasks", "rmaconfig.save": "rmaconfig", "supportorder.save": "supportorders", "serial.save": "serials",
 	"product.create": "product", "product.update": "product", "supplier.create": "purchase", "warehouse.create": "warehouse",
 	"purchase.create": "purchase", "purchase.transition": "purchase", "purchase.receive": "purchase", "purchase.pay": "finance", "inventory.adjust": "warehouse",
 	"shipment.create": "logistics", "shipment.transition": "logistics", "sale.create": "sales", "sale.transition": "sales", "sale.return": "sales", "sale.pay": "finance",
@@ -144,6 +145,9 @@ func (s Service) Init(state M) error {
 	}
 	mid := int64(100)
 	for a, module := range ActionModule {
+		if parents[module] == 0 {
+			continue
+		}
 		menus = append(menus, SysMenu{MenuID: mid, MenuName: a, ParentID: parents[module], MenuType: "F", Perms: Permission(a), Status: "0", Visible: "1", Action: a, OrderNum: int(mid)})
 		mid++
 	}

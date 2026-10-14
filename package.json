@@ -1,6 +1,6 @@
 {
   "name": "harbor-erp",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "description": "A local, persistent ERP inspired by the researched Lingxing workflows.",
@@ -22,7 +22,9 @@
     "check": "npm run lint && npm run build",
     "test:migration": "node tests/migration.mjs",
     "vet": "./scripts/go.sh vet ./...",
-    "lint": "eslint frontend/src"
+    "lint": "eslint frontend/src",
+    "test:rma": "node tests/rma-e2e.mjs",
+    "test:browser": "node tests/e2e.mjs && node tests/rma-e2e.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

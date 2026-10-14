@@ -224,6 +224,12 @@ export function Overview() {
 }
 export function Products({ query = "" }) {
   const { state: s, can, setModal } = useWorkspace();
+  const [typeFilter, setTypeFilter] = useState(""),
+    [deviceFilter, setDeviceFilter] = useState(""),
+    [fieldFilters, setFieldFilters] = useState({});
+  const productFields = (s.supportConfig?.fields || []).filter(
+    (f) => f.enabled && f.scope === "product",
+  );
   return (
     <>
       <Heading>
@@ -235,11 +241,108 @@ export function Products({ query = "" }) {
         />
       </Heading>
       <Panel>
+        <div className="support-filters">
+          <label>
+            SKU type
+            <select
+              aria-label="Filter SKU type"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">All SKU types</option>
+              {["general", "device", "part"].map((t) => (
+                <option key={t} value={t}>
+                  {title(t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Compatible device
+            <select
+              aria-label="Filter compatible device"
+              value={deviceFilter}
+              onChange={(e) => setDeviceFilter(e.target.value)}
+            >
+              <option value="">All devices</option>
+              {s.products
+                .filter((p) => p.productType === "device")
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.sku}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {productFields.map((f) => (
+            <label key={f.id}>
+              {f.name}
+              <select
+                aria-label={"Filter " + f.name}
+                value={fieldFilters[f.id] || ""}
+                onChange={(e) =>
+                  setFieldFilters({ ...fieldFilters, [f.id]: e.target.value })
+                }
+              >
+                <option value="">All values</option>
+                {[
+                  ...new Set(
+                    s.products.map((p) => String(p.customFields?.[f.id] ?? "")),
+                  ),
+                ]
+                  .filter(Boolean)
+                  .sort()
+                  .map((x) => (
+                    <option key={x} value={x}>
+                      {x}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          ))}
+        </div>
         <Table
           initialQuery={query}
-          rows={s.products}
+          rows={s.products.filter(
+            (p) =>
+              productFields.every(
+                (f) =>
+                  !fieldFilters[f.id] ||
+                  String(p.customFields?.[f.id] ?? "") === fieldFilters[f.id],
+              ) &&
+              (!typeFilter || (p.productType || "general") === typeFilter) &&
+              (!deviceFilter ||
+                p.id === deviceFilter ||
+                (p.productType === "part" &&
+                  (!p.deviceIds?.length ||
+                    p.deviceIds.includes(deviceFilter)))),
+          )}
           columns={[
             col("Product / SKU", (p) => <ProductCell product={p} />, "name"),
+            col("SKU type", (p) => (
+              <>
+                <Badge value={p.productType || "general"} />
+                {p.productType === "part" && (
+                  <small className="cell-sub">
+                    {title(p.partKind || "other")}
+                  </small>
+                )}
+              </>
+            )),
+            col("Compatible devices", (p) =>
+              p.productType === "part"
+                ? p.deviceIds?.length
+                  ? p.deviceIds
+                      .map(
+                        (id) => s.products.find((d) => d.id === id)?.sku || id,
+                      )
+                      .join(", ")
+                  : "Universal part"
+                : "—",
+            ),
+            ...productFields.map((f) =>
+              col(f.name, (p) => String(p.customFields?.[f.id] ?? "—")),
+            ),
             col(
               "Category",
               (p) => <span className="category">{p.category}</span>,

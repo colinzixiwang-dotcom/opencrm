@@ -16,6 +16,15 @@ import {
   Statistics,
   Tools,
 } from "./pages";
+import {
+  RMAs,
+  TaskCenter,
+  AwaitingDispatch,
+  SupportOrders,
+  Serials,
+  Benefits,
+  SupportConfig,
+} from "./support";
 import { Settings } from "./settings";
 import { ModalHost } from "./forms";
 import "./style.css";
@@ -151,6 +160,13 @@ function Login() {
   );
 }
 const views = {
+  rma: RMAs,
+  rmatasks: TaskCenter,
+  rmalogistics: AwaitingDispatch,
+  supportorders: SupportOrders,
+  serials: Serials,
+  benefits: Benefits,
+  rmaconfig: SupportConfig,
   home: Overview,
   product: Products,
   sales: Sales,
@@ -218,7 +234,28 @@ function App() {
     const q = search.trim(),
       t = q.toLowerCase();
     let p = "product";
-    if (s.purchases.some((x) => x.id.toLowerCase().includes(t))) p = "purchase";
+    if (
+      (s.rmas || []).some((x) =>
+        [x.id, x.ticketNumber, x.orderNumber].some((v) =>
+          v.toLowerCase().includes(t),
+        ),
+      )
+    )
+      p = "rma";
+    else if ((s.serials || []).some((x) => x.sn.toLowerCase().includes(t)))
+      p = "serials";
+    else if (
+      (s.benefitHistory || []).some((x) => x.code.toLowerCase().includes(t))
+    )
+      p = "benefits";
+    else if (
+      (s.supportOrders || []).some((x) =>
+        x.orderNumber.toLowerCase().includes(t),
+      )
+    )
+      p = "supportorders";
+    else if (s.purchases.some((x) => x.id.toLowerCase().includes(t)))
+      p = "purchase";
     else if (
       s.sales.some(
         (x) =>

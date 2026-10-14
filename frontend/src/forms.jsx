@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useWorkspace, formatDate, money, today, total } from "./context";
+import { CustomFields } from "./support";
 import { Icon, Button } from "./components";
 const dollar = (c) => ((c || 0) / 100).toFixed(2);
 function cents(v) {
@@ -113,6 +114,18 @@ function schema(type, r, s) {
           false,
         ),
         f("unit", "Unit", r?.unit || "pcs", "text", { required: true }),
+        sel(
+          "productType",
+          "SKU type",
+          ["general", "device", "part"],
+          r?.productType || "general",
+        ),
+        sel(
+          "partKind",
+          "Part category",
+          ["other", "printhead", "accessory", "component"],
+          r?.partKind || "other",
+        ),
       ];
     case "supplier":
       return [
@@ -359,6 +372,9 @@ function FormDialog({ modal }) {
   const record = collection
     ? s[collection].find((x) => String(x.id ?? x.menuId) === String(id))
     : null;
+  const [productCustom, setProductCustom] = useState(
+    record?.customFields || {},
+  );
   const initialProduct =
     s.products.find((p) => p.id === modal.initial?.productId) || s.products[0];
   const [lines, setLines] = useState(
@@ -443,6 +459,10 @@ function FormDialog({ modal }) {
         menu: "menu.save",
         assign: "user.assignRoles",
       };
+      if (type === "product") {
+        p.deviceIds = new FormData(e.target).getAll("deviceIds");
+        p.customFields = productCustom;
+      }
       if (record) p.id = record.id;
       if (type === "user-edit") p.active = p.active === "true";
       if (type === "receive" || type === "return")
@@ -591,6 +611,38 @@ function FormDialog({ modal }) {
             {schema(type, schemaRecord, s).map((f) => (
               <Field key={f.name} {...f} />
             ))}
+            {type === "product" && (
+              <CustomFields
+                scope="product"
+                value={productCustom}
+                onChange={setProductCustom}
+              />
+            )}
+            {type === "product" && (
+              <label className="full-field">
+                Compatible device SKUs (for support parts)
+                <select
+                  multiple
+                  size="4"
+                  name="deviceIds"
+                  defaultValue={record?.deviceIds || []}
+                >
+                  {s.products
+                    .filter(
+                      (p) => p.productType === "device" && p.id !== record?.id,
+                    )
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.sku} · {p.name}
+                      </option>
+                    ))}
+                </select>
+                <small>
+                  Leave empty for universal parts. Use Command/Ctrl for multiple
+                  devices.
+                </small>
+              </label>
+            )}
           </div>
           {isLines && (
             <div className="line-editor">

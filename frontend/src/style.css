@@ -2492,3 +2492,280 @@ td {
   width: 100%;
   padding-left: 23px;
 }
+/* Customer operations: the existing Harbor palette and form language. */
+.sidebar nav {
+  overflow-y: auto;
+  min-height: 80px;
+  scrollbar-width: thin;
+  scrollbar-color: #527568 transparent;
+}
+.sidebar-bottom {
+  flex-shrink: 0;
+}
+.support-dialog {
+  width: min(760px, calc(100vw - 32px));
+}
+.support-dialog.wide {
+  width: min(1040px, calc(100vw - 32px));
+}
+.support-dialog .modal-body {
+  padding: 24px 28px;
+}
+.support-dialog form {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.support-dialog .modal-body {
+  overflow: auto;
+}
+.support-dialog .tabs {
+  padding: 0 28px;
+  flex-shrink: 0;
+}
+.support-dialog > .modal-header {
+  flex-shrink: 0;
+}
+.support-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px 20px;
+  background: #fafbf8;
+  border-bottom: 1px solid var(--line);
+  align-items: flex-end;
+}
+.support-filters label {
+  min-width: 130px;
+  flex: 1;
+  max-width: 230px;
+  font-size: 11px;
+}
+.support-filters select,
+.support-filters input {
+  font-size: 12px;
+  max-width: 100%;
+  min-width: 0;
+}
+.support-section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 24px 0 14px;
+}
+.support-section-title small {
+  color: #65765e;
+}
+.workflow-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 12px 0 20px;
+}
+.workflow-node {
+  padding: 18px;
+  border: 1px solid #dce5dd;
+  border-radius: 10px;
+  background: #fbfcf9;
+}
+.workflow-node-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.workflow-node-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.workflow-node-heading small {
+  display: block;
+  color: #65765e;
+  font-size: 11px;
+}
+.workflow-node-heading > .btn {
+  margin-left: auto;
+}
+.workflow-node .form-grid {
+  margin-top: 12px;
+}
+.support-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.support-check input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  accent-color: var(--green);
+  padding: 0;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+.detail-field small,
+.support-description small {
+  color: #65765e;
+  font-size: 11px;
+}
+.detail-field strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: pre-wrap;
+}
+.support-description {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 18px;
+}
+.support-description p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  margin-top: 6px;
+}
+.support-task-summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 18px 28px;
+}
+.support-task-summary small {
+  width: 100%;
+}
+.case-note {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.case-note small {
+  margin-left: 12px;
+  color: #65765e;
+}
+.case-note p {
+  white-space: pre-wrap;
+  margin-top: 6px;
+}
+.support-note-form {
+  gap: 12px;
+  padding-top: 18px;
+}
+.support-error {
+  margin: 12px 28px;
+}
+.node-dependencies {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.node-dependencies > strong {
+  width: 100%;
+  font-size: 11px;
+  color: #65765e;
+}
+.support-config-callout {
+  display: flex;
+  gap: 14px;
+  padding: 18px 22px;
+  background: #eaf1e3;
+  border: 1px solid #dce7ce;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.support-config-callout p {
+  font-size: 12px;
+  color: #65765e;
+  margin-top: 4px;
+}
+.config-summary {
+  display: block;
+  max-width: 420px;
+  white-space: normal;
+  line-height: 1.6;
+}
+.support-dialog select[multiple] {
+  min-height: 130px;
+}
+.support-dialog .info-strip {
+  margin: 18px 0;
+}
+.support-dialog .modal-footer {
+  flex-shrink: 0;
+}
+@media (max-width: 650px) {
+  .support-dialog .modal-body {
+    padding: 18px;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .support-filters {
+    gap: 8px;
+    padding: 14px;
+  }
+  .support-filters label {
+    min-width: 110px;
+    max-width: none;
+  }
+  .workflow-node {
+    padding: 14px;
+  }
+  .workflow-node-heading {
+    flex-wrap: wrap;
+  }
+  .support-config-callout {
+    padding: 14px;
+  }
+  .support-dialog .modal-footer > span {
+    display: none;
+  }
+}
+.support-case-context {
+  padding: 14px 28px;
+  background: #f6f8f2;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.support-case-context p {
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+.support-case-context small {
+  color: #65765e;
+}
+.badge.pending_approval {
+  background: #fff4dc;
+  color: #956519;
+}
+.badge.blocked {
+  background: #edf0f3;
+  color: #626d7b;
+}
+.badge.ready,
+.badge.approved,
+.badge.not_required {
+  background: #e9f2e9;
+  color: #3e6c4c;
+}
+.badge.rejected,
+.badge.needs_attention {
+  background: #f9e9e4;
+  color: #a25749;
+}
+.support-dialog .modal-body {
+  overscroll-behavior: contain;
+}

@@ -1,6 +1,6 @@
 # Harbor ERP
 
-A working, local ERP inspired by the Lingxing frontend investigation. It connects product, purchase, inventory, fulfillment, sales, service, finance, and reporting workflows in a compact browser interface.
+A working, local ERP and configurable RMA workspace inspired by the Lingxing frontend investigation. It connects product, purchase, inventory, fulfillment, sales, service, finance, and reporting workflows in a compact browser interface.
 
 **This is an independent implementation.** It does not use Lingxing credentials or private APIs, copy its proprietary backend, or claim feature parity with its hundreds of routes.
 
@@ -37,6 +37,12 @@ npm ci && npm run build
 | Analyst | `analyst@harbor.local` | `HarborDemo!2026` | Read-only |
 
 The sign-in screen has shortcuts for these accounts. They use example data. New users can be created in Settings → Users & roles. Settings also includes **Role permissions**, **Menus & buttons**, and **Assign roles**. Permissions are checked by the server for every mutation and protected read. Disabled users lose access on their next authenticated request.
+
+## RMA workspace (version 3)
+
+Open **RMAs** to create cases and search your own records. Administrators see all cases. **Support configuration** manages solution DAGs, independent task approvals, root causes, platforms, task types and custom fields without changing code. **Task center**, **Awaiting dispatch**, **Support orders**, **Serial numbers**, and **Cards & promo codes** provide the connected support workflow. Product now distinguishes device and custom support-part SKUs, including printheads and device compatibility.
+
+Returns and refunds always require approval; the starter gift-card rule requires approval above $100. Work is recorded locally; issuing codes, sending shipments and transferring/refunding money still happen in external services. [Read the full RMA guide](docs/rma.md) for setup, policies, permissions and boundaries.
 
 ## Implemented workflows
 
@@ -112,13 +118,13 @@ The backend adapts the MIT-licensed community Go port [lostvip-com/ruoyi-go](htt
 - Administrator access is protected against removal of the last active administrator and self-lockout. Administrator has wildcard access.
 - Route/permission identifiers are fixed by backend code. Administrators may edit menu labels, order, visibility, and enabled state.
 - Products, warehouses, and company settings are shared reference data available to authenticated users for document forms. Business document collections, reports, exports, user lists, and permission management have server-side access checks. Page access is not a field-level confidentiality policy.
-- Department trees, organization/row-level data scopes, tenant isolation, SSO, Redis, job scheduling, code generation, and arbitrary new route creation are not included. These are not implied by the RuoYi adaptation.
+- RMA ownership is enforced on the server. General department/organization data scopes, tenant isolation, SSO, Redis, job scheduling, code generation, and arbitrary new route creation are not included. These are not implied by the RuoYi adaptation.
 
 ## Migration
 
 The Go server opens the existing SQLite database and initializes RuoYi user/role/menu tables on first launch. Business collections and preferences are retained. Existing scrypt password hashes remain valid; new accounts use bcrypt. Existing session rows are compatible. Stop the old server before launching Go; do not run both against the same database.
 
-Before replacing the old server, the existing local database was tested on a consistent copy: all 14 business collections and settings were unchanged and the legacy administrator login worked. A complete SQLite backup is retained in ignored `data/pre-react-gin.sqlite` after the final switch.
+Before replacing the old server, the existing local database was tested on a consistent copy: all 14 business collections and settings were unchanged and the legacy administrator login worked. A complete pre-framework SQLite backup is retained in ignored `data/pre-react-gin.sqlite`. The RMA upgrade has a separate `data/pre-rma-v3.sqlite` backup.
 
 ## Tests
 
@@ -129,7 +135,7 @@ npm test
 ./scripts/go.sh vet ./...
 ./scripts/go.sh test -race ./...
 npx playwright install chromium
-npm run test:e2e
+npm run test:browser
 ```
 
 An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and temporary SQLite database. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`.
@@ -148,10 +154,11 @@ backend/internal/httpapi/ Gin routes, authentication, exports
 backend/internal/domain/ ERP validation, workflows, valuation, reporting
 backend/internal/ruoyi/   Adapted RuoYi RBAC models and permission service
 backend/internal/store/   SQLite persistence and transactional mutations
+backend/internal/support/ Configurable RMA domain, ownership and workflow engine
 backend/third_party/      Upstream MIT license
 scripts/go.sh             Go toolchain resolver
 tests/                    Browser workflows and legacy migration verification
 data/                     Runtime database and migration backup (ignored)
 ```
 
-Source is tracked in a standalone Git repository on `codex/react-gin-ruoyi`. The previous vanilla-JS/Node implementation remains in Git history. No database, external credentials, or private Lingxing code is committed.
+Source is tracked in a standalone Git repository on `codex/rma-workflows`. The previous vanilla-JS/Node implementation remains in Git history. No database, external credentials, or private Lingxing code is committed.

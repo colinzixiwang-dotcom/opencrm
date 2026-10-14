@@ -392,6 +392,25 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 			p = M{"id": ID("PRD"), "createdAt": Now()}
 			Prepend(s, "products", p)
 		}
+
+		if v, ok := b["productType"]; ok {
+			values["productType"] = Choice(v, "general", "device", "part")
+		} else if p["productType"] == nil {
+			values["productType"] = "general"
+		}
+		if v, ok := b["partKind"]; ok {
+			values["partKind"] = Choice(v, "other", "printhead", "accessory", "component")
+		}
+		if v, ok := b["deviceIds"]; ok {
+			ids := Strings(v)
+			for _, id := range ids {
+				device := Find(s, "products", id)
+				if device["productType"] != "device" || device["id"] == p["id"] {
+					Fail("Compatible SKUs must be devices.")
+				}
+			}
+			values["deviceIds"] = ids
+		}
 		for k, v := range values {
 			p[k] = v
 		}

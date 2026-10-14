@@ -1,10 +1,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 export async function startServer(databasePath) {
+  const executable = resolve(dirname(databasePath), "harbor-test");
   const build = spawnSync(
     "./scripts/go.sh",
-    ["build", "-o", "../.bin/harbor", "./cmd/harbor"],
+    ["build", "-o", executable, "./cmd/harbor"],
     { stdio: "inherit" },
   );
   if (build.status !== 0) throw Error("Go build failed");
@@ -16,7 +17,7 @@ export async function startServer(databasePath) {
       s.close(() => resolve(p));
     });
   });
-  const child = spawn(resolve(".bin/harbor"), [], {
+  const child = spawn(executable, [], {
     env: {
       ...process.env,
       DB_PATH: databasePath,

@@ -1,4 +1,11 @@
 export const paths = {
+  rma: "M7 3h10v4H7z M5 5H3v16h18V5h-2 M7 12h10 M7 16h6",
+  rmatasks: "M4 5h16 M4 12h16 M4 19h16 M7 3v4 M7 10v4 M7 17v4",
+  rmalogistics: "M1 5h13v12H1z M14 9h4l4 4v4h-8 M6 21h.01 M18 21h.01",
+  supportorders: "M4 4h2l3 12h10l2-8H7 M10 21h.01 M18 21h.01",
+  serials: "M3 4v16 M6 4v16 M10 4v16 M12 4v16 M17 4v16 M21 4v16",
+  benefits: "M3 8h18v13H3z M2 4h20v4H2z M12 4v17",
+  rmaconfig: "M4 6h16 M4 12h16 M4 18h16 M8 3v6 M16 9v6 M9 15v6",
   home: "M3 10l9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z M9 21v-8h6v8",
   product: "m12 3 9 5-9 5-9-5 9-5z M3 8v9l9 5 9-5V8 M12 13v9",
   sales: "M4 4h2l3 12h10l2-8H7 M10 21h.01 M18 21h.01",

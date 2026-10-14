@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/logger"
 	"harbor/internal/domain"
 	"harbor/internal/ruoyi"
+	"harbor/internal/support"
 	"os"
 	"path/filepath"
 	"sync"
@@ -55,10 +56,17 @@ func Open(path string) (*Store, error) {
 		return nil, e
 	}
 	domain.Migrate(state)
+	support.Ensure(state)
 	if e := Write(db, state); e != nil {
 		return nil, e
 	}
-	if e := db.Transaction(func(tx *gorm.DB) error { return (ruoyi.Service{DB: tx}).Init(state) }); e != nil {
+	if e := db.Transaction(func(tx *gorm.DB) error {
+		svc := ruoyi.Service{DB: tx}
+		if e := svc.Init(state); e != nil {
+			return e
+		}
+		return svc.EnsureSupportMenus()
+	}); e != nil {
 		return nil, e
 	}
 	return s, nil
@@ -153,9 +161,20 @@ func (s *Store) Apply(uid, action string, b M, key string) (response M, err erro
 					}
 				}
 			}
-			state, result, e = domain.Mutate(state, action, b, actor)
+			if _, ok := supportActions[action]; ok {
+				state, result, e = support.Mutate(state, action, b, actor)
+			} else {
+				state, result, e = domain.Mutate(state, action, b, actor)
+			}
 			if e != nil {
 				return e
+			}
+			if domain.In(action, "product.create", "product.update") {
+				fields, e := support.ProductFields(state, result, b)
+				if e != nil {
+					return e
+				}
+				result["customFields"] = fields
 			}
 			if domain.In(action, "user.create", "user.update") {
 				if e := svc.SyncUser(result); e != nil {
@@ -179,3 +198,5 @@ func (s *Store) Apply(uid, action string, b M, key string) (response M, err erro
 	})
 	return response, err
 }
+
+var supportActions = map[string]bool{"rma.create": true, "rma.note": true, "rmatask.update": true, "rmatask.review": true, "rmatask.execute": true, "rmaconfig.save": true, "supportorder.save": true, "serial.save": true}

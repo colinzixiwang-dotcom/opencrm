@@ -10,6 +10,7 @@ import (
 	"harbor/internal/domain"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
+	"harbor/internal/support"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -63,12 +64,20 @@ func (s *Server) Router() *gin.Engine {
 		c.Next()
 	})
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, M{"ok": true, "version": "2.0.0", "backend": "Go + Gin", "frontend": "React", "permissions": "RuoYi-Go adapted RBAC", "storage": "sqlite"})
+		c.JSON(200, M{"ok": true, "version": "3.0.0", "backend": "Go + Gin", "frontend": "React", "permissions": "RuoYi-Go adapted RBAC", "storage": "sqlite"})
 	})
 	r.POST("/api/login", s.login)
 	api := r.Group("/api")
 	api.Use(s.auth)
 	api.GET("/bootstrap", s.bootstrap)
+	api.GET("/rmas/:id", func(c *gin.Context) {
+		state, e := s.Store.State()
+		if e != nil {
+			s.respond(c, e)
+			return
+		}
+		c.JSON(200, support.Get(state, s.actor(c), c.Param("id")))
+	})
 	api.POST("/logout", s.logout)
 	api.POST("/action", s.action)
 	api.GET("/report", s.report)
@@ -270,7 +279,7 @@ func (s *Server) bootstrap(c *gin.Context) {
 	if !s.allowed(c, ruoyi.ViewPermission("home")) && !s.allowed(c, ruoyi.ViewPermission("statistics")) && !s.allowed(c, ruoyi.ViewPermission("finance")) {
 		state["report"] = domain.Report(M{"settings": state["settings"]}, "", "", "")
 	}
-	c.JSON(200, state)
+	c.JSON(200, support.Public(state, actor))
 }
 func (s *Server) logout(c *gin.Context) {
 	token, _ := c.Cookie("harbor_session")
@@ -321,7 +330,7 @@ func (s *Server) report(c *gin.Context) {
 }
 func (s *Server) export(c *gin.Context) {
 	col := c.Param("collection")
-	module := map[string]string{"products": "product", "suppliers": "purchase", "warehouses": "warehouse", "purchases": "purchase", "sales": "sales", "shipments": "logistics", "stocks": "warehouse", "movements": "warehouse", "payments": "finance", "expenses": "finance", "campaigns": "advertising", "tickets": "service", "tasks": "tools", "audit": "settings"}[col]
+	module := map[string]string{"products": "product", "suppliers": "purchase", "warehouses": "warehouse", "purchases": "purchase", "sales": "sales", "shipments": "logistics", "stocks": "warehouse", "movements": "warehouse", "payments": "finance", "expenses": "finance", "campaigns": "advertising", "tickets": "service", "tasks": "tools", "audit": "settings", "rmas": "rma", "rmaTasks": "rmatasks", "supportOrders": "supportorders", "serials": "serials", "benefitHistory": "benefits"}[col]
 	if module == "" {
 		domain.Fail("Unknown export.", 404)
 	}
@@ -331,6 +340,7 @@ func (s *Server) export(c *gin.Context) {
 		s.respond(c, e)
 		return
 	}
+	state = support.Public(state, s.actor(c))
 	rows := domain.Rows(state, col)
 	set := map[string]bool{}
 	for _, row := range rows {
@@ -377,6 +387,9 @@ func (s *Server) export(c *gin.Context) {
 }
 func (s *Server) backup(c *gin.Context) {
 	s.require(c, "system:role:edit")
+	if !support.Admin(s.actor(c)) {
+		domain.Fail("Only administrators may export a complete business snapshot.", 403)
+	}
 	state, e := s.Store.State()
 	if e != nil {
 		s.respond(c, e)

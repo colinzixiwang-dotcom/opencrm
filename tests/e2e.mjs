@@ -79,7 +79,7 @@ try {
     path: "test-results/dashboard-desktop.png",
     fullPage: true,
   });
-  assert.equal(await page.locator("a.nav-item").count(), 13);
+  assert.equal(await page.locator("a.nav-item").count(), 20);
   for (const p of [
     "product",
     "sales",
@@ -537,7 +537,7 @@ try {
   await save();
   await clerkPage.reload();
   await clerkPage.getByRole("heading", { name: "Product catalog" }).waitFor();
-  assert.equal(await clerkPage.locator("a.nav-item").count(), 13);
+  assert.equal(await clerkPage.locator("a.nav-item").count(), 18);
   await row(clerk.id)
     .getByRole("button", { name: "Assign roles", exact: true })
     .click();

@@ -57,7 +57,7 @@ try {
   assert.equal(after.version, before.version);
   assert.equal(after.users.length, before.users.length);
   assert.equal(after.roles.length, 3);
-  assert.equal(after.menus.length, 13);
+  assert.equal(after.menus.length, 20);
   await server.close();
   server = null;
   const result = {
