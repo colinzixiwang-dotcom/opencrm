@@ -12,6 +12,7 @@ import {
   SortControl,
   Icon,
   Pagination,
+  LoadingState,
 } from "./components";
 import { AttachmentList } from "./attachments";
 import { messageText } from "./ticket-content";
@@ -146,7 +147,7 @@ const friendly = (key) =>
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/^./, (c) => c.toUpperCase());
 function Fields({ ticket, metadata }) {
-  if (!metadata) return <p>{tr("Loading Udesk field definitions…")}</p>;
+  if (!metadata) return <LoadingState label="Loading Udesk field definitions…" variant="compact" rows={3} />;
   const fields = metadata?.fields?.fields || [];
   const template = (metadata?.templates?.templates || []).find(
     (t) => String(t.id) === String(ticket.template_id),
@@ -278,6 +279,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [replies, setReplies] = useState(null),
+    [replyError, setReplyError] = useState(""),
     [replyPage, setReplyPage] = useState(1),
     [refresh, setRefresh] = useState(0);
   useEffect(() => {
@@ -299,12 +301,13 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     if (!data) return;
     const controller = new window.AbortController();
     setReplies(null);
+    setReplyError("");
     api(`/api/tickets/${encodeURIComponent(id)}/replies?page=${replyPage}`, {
       signal: controller.signal,
     })
       .then(setReplies)
       .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (e.name !== "AbortError") setReplyError(e.message);
       });
     return () => controller.abort();
   }, [id, data, replyPage]);
@@ -366,9 +369,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
         </p>
       )}
       {!data ? (
-        <p>
-          {tr(busy ? "Loading Udesk ticket…" : "Ticket could not be loaded.")}
-        </p>
+        busy ? <LoadingState label="Loading Udesk ticket…" variant="detail" rows={4} /> : <p className="muted">{tr("Ticket could not be loaded.")}</p>
       ) : (
         <>
           <header className="ticket-detail-header">
@@ -445,7 +446,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                     <Pagination label="Conversation pagination" page={replyPage} totalPages={replies.meta?.total_pages || 1} onPrevious={()=>setReplyPage(n=>n-1)} onNext={()=>setReplyPage(n=>n+1)} />
                   </>
                 ) : (
-                  <p>{tr("Loading conversation…")}</p>
+                  replyError ? <div className="conversation-error" role="alert"><p>{tr(replyError)}</p><Button onClick={()=>setRefresh(v=>v+1)}>Refresh ticket</Button></div> : <LoadingState label="Loading conversation…" variant="conversation" rows={2} />
                 )}
               </section>
             </div>
@@ -726,7 +727,7 @@ export function TicketCenter() {
               )}
             </p>
           </details>
-          {busy && <p role="status">{tr("Fetching tickets from Udesk…")}</p>}
+          {busy && <LoadingState label="Fetching tickets from Udesk…" rows={5} />}
           {!busy && data && (
             <>
               <div className="table-scroll ticket-table">

@@ -3,7 +3,7 @@ import { tr } from "./i18n";
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Provider, useWorkspace, api, title } from "./context";
-import { nav, disabledModules, Icon, Button } from "./components";
+import { nav, disabledModules, Icon, Button, LoadingState } from "./components";
 import { TicketCenter } from "./tickets";
 import {
   Overview,
@@ -221,7 +221,7 @@ function App() {
     return () => removeEventListener("keydown", key);
   }, []);
   if (loading)
-    return <main className="login-panel">{tr("Opening workspace…")}</main>;
+    return <main className="workspace-loading"><LoadingState label="Opening workspace…" variant="detail" rows={4} /></main>;
   if (!s)
     return (
       <>

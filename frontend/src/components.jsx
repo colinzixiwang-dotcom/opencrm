@@ -413,6 +413,12 @@ export function FilterControl({
 export function SortControl(props) {
   return <FilterControl {...props} label={props.label || "Sort records"} />;
 }
+export function LoadingState({ label = "Loading…", variant = "list", rows = 5 }) {
+  return <div className={"loading-state loading-"+variant} role="status" aria-label={tr(label)} aria-live="polite">
+    <div className="loading-caption"><span className="loading-spinner" aria-hidden="true" /><span>{tr(label)}</span></div>
+    <div className="loading-skeleton" aria-hidden="true">{Array.from({length:rows},(_,i)=><div className="skeleton-row" key={i}><span className="skeleton-avatar" /><div><span className="skeleton-line" /><span className="skeleton-line skeleton-short" /></div><span className="skeleton-pill" /></div>)}</div>
+  </div>;
+}
 export function Pagination({ page, totalPages, onPrevious, onNext, hasNext, disabled = false, context, label = "Pagination" }) {
   const total = totalPages == null ? null : Math.max(1, totalPages);
   return <nav className="pagination" aria-label={tr(label)}>
