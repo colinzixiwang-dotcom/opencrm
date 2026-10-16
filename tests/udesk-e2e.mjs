@@ -77,7 +77,7 @@ try {
       await page
         .getByRole("link", { name: "Open in Udesk", exact: true })
         .getAttribute("href")
-    ).endsWith("/entry/ticket/detail/101"),
+    ).endsWith("/entry/ticket/show/101"),
   );
   await page
     .getByRole("button", { name: "Create RMA draft", exact: true })

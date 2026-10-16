@@ -285,3 +285,16 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 		t.Fatal("source payload")
 	}
 }
+
+func TestUdeskLinkUsesInternalID(t *testing.T) {
+	_, service, source, actor := fixture(t)
+	service.Tenant = "https://ticketmorpho.udeskglobal.com/open_api_v1"
+	source.tickets = []M{{"id": 20713607, "field_num": "#717", "subject": "Link regression"}}
+	result, err := service.Detail(context.Background(), actor, "20713607", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["udeskUrl"] != "https://ticketmorpho.udeskglobal.com/entry/ticket/show/20713607" {
+		t.Fatalf("wrong ticket URL: %v", result["udeskUrl"])
+	}
+}

@@ -29,6 +29,9 @@ func id(v any) string {
 	if v == nil {
 		return ""
 	}
+	if n, ok := v.(float64); ok {
+		return strconv.FormatFloat(n, 'f', -1, 64)
+	}
 	return fmt.Sprint(v)
 }
 func rows(v any) []M                        { return domain.Items(v) }
@@ -226,7 +229,7 @@ func (s *Service) public(actor, t M, at string) M {
 		rmas = append(rmas, l.RMAID)
 	}
 	base := strings.TrimSuffix(s.Tenant, "/open_api_v1")
-	return M{"source": t, "fetchedAt": at, "udeskUrl": strings.TrimRight(base, "/") + "/entry/ticket/detail/" + url.PathEscape(id(t["id"])), "rmaIds": rmas}
+	return M{"source": t, "fetchedAt": at, "udeskUrl": strings.TrimRight(base, "/") + "/entry/ticket/show/" + url.PathEscape(id(t["id"])), "rmaIds": rmas}
 }
 
 // List scans only enough source pages for this authorized page, with a bounded budget.
