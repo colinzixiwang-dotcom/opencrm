@@ -33,6 +33,7 @@ const nav = async (p, id) => {
 };
 const dialog = (p) => p.getByRole("dialog").last();
 const save = async (p, label = "Save record") => {
+  if (label === "Create RMA" && await dialog(p).getByLabel("Delivery date",{exact:true}).count()) await dialog(p).getByLabel("Delivery date",{exact:true}).fill(new Date(Date.now()-30*86400000).toISOString().slice(0,10));
   const count = await p.locator("dialog").count();
   await dialog(p).getByRole("button", { name: label, exact: true }).click();
   await p.waitForFunction(

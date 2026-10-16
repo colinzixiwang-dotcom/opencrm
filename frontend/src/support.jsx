@@ -13,6 +13,7 @@ import {
   Export,
   Tabs,
 } from "./components";
+import { WarrantyEvidence, AssessmentSummary, warrantyRequired } from "./warranty";
 const labels = {
   device_issue: "Device issue",
   user_issue: "User issue",
@@ -333,7 +334,7 @@ function useSupportAction(onClose) {
   };
   return { submit, busy, error, setError };
 }
-function Footer({ busy, error, onClose, label = "Save record" }) {
+function Footer({ busy, error, onClose, disabled = false, label = "Save record" }) {
   return (
     <>
       {error && (
@@ -349,7 +350,7 @@ function Footer({ busy, error, onClose, label = "Save record" }) {
         <Button kind="secondary" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <button className="btn primary" type="submit" disabled={busy}>
+        <button className="btn primary" type="submit" disabled={busy || disabled}>
           {busy ? "Saving…" : label}
         </button>
       </div>
@@ -438,10 +439,13 @@ function RMAForm({ onClose, initial = {} }) {
       description: "",
       solutionId: "",
       sn: initial.sn || "",
+ warrantyEvidence: {},
       customFields: {},
     }),
     [inputs, setInputs] = useState({});
   const [configRevision] = useState(cfg.revision);
+ const [warrantyRevision] = useState(cfg.warrantyPolicy.revision);
+ const [assessment,setAssessment] = useState(null);
   const { submit, busy, error } = useSupportAction(onClose),
     set = (k, x) => setV({ ...v, [k]: x }),
     solution = cfg.solutions.find((x) => x.id === v.solutionId),
@@ -480,6 +484,7 @@ function RMAForm({ onClose, initial = {} }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (!assessment?.eligible) return;
           const taskInputs = {};
           for (const [k, x] of Object.entries(inputs)) {
             taskInputs[k] = {
@@ -490,7 +495,7 @@ function RMAForm({ onClose, initial = {} }) {
           }
           submit(
             "rma.create",
-            { ...v, taskInputs, expectedConfigRevision: configRevision },
+            { ...v, taskInputs, expectedConfigRevision: configRevision, expectedWarrantyRevision:warrantyRevision },
             "RMA created. Solution tasks generated.",
           );
         }}
@@ -613,6 +618,7 @@ function RMAForm({ onClose, initial = {} }) {
               onChange={(x) => set("customFields", x)}
             />
           </div>
+          {solution && <WarrantyEvidence value={v.warrantyEvidence} onChange={x=>set("warrantyEvidence",x)} payload={{productId:v.productId,solutionId:v.solutionId,platform:v.platform,warrantyEvidence:v.warrantyEvidence}} onAssessment={setAssessment} />}
           {solution && (
             <>
               <div className="support-section-title">
@@ -665,6 +671,7 @@ function RMAForm({ onClose, initial = {} }) {
           error={error}
           onClose={onClose}
           label="Create RMA"
+          disabled={!assessment?.eligible}
         />
       </form>
     </Dialog>
@@ -829,6 +836,7 @@ function RMADetail({ id, onClose }) {
             ))}
             <FieldValues value={r.customFields} />
           </div>
+          <AssessmentSummary assessment={r.eligibilityAssessment} />
           <div className="support-description">
             <small>Description</small>
             <p>{r.description}</p>
@@ -2077,6 +2085,8 @@ function ConfigEditor({ entity, record, onClose }) {
     requiresProduct: false,
     alwaysApprove: false,
     nodes: [],
+    platforms: [],
+    requiresWarranty: warrantyRequired(record),
   };
   const [v, setV] = useState({ ...defaults, ...record }),
     [amount, setAmount] = useState(((record.value || 0) / 100).toFixed(2)),
@@ -2161,6 +2171,11 @@ function ConfigEditor({ entity, record, onClose }) {
               checked={v.enabled}
               onChange={(x) => set("enabled", x)}
             />
+            {entity === "solutions" && <>
+ <Toggle label="Requires active warranty" checked={v.requiresWarranty} onChange={x=>set("requiresWarranty",x)} />
+ <label className="full-field">Eligible SKUs (empty = all)<select aria-label="Eligible SKUs (empty = all)" multiple size="4" value={v.productIds} onChange={e=>set("productIds",Array.from(e.target.selectedOptions,x=>x.value))}>{s.products.map(p=><option key={p.id} value={p.id}>{sku(s,p.id)}</option>)}</select></label>
+ <label>Eligible platforms (empty = all)<select aria-label="Eligible platforms (empty = all)" multiple value={v.platforms} onChange={e=>set("platforms",Array.from(e.target.selectedOptions,x=>x.value))}>{cfg.platforms.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+ </>}
             {entity === "rootCauses" && (
               <>
                 <Select

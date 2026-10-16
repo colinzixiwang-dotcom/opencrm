@@ -199,4 +199,4 @@ func (s *Store) Apply(uid, action string, b M, key string) (response M, err erro
 	return response, err
 }
 
-var supportActions = map[string]bool{"rma.create": true, "rma.note": true, "rmatask.update": true, "rmatask.review": true, "rmatask.execute": true, "rmaconfig.save": true, "supportorder.save": true, "serial.save": true}
+var supportActions = map[string]bool{"warranty.save": true, "rma.create": true, "rma.note": true, "rmatask.update": true, "rmatask.review": true, "rmatask.execute": true, "rmaconfig.save": true, "supportorder.save": true, "serial.save": true}

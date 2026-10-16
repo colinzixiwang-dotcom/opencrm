@@ -126,6 +126,7 @@ function schema(type, r, s) {
           ["other", "printhead", "accessory", "component"],
           r?.partKind || "other",
         ),
+ sel("warrantyClass", "Printhead warranty class", ["none", "printhead_1080", "printhead_3200"], r?.warrantyClass || "none"),
       ];
     case "supplier":
       return [

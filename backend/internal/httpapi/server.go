@@ -80,6 +80,18 @@ func (s *Server) Router() *gin.Engine {
 	})
 	api.POST("/logout", s.logout)
 	api.POST("/action", s.action)
+	api.POST("/rma-assessment", func(c *gin.Context) {
+		if !(ruoyi.Service{DB: s.Store.DB}).Allowed(s.user(c).UserID, "rma.create") {
+			domain.Fail("Your role does not permit this action.", 403)
+		}
+		b := s.body(c)
+		state, e := s.Store.State()
+		if e != nil {
+			s.respond(c, e)
+			return
+		}
+		c.JSON(200, support.Assess(state, b, time.Now()))
+	})
 	api.GET("/report", s.report)
 	api.GET("/export/:collection", s.export)
 	api.GET("/backup", s.backup)

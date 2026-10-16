@@ -401,6 +401,9 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 		} else if p["productType"] == nil {
 			values["productType"] = "general"
 		}
+		if v, ok := b["warrantyClass"]; ok {
+			values["warrantyClass"] = Choice(v, "none", "printhead_1080", "printhead_3200")
+		}
 		if v, ok := b["partKind"]; ok {
 			values["partKind"] = Choice(v, "other", "printhead", "accessory", "component")
 		}

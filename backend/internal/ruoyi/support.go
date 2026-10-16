@@ -26,7 +26,7 @@ func (s Service) EnsureSupportMenus() error {
 			}
 		}
 	}
-	for _, a := range []string{"rma.create", "rma.note", "rmatask.update", "rmatask.review", "rmatask.execute", "rmaconfig.save", "supportorder.save", "serial.save"} {
+	for _, a := range []string{"warranty.save", "rma.create", "rma.note", "rmatask.update", "rmatask.review", "rmatask.execute", "rmaconfig.save", "supportorder.save", "serial.save"} {
 		var n int64
 		s.DB.Model(&SysMenu{}).Where("action=?", a).Count(&n)
 		if n > 0 {

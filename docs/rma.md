@@ -68,3 +68,17 @@ The complete pre-upgrade SQLite backup is retained in ignored **`data/pre-rma-v3
 ## Verification
 
 Run `npm run check`, `npm test`, `npm run vet`, `./scripts/go.sh test -race ./...`, and `npm run test:browser`. For only the new browser suite, use `npm run test:rma`. Set `CHROME_EXECUTABLE` to an installed compatible Chromium executable if needed. Tests use isolated temporary databases and do not add test RMAs or test users to the delivered workspace.
+
+## Warranty and solution eligibility
+
+Settings → **Warranty rules** configures the activation grace period (default 14 days), coverage periods (device 12 months, 1080 printhead 3 months, 3200 printhead 6 months), and optional SKU/market/platform overrides. Administrator access and the `warranty.save` grant are required. Updates check the policy revision and write an audit entry. Product forms classify printheads as 1080 or 3200; devices use device coverage automatically.
+
+Rules follow revision 443, appendices A/B, of the [target design](https://zuvi.sg.larksuite.com/docx/VAdIduVsioO8m7xGpE1ljIUogwd). Devices start at the earlier of activation or delivery plus the grace period. During the grace period, unknown activation means insufficient evidence. Bundled printheads use the device start with their printhead coverage period; standalone printheads start the day after delivery. Coverage includes the start and excludes the end date; calendar-month additions clamp to the last day of the destination month. Eligibility uses the company's current calendar date.
+
+Support configuration → Solutions adds **Requires active warranty**, eligible SKU restrictions and eligible platform restrictions. Legacy solutions infer warranty requirements for device/part replacement and return-plus-refund plans. Goodwill and refund-only plans do not require coverage. Existing return workflows remain available; this change does not implement the target's Phase 1/2 rollout flags.
+
+The creation form previews eligibility; the server recalculates it inside the creation transaction. Missing, expired, future or conflicting evidence blocks creation without saving an RMA, tasks, audit mutation or idempotency receipt. Rules with more specified dimensions win; equally specific matches block rather than silently choosing. A market is required when applicable market-specific rules exist. Each successful RMA retains assessment dates, evidence, policy revision and matched rule snapshot. Historical cases are not re-evaluated when administrators edit policies.
+
+Delivery/activation dates are currently agent-entered facts, explicitly labeled as such; no MES/Shopify verification or approved warranty override is implied. For replacements, enter original device dates and optionally its serial reference. The original reference is recorded as evidence, not independently verified lineage. Repair-pause adjustments and approved manual warranty corrections remain outside this feature. The model reserves `pauseIntervals` for later implementation.
+
+Run `npm run test:warranty` for browser/API checks and `npm test` for date boundaries, atomicity, scoped rules, policy snapshots and permission checks.

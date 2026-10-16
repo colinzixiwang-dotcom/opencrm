@@ -2769,3 +2769,10 @@ td {
 .support-dialog .modal-body {
   overscroll-behavior: contain;
 }
+
+.warranty-settings fieldset { border: 0; padding: 0; min-width: 0; }
+.warranty-settings .workflow-node { margin: 16px 0; }
+.warranty-settings form > button { margin-top: 16px; }
+.warranty-evidence { margin: 20px 0; }
+.warranty-assessment { padding: 16px; margin: 16px 0; background: var(--surface-soft, #f2f6f2); border-radius: 12px; }
+.warranty-assessment p { margin: 8px 0; }

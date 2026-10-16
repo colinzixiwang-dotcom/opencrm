@@ -12,6 +12,7 @@ import {
   Icon,
   Export,
 } from "./components";
+import { WarrantySettings } from "./warranty";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
   const { state: s, can, setModal, act } = useWorkspace(),
@@ -19,6 +20,7 @@ export function Settings() {
     [error, setError] = useState("");
   const tabs = [
     ["company", "Company"],
+ ["warranty", "Warranty rules"],
     ["users", "Users & roles", s.users.length],
     ...(can("role.save")
       ? [["roles", "Role permissions", s.roles.length]]
@@ -39,7 +41,7 @@ export function Settings() {
         {tab === "audit" && <Export collection="audit" />}
       </Heading>
       <Tabs value={tab} onChange={setTab} items={tabs} />
-      {tab === "users" ? (
+      {tab === "warranty" ? <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} /> : tab === "users" ? (
         <>
           <Panel>
             <Table

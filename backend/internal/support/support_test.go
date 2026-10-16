@@ -5,6 +5,7 @@ import (
 	"harbor/internal/domain"
 	"strings"
 	"testing"
+	"time"
 )
 
 func fixture() M {
@@ -52,7 +53,7 @@ func reject(t *testing.T, s M, u M, a string, b M, match string) {
 	}
 }
 func input(solution string) M {
-	return M{"ticketNumber": "TICKET-001", "orderNumber": "ORDER-001", "platform": "Amazon", "productId": "PRD-1", "rootCauseId": "device_fault", "solutionId": solution, "description": "Device needs support", "taskInputs": M{"gift": M{"amountCents": int64(15000)}, "refund": M{"amountCents": int64(20000)}, "parts": M{"productId": "PRD-2"}}}
+	return M{"warrantyEvidence": M{"deliveredAt": time.Now().AddDate(0, 0, -30).Format("2006-01-02")}, "ticketNumber": "TICKET-001", "orderNumber": "ORDER-001", "platform": "Amazon", "productId": "PRD-1", "rootCauseId": "device_fault", "solutionId": solution, "description": "Device needs support", "taskInputs": M{"gift": M{"amountCents": int64(15000)}, "refund": M{"amountCents": int64(20000)}, "parts": M{"productId": "PRD-2"}}}
 }
 func task(s M, r M, kind string) M {
 	for _, t := range domain.Rows(s, "rmaTasks") {

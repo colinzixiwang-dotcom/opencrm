@@ -6,6 +6,7 @@ import (
 	"harbor/internal/domain"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type M = domain.M
@@ -33,6 +34,7 @@ func active(rows []M, id string) M {
 }
 func Ensure(s M) {
 	defer normalize(s)
+	defer ensureWarranty(s)
 	for _, k := range []string{"rmas", "rmaTasks", "supportOrders", "serials", "benefitHistory"} {
 		if s[k] == nil {
 			s[k] = []M{}
@@ -284,6 +286,11 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 		domain.Fail("Support configuration changed. Close this form and reopen it before saving.", 409)
 	}
 	switch action {
+	case "warranty.save":
+		if !Admin(u) {
+			domain.Fail("Only administrators may configure warranty rules.", 403)
+		}
+		result = saveWarranty(s, b)
 	case "rmaconfig.save":
 		if !Admin(u) {
 			domain.Fail("Only administrators may configure support workflows.", 403)
@@ -362,6 +369,13 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 			domain.Fail("This root cause does not apply to the selected SKU.")
 		}
 		solution := active(domain.Rows(c, "solutions"), domain.Str(b["solutionId"]))
+		assessment := Assess(s, b, time.Now())
+		if !domain.Bool(assessment["eligible"]) {
+			domain.Fail(domain.Str(assessment["reason"]), 422)
+		}
+		if b["expectedWarrantyRevision"] != nil && domain.N(b["expectedWarrantyRevision"]) != domain.N(assessment["policyRevision"]) {
+			domain.Fail("Warranty policy changed. Reload before creating the RMA.", 409)
+		}
 		sn := domain.Text(b["sn"], 120)
 		if sn != "" {
 			found := false
@@ -374,7 +388,7 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 				domain.Fail("Serial number does not match the selected SKU.")
 			}
 		}
-		result = M{"id": domain.ID("RMA"), "ownerId": u["id"], "ownerName": u["name"], "ticketNumber": domain.Required(b["ticketNumber"], "Support ticket number", 160), "orderNumber": domain.Required(b["orderNumber"], "Order number", 160), "platform": platform["id"], "platformName": platform["name"], "productId": product["id"], "sn": sn, "rootCauseId": root["id"], "rootCauseName": root["name"], "primaryCause": root["primary"], "description": domain.Required(b["description"], "Description", 4000), "solutionId": solution["id"], "solutionName": solution["name"], "solutionSnapshot": domain.Clone(solution), "configRevision": c["revision"], "customFields": custom(c, "rma", "", b["customFields"]), "createdAt": domain.Now(), "updatedAt": domain.Now()}
+		result = M{"id": domain.ID("RMA"), "ownerId": u["id"], "ownerName": u["name"], "ticketNumber": domain.Required(b["ticketNumber"], "Support ticket number", 160), "orderNumber": domain.Required(b["orderNumber"], "Order number", 160), "platform": platform["id"], "platformName": platform["name"], "productId": product["id"], "sn": sn, "rootCauseId": root["id"], "rootCauseName": root["name"], "primaryCause": root["primary"], "description": domain.Required(b["description"], "Description", 4000), "solutionId": solution["id"], "solutionName": solution["name"], "eligibilityAssessment": assessment, "solutionSnapshot": domain.Clone(solution), "configRevision": c["revision"], "customFields": custom(c, "rma", "", b["customFields"]), "createdAt": domain.Now(), "updatedAt": domain.Now()}
 		inputs := domain.Obj(b["taskInputs"])
 		taskIDs := map[string]string{}
 		for _, n := range domain.Rows(solution, "nodes") {
@@ -564,6 +578,19 @@ func saveConfig(s, b M) M {
 		}
 		r["productIds"] = ids
 	case "solutions":
+		if r["requiresWarranty"] != nil {
+			if _, ok := r["requiresWarranty"].(bool); !ok {
+				domain.Fail("Warranty requirement must be a boolean.")
+			}
+		}
+		r["productIds"] = stringList(r["productIds"], "Product IDs")
+		for _, id := range domain.Strings(r["productIds"]) {
+			domain.Find(s, "products", id)
+		}
+		r["platforms"] = stringList(r["platforms"], "Platforms")
+		for _, id := range domain.Strings(r["platforms"]) {
+			lookup(domain.Rows(c, "platforms"), id)
+		}
 		nodes := domain.Rows(r, "nodes")
 		if len(nodes) < 1 || len(nodes) > 30 {
 			domain.Fail("A solution needs 1–30 task nodes.")
