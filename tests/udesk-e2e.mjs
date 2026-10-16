@@ -40,6 +40,22 @@ try {
   assert.equal(await page.locator("select option[value='10']").count(), 1);
   assert.equal(await page.locator("nav a.nav-item").count(), 13);
   console.log("PASS source metadata, navigation and filter deduplication");
+  await page
+    .getByLabel("Sort current page", { exact: true })
+    .selectOption("field_num:desc");
+  assert.equal(
+    await page.locator("tbody tr .text-button").first().innerText(),
+    "#104",
+  );
+  await page
+    .getByLabel("Search current page", { exact: true })
+    .fill("OTHER-AGENT-PRIVATE");
+  assert.equal(await page.locator("tbody tr").count(), 1);
+  await page.getByLabel("Search current page", { exact: true }).fill("");
+  await page.screenshot({
+    path: "test-results/ticket-queue-en.png",
+    fullPage: true,
+  });
   const before = mock.state.requests.filter((p) => p === "tickets").length;
   const refreshed = page.waitForResponse(
     (r) => new URL(r.url()).pathname === "/api/tickets",
@@ -54,13 +70,40 @@ try {
   await page.locator("tbody tr").first().waitFor();
   assert.equal(await page.locator("tbody tr").count(), 1);
   assert.ok(mock.state.filterIds.includes("11"));
-  await page.locator("tbody tr .text-button").first().click();
+  await page.locator("tbody tr .ticket-subject").first().click();
+  assert.ok(page.url().endsWith("#service?ticket=101"));
   await page
     .getByRole("heading", { name: "Custom fields", exact: true })
     .waitFor();
   assert.equal(
-    await page.locator(".ticket-fields").nth(1).locator(":scope > div").count(),
-    31,
+    await page
+      .locator(".ticket-field-section")
+      .last()
+      .locator(".ticket-fields")
+      .locator(":scope > div")
+      .count(),
+    6,
+  );
+  assert.equal(await page.locator(".ticket-fields dt small").count(), 0);
+  assert.equal(
+    await page.getByText("assignee_name", { exact: true }).count(),
+    0,
+  );
+  assert.equal(await page.getByText("Custom 3", { exact: true }).count(), 0);
+  await page.reload();
+  await page.locator(".ticket-fields").first().waitFor();
+  await page
+    .locator(".ticket-fields dd")
+    .getByText("No", { exact: true })
+    .waitFor();
+  await page
+    .locator(".ticket-fields dd")
+    .getByText("0", { exact: true })
+    .waitFor();
+  await page.getByText("Only v2 field", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByText("Custom fields v2", { exact: true }).count(),
+    0,
   );
   await page.getByText("Hardware fault", { exact: true }).waitFor();
   await page.getByText("Internal case context", { exact: true }).waitFor();
@@ -130,11 +173,24 @@ try {
   console.log(
     "PASS custom fields/options, inert HTML, conversation and saved RMA draft",
   );
+  await page.screenshot({
+    path: "test-results/ticket-detail-en.png",
+    fullPage: true,
+  });
   await page.getByLabel("Language", { exact: true }).selectOption("zh-CN");
   await page
     .getByRole("heading", { name: "自定义字段", exact: true })
     .waitFor();
+  await page.screenshot({
+    path: "test-results/ticket-detail-zh.png",
+    fullPage: true,
+  });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await page.screenshot({
+    path: "test-results/ticket-detail-mobile.png",
+    fullPage: true,
+  });
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

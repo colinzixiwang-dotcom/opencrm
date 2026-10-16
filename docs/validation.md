@@ -84,3 +84,18 @@ The signed Udesk mock browser suite verifies live refresh and source-filter call
 Backend tests cover signatures, URL-encoded ticket numbers and fresh nonces; environment precedence; unknown source roles; source-disabled/disappeared accounts; requested password reset; exclusion of unrelated SIP credentials; own/group/admin scopes; revoked-role permission persistence; current source reassignment; field fidelity; immutable snapshots; atomic rollback and successful RMA linking; and idempotent resubmission. Existing RMA, audit, warranty, bilingual and proxy login browser suites pass alongside the current workspace smoke. Lint/build, unit tests, `go vet`, and race checks pass.
 
 A limited live check on the configured tenant verifies signed reads, account synchronization (five accounts, nine groups), 30 custom-field definitions and 26 support-template fields, list/detail access and LAN proxy login. This does not establish full historical ingestion, webhook behavior or production load capacity. Udesk remains read-only; source personal filters execute as the configured integration account and are intersected with CRM scope. Draft saves require successful source refresh. External Shopify/MES facts and broad order/SN conflict resolution remain outside this change.
+
+## Ticket center UI refinement — 2026-10-16
+
+Verified the shared list controls, ticket deep links, populated-only details and source ID URL mapping with:
+
+- `npm run check` (ESLint and production build)
+- `npm test` (Go packages and frontend/i18n units)
+- `npm run test:e2e`, `npm run test:rma`, `npm run test:i18n`
+- `npm run test:audit`, `npm run test:warranty`, `npm run test:proxy`
+- `npm run test:udesk` (current-page search/sort, source filters/refresh, clickable title, detail reload, empty-field omission, retained zero/false values, v1/v2 custom-field merge, read-only source links, draft persistence, row authorization, bilingual/mobile and outage behavior)
+- `./scripts/go.sh vet ./...`
+
+Live LAN checks confirmed #717 uses `/entry/ticket/show/20713607`, ticket-detail links survive navigation and browser Back restores the list. Screenshots inspected during iteration include the original queue, CRM reference, English/Chinese queue and detail, actual #717, and 390px mobile queue/detail. The mobile queue uses cards, and document width stays within the viewport.
+
+Screenshots are local ignored artifacts in `test-results/`: `tickets-before.png`, `ticket-queue-live-zh.png`, `ticket-detail-live-preview.png`, `ticket-717-live-zh.png`, `ticket-detail-en.png`, `ticket-detail-zh.png`, `ticket-detail-mobile.png`, `ticket-queue-mobile.png`. Live screenshots contain tenant/customer information; synthetic screenshots use the isolated mock fixture.
