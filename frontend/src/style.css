@@ -3479,3 +3479,23 @@ td {
 .ticket-conversation .conversation-body p { margin:0 0 12px; white-space:pre-line; line-height:1.8; }
 .ticket-conversation .conversation-body p:last-child { margin-bottom:0; }
 @media(max-width:600px) { .ticket-conversation article { padding:16px; } .conversation-header { align-items:flex-start; } .conversation-header > span { width:100%; padding-left:39px; } }
+.attachment-list { display:grid; gap:8px; margin:8px 0; }
+.attachment-card { display:flex; align-items:center; gap:10px; width:100%; min-width:0; padding:8px; text-align:left; background:white; border:1px solid var(--line); border-radius:8px; color:var(--ink); cursor:pointer; font-family:var(--body); }
+.attachment-card:hover { border-color:#aac3ad; background:#f4f8f0; }
+.attachment-thumbnail { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; overflow:hidden; background:#f0f4ed; border-radius:5px; color:var(--green); }
+.attachment-thumbnail img { width:100%; height:100%; object-fit:cover; }
+.attachment-caption { min-width:0; flex:1; }
+.attachment-caption strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; font-weight:500; }
+.attachment-caption small { display:block; margin-top:3px; color:var(--muted); font-size:10px; }
+.attachment-open { color:var(--muted); }
+.attachment-preview { width:min(1000px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid var(--line); border-radius:14px; color:var(--ink); box-shadow:0 24px 100px #143b3730; }
+.attachment-preview::backdrop { background:#143b37aa; backdrop-filter:blur(3px); }
+.attachment-preview-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 22px; border-bottom:1px solid var(--line); }
+.attachment-preview-header > div { min-width:0; }
+.attachment-preview-header h2 { margin:5px 0 0; font-size:14px; overflow-wrap:anywhere; }
+.attachment-preview-body { display:grid; place-items:center; min-height:220px; padding:20px; background:var(--paper); overflow:auto; }
+.attachment-preview-body > img,.attachment-preview-body > video { max-width:100%; max-height:65dvh; object-fit:contain; }
+.attachment-preview-body iframe { width:100%; height:65dvh; border:0; background:white; }
+.attachment-preview-body audio { width:min(500px,100%); }
+.attachment-preview footer { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; padding:16px 22px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
+.attachment-unavailable { padding:30px; text-align:center; color:var(--muted); }

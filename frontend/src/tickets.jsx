@@ -13,6 +13,7 @@ import {
   Icon,
   Pagination,
 } from "./components";
+import { AttachmentList } from "./attachments";
 import { messageText } from "./ticket-content";
 import { RMAForm } from "./support";
 
@@ -23,14 +24,6 @@ const text = (value) =>
       ? JSON.stringify(value)
       : String(value);
 const plain = value => messageText(value, true);
-const safeURL = (value) => {
-  try {
-    const u = new URL(value);
-    return ["https:", "http:"].includes(u.protocol) ? u.href : null;
-  } catch {
-    return null;
-  }
-};
 const displayDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -64,29 +57,7 @@ function Value({ value, field }) {
       )
       .join(" / ");
   }
-  if (
-    Array.isArray(value) &&
-    value.some((v) => v && typeof v === "object" && v.url)
-  ) {
-    return (
-      <div>
-        {value.map((v, i) =>
-          safeURL(v.url) ? (
-            <a
-              key={v.id || i}
-              href={safeURL(v.url)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {v.name || v.file_name || tr("Attachment")}
-            </a>
-          ) : (
-            <span key={i}>{text(v)}</span>
-          ),
-        )}
-      </div>
-    );
-  }
+  if (Array.isArray(value) && value.some(v => v && typeof v === "object" && (v.url || v.file_url || v.download_url))) return <AttachmentList value={value} />;
   return <span>{text(value)}</span>;
 }
 const labels = {
