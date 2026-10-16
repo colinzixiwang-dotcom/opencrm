@@ -1,3 +1,5 @@
+import { LanguageSwitcher } from "./language";
+import { tr } from "./i18n";
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Provider, useWorkspace, api, title } from "./context";
@@ -31,8 +33,9 @@ import "./style.css";
 function Brand({ big = false }) {
   return (
     <div className={"brand " + (big ? "big" : "")}>
-      <span className="brand-mark">H</span>harbor
-      <span className="brand-caption">ERP</span>
+      <span className="brand-mark">{tr("H")}</span>
+      {tr("harbor")}
+      <span className="brand-caption">{tr("ERP")}</span>
     </div>
   );
 }
@@ -60,18 +63,22 @@ function Login() {
   };
   return (
     <main className="login-page">
+      <div className="login-language">
+        <LanguageSwitcher />
+      </div>
       <section className="login-story">
         <Brand big />
         <div className="login-copy">
-          <span className="eyebrow">EVERY DETAIL. ONE WORKSPACE.</span>
+          <span className="eyebrow">{tr("EVERY DETAIL. ONE WORKSPACE.")}</span>
           <h1>
-            A clear view.
-            <br />A steady operation.
+            {tr("A clear view.")}
+            <br />
+            {tr("A steady operation.")}
           </h1>
           <p>
-            Products, purchases, inventory, and profit.
+            {tr("Products, purchases, inventory, and profit.")}
             <br />
-            Connected from the first order to the last mile.
+            {tr("Connected from the first order to the last mile.")}
           </p>
           <div className="login-art">
             <div className="orbit a" />
@@ -81,21 +88,23 @@ function Login() {
                 <Icon name={n} />
               </div>
             ))}
-            <span>Built around the way your business moves.</span>
+            <span>{tr("Built around the way your business moves.")}</span>
           </div>
         </div>
         <div className="login-foot">
-          LOCAL WORKSPACE <span>·</span> PERSISTENT SQLITE STORAGE
+          {tr("LOCAL WORKSPACE ")}
+          <span>·</span>
+          {tr(" PERSISTENT SQLITE STORAGE")}
         </div>
       </section>
       <section className="login-panel">
         <div className="login-form-wrap">
           <div className="workspace-tag">
             <span className="online-dot" />
-            Your operations workspace
+            {tr("Your operations workspace")}
           </div>
-          <h2>Welcome aboard.</h2>
-          <p className="muted">Sign in to your Harbor workspace.</p>
+          <h2>{tr("Welcome aboard.")}</h2>
+          <p className="muted">{tr("Sign in to your Harbor workspace.")}</p>
           <form
             id="login-form"
             onSubmit={(e) => {
@@ -104,7 +113,7 @@ function Login() {
             }}
           >
             <label>
-              Email address
+              {tr("Email address")}
               <input
                 name="email"
                 type="email"
@@ -115,7 +124,7 @@ function Login() {
               />
             </label>
             <label>
-              Password
+              {tr("Password")}
               <input
                 name="password"
                 type="password"
@@ -125,14 +134,17 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </label>
-            {error && <p className="form-error">{error}</p>}
+            {error && <p className="form-error">{tr(error)}</p>}
             <button className="btn primary wide" disabled={busy}>
-              Open workspace <Icon name="arrow" />
+              {tr("Open workspace ")}
+              <Icon name="arrow" />
             </button>
           </form>
           <div className="demo-login">
-            <strong>Explore the working example</strong>
-            <p>Example records are ready. Every change is saved locally.</p>
+            <strong>{tr("Explore the working example")}</strong>
+            <p>
+              {tr("Example records are ready. Every change is saved locally.")}
+            </p>
             <div className="demo-roles">
               {["admin", "operator", "analyst"].map((r) => (
                 <button
@@ -141,18 +153,21 @@ function Login() {
                   disabled={busy}
                   onClick={() => login(r + "@harbor.local", "HarborDemo!2026")}
                 >
-                  {r === "admin" ? "Administrator" : title(r)}
+                  {r === "admin" ? tr("Administrator") : title(r)}
                 </button>
               ))}
             </div>
             <small>
-              Demo password: <code>HarborDemo!2026</code>
+              {tr("Demo password: ")}
+              <code>{tr("HarborDemo!2026")}</code>
             </small>
           </div>
           <p className="login-note">
-            An independent implementation inspired by Lingxing ERP research.
+            {tr(
+              "An independent implementation inspired by Lingxing ERP research.",
+            )}
             <br />
-            Marketplace connections are not configured.
+            {tr("Marketplace connections are not configured.")}
           </p>
         </div>
       </section>
@@ -205,11 +220,12 @@ function App() {
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   }, []);
-  if (loading) return <main className="login-panel">Opening workspace…</main>;
+  if (loading)
+    return <main className="login-panel">{tr("Opening workspace…")}</main>;
   if (!s)
     return (
       <>
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error">{tr(error)}</p>}
         <Login />
       </>
     );
@@ -284,11 +300,11 @@ function App() {
           </span>
           <div>
             <strong>{s.settings.company}</strong>
-            <small>Operations workspace</small>
+            <small>{tr("Operations workspace")}</small>
           </div>
         </div>
-        <span className="nav-caption">WORKSPACE</span>
-        <nav aria-label="Main navigation">
+        <span className="nav-caption">{tr("WORKSPACE")}</span>
+        <nav aria-label={tr("Main navigation")}>
           {navigation.map(([id, label]) => (
             <a
               key={id}
@@ -298,7 +314,7 @@ function App() {
               onClick={() => navigate(id)}
             >
               <Icon name={id} />
-              <span>{label}</span>
+              <span>{tr(label)}</span>
               {id === "purchase" &&
                 s.purchases.some((x) => x.status === "pending") && (
                   <span className="nav-count">
@@ -311,7 +327,8 @@ function App() {
         <div className="sidebar-bottom">
           <div className="local-status">
             <span className="online-dot" />
-            Local workspace<small>Changes saved automatically</small>
+            {tr("Local workspace")}
+            <small>{tr("Changes saved automatically")}</small>
           </div>
           <div className="sidebar-profile">
             <span className="user-avatar">
@@ -326,7 +343,7 @@ function App() {
             </div>
             <button
               className="icon-button"
-              aria-label="Sign out"
+              aria-label={tr("Sign out")}
               onClick={async () => {
                 try {
                   await api("/api/logout", { method: "POST", body: "{}" });
@@ -345,32 +362,36 @@ function App() {
         <header className="topbar">
           <button
             className="mobile-nav icon-button"
-            aria-label="Toggle navigation"
+            aria-label={tr("Toggle navigation")}
             onClick={() => setMobile(!mobile)}
           >
             <Icon name="filter" />
           </button>
           <div className="breadcrumb">
-            Workspace <span>/</span>
-            <strong>{nav.find((x) => x[0] === page)?.[1] || "Access"}</strong>
+            {tr("Workspace ")}
+            <span>/</span>
+            <strong>
+              {tr(nav.find((x) => x[0] === page)?.[1] || tr("Access"))}
+            </strong>
           </div>
           <div className="topbar-right">
+            <LanguageSwitcher />
             <label className="global-search">
               <Icon name="search" />
               <input
                 id="global-search"
-                aria-label="Search workspace"
-                placeholder="Find a product or order…"
+                aria-label={tr("Search workspace")}
+                placeholder={tr("Find a product or order…")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={find}
               />
               <kbd>↵</kbd>
             </label>
-            <span className="environment-badge">Example data</span>
+            <span className="environment-badge">{tr("Example data")}</span>
             <button
               className="icon-button"
-              aria-label="Refresh workspace"
+              aria-label={tr("Refresh workspace")}
               onClick={() =>
                 reload()
                   .then(() => notify("Workspace refreshed."))
@@ -389,20 +410,26 @@ function App() {
             />
           ) : (
             <section className="panel permission-empty">
-              <h1>Access restricted</h1>
-              <p>Your roles do not grant access to this page.</p>
+              <h1>{tr("Access restricted")}</h1>
+              <p>{tr("Your roles do not grant access to this page.")}</p>
               {navigation[0] && (
                 <Button onClick={() => navigate(navigation[0][0])}>
-                  Open {navigation[0][1]}
+                  {tr("Open ")}
+                  {tr(navigation[0][1])}
                 </Button>
               )}
             </section>
           )}
           <footer className="main-footer">
             <span>
-              Harbor ERP <span>·</span> Independent local implementation
+              {tr("Harbor ERP ")}
+              <span>·</span>
+              {tr(" Independent local implementation")}
             </span>
-            <span>Saved in SQLite · {s.settings.timezone}</span>
+            <span>
+              {tr("Saved in SQLite · ")}
+              {s.settings.timezone}
+            </span>
           </footer>
         </main>
       </div>
@@ -423,12 +450,14 @@ class WorkspaceBoundary extends React.Component {
       return (
         <main className="main-content">
           <section className="panel permission-empty" role="alert">
-            <h1>Workspace could not be displayed</h1>
+            <h1>{tr("Workspace could not be displayed")}</h1>
             <p>
-              Your saved records are intact. Reload the workspace to try again.
+              {tr(
+                "Your saved records are intact. Reload the workspace to try again.",
+              )}
             </p>
             <button className="btn primary" onClick={() => location.reload()}>
-              Reload workspace
+              {tr("Reload workspace")}
             </button>
             <a
               className="btn secondary"
@@ -438,7 +467,7 @@ class WorkspaceBoundary extends React.Component {
                 location.reload();
               }}
             >
-              Return to overview
+              {tr("Return to overview")}
             </a>
           </section>
         </main>

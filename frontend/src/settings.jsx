@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import React, { useState } from "react";
 import { useWorkspace, formatDate } from "./context";
 import {
@@ -12,6 +13,7 @@ import {
   Icon,
   Export,
 } from "./components";
+import { intlLocale } from "./i18n";
 import { WarrantySettings } from "./warranty";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
@@ -20,7 +22,7 @@ export function Settings() {
     [error, setError] = useState("");
   const tabs = [
     ["company", "Company"],
- ["warranty", "Warranty rules"],
+    ["warranty", "Warranty rules"],
     ["users", "Users & roles", s.users.length],
     ...(can("role.save")
       ? [["roles", "Role permissions", s.roles.length]]
@@ -33,15 +35,25 @@ export function Settings() {
     <>
       <Heading>
         {tab === "users" && (
-          <NewButton label="Add user" type="user" permission="user.create" />
+          <NewButton
+            label={tr("Add user")}
+            type="user"
+            permission="user.create"
+          />
         )}
         {tab === "roles" && (
-          <NewButton label="Add role" type="role" permission="role.save" />
+          <NewButton
+            label={tr("Add role")}
+            type="role"
+            permission="role.save"
+          />
         )}
         {tab === "audit" && <Export collection="audit" />}
       </Heading>
       <Tabs value={tab} onChange={setTab} items={tabs} />
-      {tab === "warranty" ? <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} /> : tab === "users" ? (
+      {tab === "warranty" ? (
+        <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
+      ) : tab === "users" ? (
         <>
           <Panel>
             <Table
@@ -73,7 +85,7 @@ export function Settings() {
                           setModal({ type: "user-edit", id: u.id })
                         }
                       >
-                        Edit access
+                        {tr("Edit access")}
                       </Button>
                     )}
                     {can("user.assignRoles") && (
@@ -81,7 +93,7 @@ export function Settings() {
                         kind="small"
                         onClick={() => setModal({ type: "assign", id: u.id })}
                       >
-                        Assign roles
+                        {tr("Assign roles")}
                       </Button>
                     )}
                   </div>
@@ -90,9 +102,9 @@ export function Settings() {
             />
           </Panel>
           <Note icon="users">
-            RuoYi RBAC: users receive the union of their enabled roles’ menu and
-            button grants. Every write and protected read is checked on the
-            server.
+            {tr(
+              "RuoYi RBAC: users receive the union of their enabled roles’ menu and button grants. Every write and protected read is checked on the server.",
+            )}
           </Note>
         </>
       ) : tab === "roles" ? (
@@ -103,7 +115,7 @@ export function Settings() {
               columns={[
                 col("Role", (r) => (
                   <>
-                    <strong>{r.roleName}</strong>
+                    <strong>{tr(r.roleName)}</strong>
                     <small className="cell-sub">{r.roleKey}</small>
                   </>
                 )),
@@ -111,18 +123,22 @@ export function Settings() {
                   <Badge value={r.status === "0" ? "active" : "inactive"} />
                 )),
                 col("Menu & button grants", (r) =>
-                  r.roleKey === "admin" ? "All permissions" : r.menuIds.length,
+                  r.roleKey === "admin"
+                    ? tr("All permissions")
+                    : r.menuIds.length,
                 ),
                 col("Description", (r) => r.remark || "—"),
                 col("", (r) =>
                   r.roleKey === "admin" ? (
-                    <span className="category">Protected administrator</span>
+                    <span className="category">
+                      {tr("Protected administrator")}
+                    </span>
                   ) : (
                     <Button
                       kind="small"
                       onClick={() => setModal({ type: "role", id: r.roleId })}
                     >
-                      Edit permissions
+                      {tr("Edit permissions")}
                     </Button>
                   ),
                 ),
@@ -130,9 +146,9 @@ export function Settings() {
             />
           </Panel>
           <Note>
-            Assign individual page and action permissions. Disabling a role
-            removes its grants on the next authenticated request.
-            Organization/department row-level data scopes are not implemented.
+            {tr(
+              "Assign individual page and action permissions. Disabling a role removes its grants on the next authenticated request. Organization/department row-level data scopes are not implemented.",
+            )}
           </Note>
         </>
       ) : tab === "menus" ? (
@@ -144,7 +160,7 @@ export function Settings() {
                 col("Menu / action", (m) => (
                   <strong>
                     {m.menuType === "F" ? "↳ " : ""}
-                    {m.menuName}
+                    {tr(m.menuName)}
                   </strong>
                 )),
                 col("Type", (m) => (
@@ -152,7 +168,9 @@ export function Settings() {
                 )),
                 col("Permission", (m) => <code>{m.perms}</code>),
                 col("Route", (m) => m.url || "—"),
-                col("Visible", (m) => (m.visible === "0" ? "Shown" : "Hidden")),
+                col("Visible", (m) =>
+                  m.visible === "0" ? tr("Shown") : tr("Hidden"),
+                ),
                 col("Status", (m) => (
                   <Badge value={m.status === "0" ? "active" : "inactive"} />
                 )),
@@ -161,16 +179,16 @@ export function Settings() {
                     kind="small"
                     onClick={() => setModal({ type: "menu", id: m.menuId })}
                   >
-                    Edit menu
+                    {tr("Edit menu")}
                   </Button>
                 )),
               ]}
             />
           </Panel>
           <Note>
-            Permission identifiers and route mappings are fixed by backend code.
-            Menu names, ordering, visibility, and enabled state are configurable
-            here.
+            {tr(
+              "Permission identifiers and route mappings are fixed by backend code. Menu names, ordering, visibility, and enabled state are configurable here.",
+            )}
           </Note>
         </>
       ) : tab === "audit" ? (
@@ -181,7 +199,7 @@ export function Settings() {
               col(
                 "Time",
                 (r) =>
-                  new Intl.DateTimeFormat("en-US", {
+                  new Intl.DateTimeFormat(intlLocale(), {
                     dateStyle: "medium",
                     timeStyle: "short",
                     timeZone: s.settings.timezone,
@@ -197,10 +215,13 @@ export function Settings() {
       ) : tab === "integrations" ? (
         <div className="integration-grid">
           {[
-            ["Amazon", "Marketplace listings, orders, FBA, and advertising"],
-            ["Shopify", "Store orders, inventory, and customers"],
-            ["1688", "Supplier purchasing and product pairing"],
-            ["Carrier services", "Shipping labels and live tracking"],
+            [
+              "Amazon",
+              tr("Marketplace listings, orders, FBA, and advertising"),
+            ],
+            ["Shopify", tr("Store orders, inventory, and customers")],
+            ["1688", tr("Supplier purchasing and product pairing")],
+            [tr("Carrier services"), tr("Shipping labels and live tracking")],
           ].map(([name, d]) => (
             <Panel className="integration-card" key={name}>
               <span className="integration-logo">{name[0]}</span>
@@ -208,8 +229,9 @@ export function Settings() {
               <p>{d}</p>
               <Badge value="not_connected" />
               <div className="integration-note">
-                No integration adapter is configured. Credentials are not
-                requested or stored.
+                {tr(
+                  "No integration adapter is configured. Credentials are not requested or stored.",
+                )}
               </div>
             </Panel>
           ))}
@@ -217,8 +239,8 @@ export function Settings() {
       ) : (
         <div className="two-columns">
           <Panel className="settings-form">
-            <h2>Company preferences</h2>
-            <p>Used for display and reporting context.</p>
+            <h2>{tr("Company preferences")}</h2>
+            <p>{tr("Used for display and reporting context.")}</p>
             <form
               id="settings-form"
               onSubmit={async (e) => {
@@ -236,7 +258,7 @@ export function Settings() {
               }}
             >
               <label>
-                Company name
+                {tr("Company name")}
                 <input
                   name="company"
                   required
@@ -245,7 +267,7 @@ export function Settings() {
                 />
               </label>
               <label>
-                Timezone
+                {tr("Timezone")}
                 <select
                   name="timezone"
                   defaultValue={s.settings.timezone}
@@ -262,7 +284,7 @@ export function Settings() {
                 </select>
               </label>
               <label>
-                Stock coverage threshold (days)
+                {tr("Stock coverage threshold (days)")}
                 <input
                   name="lowStockDays"
                   type="number"
@@ -273,44 +295,50 @@ export function Settings() {
                 />
               </label>
               <p className="help-text">
-                Stored for future coverage forecasts. Current suggestions use
-                product reorder points.
+                {tr(
+                  "Stored for future coverage forecasts. Current suggestions use product reorder points.",
+                )}
               </p>
-              {error && <p className="form-error">{error}</p>}
+              {error && <p className="form-error">{tr(error)}</p>}
               {can("settings.update") ? (
                 <button className="btn primary" type="submit">
-                  Save preferences
+                  {tr("Save preferences")}
                 </button>
               ) : (
-                <span className="muted">Read-only access</span>
+                <span className="muted">{tr("Read-only access")}</span>
               )}
             </form>
           </Panel>
           <Panel className="workspace-details">
-            <h2>Your local workspace</h2>
+            <h2>{tr("Your local workspace")}</h2>
             {[
-              ["Frontend", "React + Vite"],
-              ["Backend", "Go + Gin"],
-              ["Permissions", "RuoYi-Go adapted RBAC"],
-              ["Storage", "SQLite · persistent"],
-              ["Currency", "USD"],
-              ["State revision", s.version],
+              [tr("Frontend"), "React + Vite"],
+              [tr("Backend"), "Go + Gin"],
+              [tr("Permissions"), tr("RuoYi-Go adapted RBAC")],
+              [tr("Storage"), tr("SQLite · persistent")],
+              [tr("Currency"), "USD"],
+              [tr("State revision"), s.version],
             ].map(([k, v]) => (
-              <div className="balance-row" key={k}>
-                <span>{k}</span>
-                <strong>{v}</strong>
+              <div className="balance-row" key={tr(k)}>
+                <span>{tr(k)}</span>
+                <strong>{tr(v)}</strong>
               </div>
             ))}
-            <p>Business records and permissions are saved on this computer.</p>
+            <p>
+              {tr(
+                "Business records and permissions are saved on this computer.",
+              )}
+            </p>
             {can("role.save") && (
               <a className="btn secondary" href="/api/backup" download>
                 <Icon name="download" />
-                Download business snapshot
+                {tr("Download business snapshot")}
               </a>
             )}
             <small>
-              Business snapshot excludes authentication data. Back up the SQLite
-              database for complete recovery.
+              {tr(
+                "Business snapshot excludes authentication data. Back up the SQLite database for complete recovery.",
+              )}
             </small>
           </Panel>
         </div>

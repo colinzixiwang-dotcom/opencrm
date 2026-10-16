@@ -1,3 +1,5 @@
+import { LanguageSwitcher } from "./language";
+import { tr } from "./i18n";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useWorkspace, money, title, formatDate, today } from "./context";
 import {
@@ -13,7 +15,11 @@ import {
   Export,
   Tabs,
 } from "./components";
-import { WarrantyEvidence, AssessmentSummary, warrantyRequired } from "./warranty";
+import {
+  WarrantyEvidence,
+  AssessmentSummary,
+  warrantyRequired,
+} from "./warranty";
 const labels = {
   device_issue: "Device issue",
   user_issue: "User issue",
@@ -48,15 +54,15 @@ function Select({
 }) {
   return (
     <label>
-      {label}
+      {tr(label)}
       <select
-        aria-label={label}
+        aria-label={tr(label)}
         name={name}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         required={required}
       >
-        {empty != null && <option value="">{empty}</option>}
+        {empty != null && <option value="">{tr(empty)}</option>}
         {items.map((x) =>
           typeof x === "string" ? (
             <option key={x} value={x}>
@@ -64,7 +70,7 @@ function Select({
             </option>
           ) : (
             <option key={x.value} value={x.value}>
-              {x.label}
+              {tr(x.label)}
             </option>
           ),
         )}
@@ -82,7 +88,7 @@ function Input({
 }) {
   return (
     <label>
-      {label}
+      {tr(label)}
       <input
         value={value ?? ""}
         type={type}
@@ -96,7 +102,7 @@ function Input({
 function TextArea({ label, value, onChange, required = false, ...rest }) {
   return (
     <label className="full-field">
-      {label}
+      {tr(label)}
       <textarea
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
@@ -115,7 +121,7 @@ function Toggle({ label, checked, onChange }) {
         checked={!!checked}
         onChange={(e) => onChange(e.target.checked)}
       />
-      {label}
+      {tr(label)}
     </label>
   );
 }
@@ -128,21 +134,22 @@ function Dialog({ title: heading, subtitle, children, onClose, wide = false }) {
     <dialog
       className={"modal support-dialog " + (wide ? "wide" : "")}
       ref={ref}
-      aria-label={heading}
+      aria-label={tr(heading)}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
     >
       <div className="modal-header">
+        <LanguageSwitcher />
         <div>
-          <span className="eyebrow">CUSTOMER OPERATIONS</span>
-          <h2>{heading}</h2>
-          <p>{subtitle}</p>
+          <span className="eyebrow">{tr("CUSTOMER OPERATIONS")}</span>
+          <h2>{tr(heading)}</h2>
+          <p>{tr(subtitle)}</p>
         </div>
         <button
           className="icon-button"
-          aria-label="Close dialog"
+          aria-label={tr("Close dialog")}
           onClick={onClose}
         >
           <Icon name="close" />
@@ -168,17 +175,17 @@ export function CustomFields({ scope, typeId = "", value = {}, onChange }) {
       return f.fieldType === "select" ? (
         <Select
           key={f.id}
-          label={f.name}
+          label={tr(f.name)}
           value={value[f.id] || ""}
           onChange={set}
           items={f.options.map((v) => ({ value: v, label: v }))}
-          empty="Choose…"
+          empty={tr("Choose…")}
           required={f.required}
         />
       ) : f.fieldType === "textarea" ? (
         <TextArea
           key={f.id}
-          label={f.name}
+          label={tr(f.name)}
           value={value[f.id]}
           onChange={set}
           required={f.required}
@@ -186,7 +193,7 @@ export function CustomFields({ scope, typeId = "", value = {}, onChange }) {
       ) : (
         <Input
           key={f.id}
-          label={f.name}
+          label={tr(f.name)}
           value={value[f.id]}
           onChange={set}
           type={
@@ -276,10 +283,10 @@ function FilteredTable({
         {filters.map((f) => (
           <Select
             key={f.key}
-            label={f.label}
+            label={tr(f.label)}
             value={v[f.key] || ""}
             onChange={(x) => setV({ ...v, [f.key]: x })}
-            empty={"All " + f.label.toLowerCase()}
+            empty={tr("All") + " " + tr(f.label)}
             items={
               f.items ||
               [...new Set(rows.map((r) => String(r[f.key] ?? "")))]
@@ -291,8 +298,13 @@ function FilteredTable({
         ))}
         {dateKey && (
           <>
-            <Input label="From" type="date" value={from} onChange={setFrom} />
-            <Input label="To" type="date" value={to} onChange={setTo} />
+            <Input
+              label={tr("From")}
+              type="date"
+              value={from}
+              onChange={setFrom}
+            />
+            <Input label={tr("To")} type="date" value={to} onChange={setTo} />
           </>
         )}
         <Button
@@ -303,7 +315,7 @@ function FilteredTable({
             setTo("");
           }}
         >
-          Clear filters
+          {tr("Clear filters")}
         </Button>
       </div>
       <Table
@@ -312,7 +324,7 @@ function FilteredTable({
         rows={list}
         columns={columns}
         statuses={statuses}
-        empty={empty}
+        empty={tr(empty)}
       />
     </Panel>
   );
@@ -334,24 +346,34 @@ function useSupportAction(onClose) {
   };
   return { submit, busy, error, setError };
 }
-function Footer({ busy, error, onClose, disabled = false, label = "Save record" }) {
+function Footer({
+  busy,
+  error,
+  onClose,
+  disabled = false,
+  label = "Save record",
+}) {
   return (
     <>
       {error && (
         <p className="form-error support-error" role="alert">
-          {error}
+          {tr(error)}
         </p>
       )}
       <div className="modal-footer">
         <span>
           <Icon name="check" />
-          Saved in your workspace
+          {tr("Saved in your workspace")}
         </span>
         <Button kind="secondary" onClick={onClose} disabled={busy}>
-          Cancel
+          {tr("Cancel")}
         </Button>
-        <button className="btn primary" type="submit" disabled={busy || disabled}>
-          {busy ? "Saving…" : label}
+        <button
+          className="btn primary"
+          type="submit"
+          disabled={busy || disabled}
+        >
+          {busy ? tr("Saving…") : tr(label)}
         </button>
       </div>
     </>
@@ -382,7 +404,7 @@ function TaskParameters({
     <div className="form-grid">
       {type.hasAmount && (
         <Input
-          label="Value ($)"
+          label={tr("Value ($)")}
           type="number"
           min="0.01"
           max="5000000"
@@ -394,19 +416,19 @@ function TaskParameters({
       )}
       {type.requiresProduct && (
         <Select
-          label="Task SKU"
+          label={tr("Task SKU")}
           value={value.productId ?? node.productId ?? ""}
           onChange={(v) => set("productId", v)}
           items={s.products
             .filter((p) => products.includes(p))
             .map((p) => ({ value: p.id, label: sku(s, p.id) }))}
-          empty="Choose SKU…"
+          empty={tr("Choose SKU…")}
           required
         />
       )}
       {type.requiresProduct && (
         <Input
-          label="Quantity"
+          label={tr("Quantity")}
           value={value.qty ?? node.qty ?? 1}
           type="number"
           min="1"
@@ -439,13 +461,13 @@ function RMAForm({ onClose, initial = {} }) {
       description: "",
       solutionId: "",
       sn: initial.sn || "",
- warrantyEvidence: {},
+      warrantyEvidence: {},
       customFields: {},
     }),
     [inputs, setInputs] = useState({});
   const [configRevision] = useState(cfg.revision);
- const [warrantyRevision] = useState(cfg.warrantyPolicy.revision);
- const [assessment,setAssessment] = useState(null);
+  const [warrantyRevision] = useState(cfg.warrantyPolicy.revision);
+  const [assessment, setAssessment] = useState(null);
   const { submit, busy, error } = useSupportAction(onClose),
     set = (k, x) => setV({ ...v, [k]: x }),
     solution = cfg.solutions.find((x) => x.id === v.solutionId),
@@ -476,8 +498,10 @@ function RMAForm({ onClose, initial = {} }) {
   };
   return (
     <Dialog
-      title="Create RMA"
-      subtitle="Choose one solution. Its configured tasks and dependencies are generated automatically."
+      title={tr("Create RMA")}
+      subtitle={tr(
+        "Choose one solution. Its configured tasks and dependencies are generated automatically.",
+      )}
       onClose={onClose}
       wide
     >
@@ -495,7 +519,12 @@ function RMAForm({ onClose, initial = {} }) {
           }
           submit(
             "rma.create",
-            { ...v, taskInputs, expectedConfigRevision: configRevision, expectedWarrantyRevision:warrantyRevision },
+            {
+              ...v,
+              taskInputs,
+              expectedConfigRevision: configRevision,
+              expectedWarrantyRevision: warrantyRevision,
+            },
             "RMA created. Solution tasks generated.",
           );
         }}
@@ -503,7 +532,7 @@ function RMAForm({ onClose, initial = {} }) {
         <div className="modal-body">
           <div className="form-grid">
             <Input
-              label="Support ticket number"
+              label={tr("Support ticket number")}
               name="ticketNumber"
               value={v.ticketNumber}
               onChange={(x) => set("ticketNumber", x)}
@@ -511,7 +540,7 @@ function RMAForm({ onClose, initial = {} }) {
               maxLength="160"
             />
             <Input
-              label="Order number"
+              label={tr("Order number")}
               name="orderNumber"
               list="support-order-options"
               value={v.orderNumber}
@@ -545,15 +574,15 @@ function RMAForm({ onClose, initial = {} }) {
               ))}
             </datalist>
             <Select
-              label="Purchased platform"
+              label={tr("Purchased platform")}
               value={v.platform}
               onChange={(x) => set("platform", x)}
               items={options(cfg.platforms.filter((x) => x.enabled))}
-              empty="Choose platform…"
+              empty={tr("Choose platform…")}
               required
             />
             <Select
-              label="Affected device / part SKU"
+              label={tr("Affected device / part SKU")}
               value={v.productId}
               onChange={(x) => {
                 setV({
@@ -569,35 +598,35 @@ function RMAForm({ onClose, initial = {} }) {
                 value: p.id,
                 label: sku(s, p.id),
               }))}
-              empty="Choose SKU…"
+              empty={tr("Choose SKU…")}
               required
             />
             <Input
-              label="Serial number (optional)"
+              label={tr("Serial number (optional)")}
               value={v.sn}
               onChange={(x) => set("sn", x)}
               maxLength="120"
             />
             <Select
-              label="Root cause"
+              label={tr("Root cause")}
               value={v.rootCauseId}
               onChange={(x) => set("rootCauseId", x)}
               items={causes.map((x) => ({
                 value: x.id,
-                label: labels[x.primary] + " / " + x.name,
+                label: tr(labels[x.primary]) + " / " + tr(x.name),
               }))}
-              empty="Choose root cause…"
+              empty={tr("Choose root cause…")}
               required
             />
             <TextArea
-              label="Description"
+              label={tr("Description")}
               value={v.description}
               onChange={(x) => set("description", x)}
               required
               maxLength="4000"
             />
             <Select
-              label="Proposed solution"
+              label={tr("Proposed solution")}
               value={v.solutionId}
               onChange={selectSolution}
               items={options(
@@ -609,7 +638,7 @@ function RMAForm({ onClose, initial = {} }) {
                     ),
                 ),
               )}
-              empty="Choose solution…"
+              empty={tr("Choose solution…")}
               required
             />
             <CustomFields
@@ -618,14 +647,27 @@ function RMAForm({ onClose, initial = {} }) {
               onChange={(x) => set("customFields", x)}
             />
           </div>
-          {solution && <WarrantyEvidence value={v.warrantyEvidence} onChange={x=>set("warrantyEvidence",x)} payload={{productId:v.productId,solutionId:v.solutionId,platform:v.platform,warrantyEvidence:v.warrantyEvidence}} onAssessment={setAssessment} />}
+          {solution && (
+            <WarrantyEvidence
+              value={v.warrantyEvidence}
+              onChange={(x) => set("warrantyEvidence", x)}
+              payload={{
+                productId: v.productId,
+                solutionId: v.solutionId,
+                platform: v.platform,
+                warrantyEvidence: v.warrantyEvidence,
+              }}
+              onAssessment={setAssessment}
+            />
+          )}
           {solution && (
             <>
               <div className="support-section-title">
-                <h3>Solution tasks</h3>
+                <h3>{tr("Solution tasks")}</h3>
                 <small>
-                  Task types are fixed by this solution. Each approval is
-                  reviewed separately.
+                  {tr(
+                    "Task types are fixed by this solution. Each approval is reviewed separately.",
+                  )}
                 </small>
               </div>
               <div className="workflow-preview">
@@ -638,15 +680,15 @@ function RMAForm({ onClose, initial = {} }) {
                           {solution.nodes.indexOf(n) + 1}
                         </span>
                         <div>
-                          <strong>{type?.name || n.typeId}</strong>
+                          <strong>{tr(type?.name || n.typeId)}</strong>
                           <small>
                             {(n.dependsOn || []).length
-                              ? "After " + (n.dependsOn || []).join(", ")
-                              : "Independent task"}{" "}
+                              ? tr("After ") + (n.dependsOn || []).join(", ")
+                              : tr("Independent task")}{" "}
                             ·{" "}
                             {["refund", "return_device"].includes(n.typeId)
-                              ? "Approval always required"
-                              : "Approval rules evaluated on submission"}
+                              ? tr("Approval always required")
+                              : tr("Approval rules evaluated on submission")}
                           </small>
                         </div>
                       </div>
@@ -668,9 +710,9 @@ function RMAForm({ onClose, initial = {} }) {
         </div>
         <Footer
           busy={busy}
-          error={error}
+          error={tr(error)}
           onClose={onClose}
-          label="Create RMA"
+          label={tr("Create RMA")}
           disabled={!assessment?.eligible}
         />
       </form>
@@ -688,29 +730,29 @@ export function RMAs({ query = "" }) {
         {can("rma.create") && (
           <Button kind="primary" onClick={() => setEditor({ create: true })}>
             <Icon name="plus" />
-            Create RMA
+            {tr("Create RMA")}
           </Button>
         )}
       </Heading>
       <section className="stat-grid compact">
         <Stat
-          label={admin(s) ? "All RMAs" : "My RMAs"}
+          label={tr(admin(s) ? "All RMAs" : "My RMAs")}
           value={rows.length}
-          caption={
+          caption={tr(
             admin(s)
               ? "Every creator · full visibility"
-              : "Only records you created"
-          }
+              : "Only records you created",
+          )}
         />
         <Stat
-          label="Awaiting approval"
+          label={tr("Awaiting approval")}
           value={rows.filter((r) => r.status === "pending_approval").length}
-          caption="Independent task reviews"
+          caption={tr("Independent task reviews")}
         />
         <Stat
-          label="Completed"
+          label={tr("Completed")}
           value={rows.filter((r) => r.status === "completed").length}
-          caption="All solution tasks complete"
+          caption={tr("All solution tasks complete")}
         />
       </section>
       <FilteredTable
@@ -747,7 +789,10 @@ export function RMAs({ query = "" }) {
               >
                 {r.id}
               </button>
-              <small className="cell-sub">Ticket {r.ticketNumber}</small>
+              <small className="cell-sub">
+                {tr("Ticket ")}
+                {r.ticketNumber}
+              </small>
             </>
           )),
           col("Order / platform", (r) => (
@@ -759,7 +804,9 @@ export function RMAs({ query = "" }) {
           col("Device / part", (r) => (
             <>
               <strong>{r.product}</strong>
-              <small className="cell-sub">{r.sn || "No serial recorded"}</small>
+              <small className="cell-sub">
+                {r.sn || tr("No serial recorded")}
+              </small>
             </>
           )),
           col("Root cause", (r) => (
@@ -770,9 +817,10 @@ export function RMAs({ query = "" }) {
           )),
           col("Solution / progress", (r) => (
             <>
-              {r.solutionName}
+              {tr(r.solutionName)}
               <small className="cell-sub">
-                {r.completedTasks} / {r.taskCount} tasks
+                {r.completedTasks} / {r.taskCount}
+                {tr(" tasks")}
               </small>
             </>
           )),
@@ -786,9 +834,9 @@ export function RMAs({ query = "" }) {
         ]}
       />
       <Note>
-        RMA history keeps the solution and task behavior used at creation.
-        Configuration changes apply to new RMAs; editing an unstarted task
-        re-evaluates its approval rules.
+        {tr(
+          "RMA history keeps the solution and task behavior used at creation. Configuration changes apply to new RMAs; editing an unstarted task re-evaluates its approval rules.",
+        )}
       </Note>
       {editor?.create && <RMAForm onClose={() => setEditor(null)} />}
       {editor?.id && (
@@ -814,20 +862,25 @@ function RMADetail({ id, onClose }) {
   return (
     <>
       <Dialog
-        title={r.id}
-        subtitle={`${r.solutionName} · Created by ${r.ownerName} · ${formatDate(r.createdAt, s.settings.timezone)}`}
+        title={tr(r.id)}
+        subtitle={tr(
+          `${tr(r.solutionName)} · Created by ${r.ownerName} · ${formatDate(r.createdAt, s.settings.timezone)}`,
+        )}
         onClose={onClose}
         wide
       >
         <div className="modal-body">
           <div className="detail-grid">
             {[
-              ["Support ticket", r.ticketNumber],
-              ["Order / platform", r.orderNumber + " · " + r.platformName],
-              ["Affected SKU", sku(s, r.productId)],
-              ["Serial number", r.sn || "—"],
-              ["Root cause", labels[r.primaryCause] + " / " + r.rootCauseName],
-              ["Status", title(r.status)],
+              [tr("Support ticket"), r.ticketNumber],
+              [tr("Order / platform"), r.orderNumber + " · " + r.platformName],
+              [tr("Affected SKU"), sku(s, r.productId)],
+              [tr("Serial number"), r.sn || "—"],
+              [
+                tr("Root cause"),
+                tr(labels[r.primaryCause]) + " / " + tr(r.rootCauseName),
+              ],
+              [tr("Status"), title(r.status)],
             ].map(([k, v]) => (
               <div className="detail-field" key={k}>
                 <small>{k}</small>
@@ -838,14 +891,15 @@ function RMADetail({ id, onClose }) {
           </div>
           <AssessmentSummary assessment={r.eligibilityAssessment} />
           <div className="support-description">
-            <small>Description</small>
+            <small>{tr("Description")}</small>
             <p>{r.description}</p>
           </div>
           <div className="support-section-title">
-            <h3>Task workflow</h3>
+            <h3>{tr("Task workflow")}</h3>
             <small>
-              Configuration revision {r.configRevision} · {r.completedTasks}/
-              {r.taskCount} completed
+              {tr("Configuration revision ")}
+              {r.configRevision} · {r.completedTasks}/{r.taskCount}
+              {tr(" completed")}
             </small>
           </div>
           <div className="workflow-preview">
@@ -854,7 +908,7 @@ function RMADetail({ id, onClose }) {
                 <div className="workflow-node-heading">
                   <Icon name={t.direction === "none" ? "check" : "logistics"} />
                   <div>
-                    <strong>{t.typeName}</strong>
+                    <strong>{tr(t.typeName)}</strong>
                     <small>
                       {t.key} · {money(t.amountCents)}
                       {t.productId
@@ -866,15 +920,16 @@ function RMADetail({ id, onClose }) {
                 </div>
                 <p className="help-text">
                   {(t.dependsOn || []).length
-                    ? "Requires " +
+                    ? tr("Requires ") +
                       t.dependsOn
                         .map(
                           (id) =>
                             tasks.find((x) => x.id === id)?.typeName || id,
                         )
                         .join(" + ")
-                    : "No prerequisites"}{" "}
-                  · Approval: {title(t.approval)}
+                    : tr("No prerequisites")}{" "}
+                  {tr("· Approval: ")}
+                  {title(t.approval)}
                 </p>
                 {t.approvalReasons?.length > 0 && (
                   <p className="help-text">{t.approvalReasons.join(" · ")}</p>
@@ -888,12 +943,12 @@ function RMADetail({ id, onClose }) {
                 <FieldValues value={t.executionFields || {}} />
                 <div className="row-actions">
                   <Button kind="small" onClick={() => setTask(t.id)}>
-                    View task
+                    {tr("View task")}
                   </Button>
                   {can("rmatask.update") &&
                     !["completed", "in_progress"].includes(t.status) && (
                       <Button kind="small" onClick={() => setTask(t.id)}>
-                        Edit task details
+                        {tr("Edit task details")}
                       </Button>
                     )}
                 </div>
@@ -901,7 +956,7 @@ function RMADetail({ id, onClose }) {
             ))}
           </div>
           <div className="support-section-title">
-            <h3>Case notes</h3>
+            <h3>{tr("Case notes")}</h3>
           </div>
           {r.notes?.map((n) => (
             <article className="case-note" key={n.id}>
@@ -926,23 +981,23 @@ function RMADetail({ id, onClose }) {
               }}
             >
               <TextArea
-                label="Add case note"
+                label={tr("Add case note")}
                 value={note}
                 onChange={setNote}
                 required
                 maxLength="2000"
               />
               <button className="btn primary" disabled={busy}>
-                Add note
+                {tr("Add note")}
               </button>
-              {error && <p className="form-error">{error}</p>}
+              {error && <p className="form-error">{tr(error)}</p>}
             </form>
           )}
         </div>
         <div className="modal-footer">
-          <span>Owner-scoped record · no external messages sent</span>
+          <span>{tr("Owner-scoped record · no external messages sent")}</span>
           <Button kind="secondary" onClick={onClose}>
-            Close
+            {tr("Close")}
           </Button>
         </div>
       </Dialog>
@@ -981,8 +1036,12 @@ function TaskDialog({ id, onClose }) {
       ["ready", "in_progress"].includes(t.status);
   return (
     <Dialog
-      title={t.typeName}
-      subtitle={`${t.id} · ${r.id} · Order ${r.orderNumber}`}
+      title={tr(t.typeName)}
+      subtitle={tr("{task} · {rma} · Order {order}", {
+        task: t.id,
+        rma: r.id,
+        order: r.orderNumber,
+      })}
       onClose={onClose}
     >
       <div className="support-task-summary">
@@ -1001,7 +1060,7 @@ function TaskDialog({ id, onClose }) {
         </strong>
         <p>{r.description}</p>
         <small>
-          {labels[r.primaryCause]} / {r.rootCauseName} · {r.solutionName}
+          {labels[r.primaryCause]} / {r.rootCauseName} · {tr(r.solutionName)}
         </small>
       </div>
       <Tabs
@@ -1019,25 +1078,25 @@ function TaskDialog({ id, onClose }) {
           <div className="modal-body">
             <div className="detail-grid">
               <div className="detail-field">
-                <small>Dependencies</small>
+                <small>{tr("Dependencies")}</small>
                 <strong>
                   {t.dependsOn
                     .map(
                       (id) =>
                         s.rmaTasks.find((x) => x.id === id)?.typeName || id,
                     )
-                    .join(", ") || "None"}
+                    .join(", ") || tr("None")}
                 </strong>
               </div>
               <div className="detail-field">
-                <small>Approval reasons</small>
+                <small>{tr("Approval reasons")}</small>
                 <strong>
-                  {t.approvalReasons?.join(" · ") || "No approval required"}
+                  {t.approvalReasons?.join(" · ") || tr("No approval required")}
                 </strong>
               </div>
               {t.tracking && (
                 <div className="detail-field">
-                  <small>Carrier / tracking</small>
+                  <small>{tr("Carrier / tracking")}</small>
                   <strong>
                     {t.carrier} · {t.tracking}
                   </strong>
@@ -1045,13 +1104,13 @@ function TaskDialog({ id, onClose }) {
               )}
               {t.code && (
                 <div className="detail-field">
-                  <small>Sent code</small>
+                  <small>{tr("Sent code")}</small>
                   <strong>{t.code}</strong>
                 </div>
               )}
               {t.reference && (
                 <div className="detail-field">
-                  <small>Transaction reference</small>
+                  <small>{tr("Transaction reference")}</small>
                   <strong>{t.reference}</strong>
                 </div>
               )}
@@ -1064,13 +1123,15 @@ function TaskDialog({ id, onClose }) {
                   {e.actor} · {title(e.decision || e.operation || e.action)}
                 </strong>
                 <small>{formatDate(e.at, s.settings.timezone)}</small>
-                <p>{e.note || "Recorded in the audit trail."}</p>
+                <p>{e.note || tr("Recorded in the audit trail.")}</p>
               </article>
             ))}
           </div>
           <div className="modal-footer">
-            <span>Each task has its own approval and execution history.</span>
-            <Button onClick={onClose}>Close</Button>
+            <span>
+              {tr("Each task has its own approval and execution history.")}
+            </span>
+            <Button onClick={onClose}>{tr("Close")}</Button>
           </div>
         </>
       ) : (
@@ -1121,26 +1182,28 @@ function TaskDialog({ id, onClose }) {
                   rmaProductId={r.productId}
                 />
                 <Note>
-                  Changing task details invalidates the previous approval and
-                  checks current rules again.
+                  {tr(
+                    "Changing task details invalidates the previous approval and checks current rules again.",
+                  )}
                 </Note>
               </>
             ) : mode === "review" ? (
               <>
                 <div className="detail-grid">
                   <div className="detail-field">
-                    <small>Value / quantity</small>
+                    <small>{tr("Value / quantity")}</small>
                     <strong>
-                      {money(t.amountCents)} · {t.qty} unit(s)
+                      {money(t.amountCents)} · {t.qty}
+                      {tr(" unit(s)")}
                     </strong>
                   </div>
                   <div className="detail-field">
-                    <small>SKU</small>
+                    <small>{tr("SKU")}</small>
                     <strong>{sku(s, t.productId)}</strong>
                   </div>
                 </div>
                 <Select
-                  label="Decision"
+                  label={tr("Decision")}
                   value={v.decision}
                   onChange={(x) => set("decision", x)}
                   items={["approved", "rejected"]}
@@ -1149,12 +1212,13 @@ function TaskDialog({ id, onClose }) {
             ) : (
               <>
                 <Note>
-                  Record work performed outside Harbor. This action does not
-                  send money, codes, or shipments through an external service.
+                  {tr(
+                    "Record work performed outside Harbor. This action does not send money, codes, or shipments through an external service.",
+                  )}
                 </Note>
                 <div className="form-grid">
                   <Select
-                    label="Execution action"
+                    label={tr("Execution action")}
                     value={v.operation}
                     onChange={(x) => set("operation", x)}
                     items={[
@@ -1165,8 +1229,8 @@ function TaskDialog({ id, onClose }) {
                               value: "dispatch",
                               label:
                                 t.direction === "inbound"
-                                  ? "Record return dispatched"
-                                  : "Record dispatched",
+                                  ? tr("Record return dispatched")
+                                  : tr("Record dispatched"),
                             },
                           ]
                         : []),
@@ -1174,15 +1238,15 @@ function TaskDialog({ id, onClose }) {
                         value: "complete",
                         label:
                           t.direction === "inbound"
-                            ? "Record returned device received"
-                            : "Mark completed",
+                            ? tr("Record returned device received")
+                            : tr("Mark completed"),
                       },
                     ]}
                   />
                   {t.direction !== "none" && (
                     <>
                       <Input
-                        label="Carrier"
+                        label={tr("Carrier")}
                         value={v.carrier}
                         onChange={(x) => set("carrier", x)}
                         required={
@@ -1191,7 +1255,7 @@ function TaskDialog({ id, onClose }) {
                         }
                       />
                       <Input
-                        label="Tracking number"
+                        label={tr("Tracking number")}
                         value={v.tracking}
                         onChange={(x) => set("tracking", x)}
                         required={
@@ -1204,18 +1268,18 @@ function TaskDialog({ id, onClose }) {
                   {t.typeSnapshot.requiresCode &&
                     v.operation === "complete" && (
                       <Input
-                        label={
+                        label={tr(
                           t.typeId === "gift_card"
                             ? "Gift card code / delivery reference"
-                            : "Promo code sent"
-                        }
+                            : "Promo code sent",
+                        )}
                         value={v.code}
                         onChange={(x) => set("code", x)}
                         required
                       />
                     )}
                   <Input
-                    label="Transaction / fulfillment reference"
+                    label={tr("Transaction / fulfillment reference")}
                     value={v.reference}
                     onChange={(x) => set("reference", x)}
                     required={
@@ -1236,7 +1300,7 @@ function TaskDialog({ id, onClose }) {
               </div>
             )}
             <TextArea
-              label={mode === "review" ? "Review reason" : "Internal note"}
+              label={tr(mode === "review" ? "Review reason" : "Internal note")}
               value={v.note}
               onChange={(x) => set("note", x)}
               required={mode === "review"}
@@ -1245,15 +1309,15 @@ function TaskDialog({ id, onClose }) {
           </div>
           <Footer
             busy={busy}
-            error={error}
+            error={tr(error)}
             onClose={onClose}
-            label={
+            label={tr(
               mode === "review"
                 ? "Save review"
                 : mode === "execute"
                   ? "Record execution"
-                  : "Save task details"
-            }
+                  : "Save task details",
+            )}
           />
         </form>
       )}
@@ -1295,23 +1359,23 @@ export function TaskCenter({
       )}
       <section className="stat-grid compact">
         <Stat
-          label={logistics ? "Awaiting dispatch" : "Support tasks"}
+          label={tr(logistics ? "Awaiting dispatch" : "Support tasks")}
           value={rows.length}
-          caption={
+          caption={tr(
             logistics
               ? "Not dispatched · includes blocked and approval-pending tasks"
-              : "Each task is tracked independently"
-          }
+              : "Each task is tracked independently",
+          )}
         />
         <Stat
-          label="Pending approval"
+          label={tr("Pending approval")}
           value={rows.filter((t) => t.approval === "pending").length}
-          caption="Returns, refunds, and matching rules"
+          caption={tr("Returns, refunds, and matching rules")}
         />
         <Stat
-          label="Ready to work"
+          label={tr("Ready to work")}
           value={rows.filter((t) => t.status === "ready").length}
-          caption="Approved · prerequisites satisfied"
+          caption={tr("Approved · prerequisites satisfied")}
         />
       </section>
       <FilteredTable
@@ -1338,7 +1402,7 @@ export function TaskCenter({
           col("Task", (t) => (
             <>
               <button className="text-button" onClick={() => setTask(t.id)}>
-                {t.typeName}
+                {tr(t.typeName)}
               </button>
               <small className="cell-sub mono">{t.id}</small>
             </>
@@ -1355,7 +1419,9 @@ export function TaskCenter({
             <>
               {t.product}
               <small className="cell-sub">
-                {t.qty} unit(s) · {money(t.amountCents)}
+                {t.qty}
+                {tr(" unit(s) · ")}
+                {money(t.amountCents)}
               </small>
             </>
           )),
@@ -1376,16 +1442,16 @@ export function TaskCenter({
           ),
           col("", (t) => (
             <Button kind="small" onClick={() => setTask(t.id)}>
-              Open task
+              {tr("Open task")}
             </Button>
           )),
         ]}
       />
       {logistics && (
         <Note>
-          Grouped by task so partially fulfilled RMAs remain visible. Outbound
-          replacements/parts and inbound returns can be filtered separately. A
-          recorded dispatch removes that task from this queue.
+          {tr(
+            "Grouped by task so partially fulfilled RMAs remain visible. Outbound replacements/parts and inbound returns can be filtered separately. A recorded dispatch removes that task from this queue.",
+          )}
         </Note>
       )}
       {task && <TaskDialog id={task} onClose={() => setTask(null)} />}
@@ -1431,19 +1497,19 @@ export function AwaitingDispatch({ query = "" }) {
         <>
           <section className="stat-grid compact">
             <Stat
-              label="RMAs awaiting dispatch"
+              label={tr("RMAs awaiting dispatch")}
               value={rows.length}
-              caption="At least one logistics task has not shipped"
+              caption={tr("At least one logistics task has not shipped")}
             />
             <Stat
-              label="Unsent logistics tasks"
+              label={tr("Unsent logistics tasks")}
               value={waiting.length}
-              caption="Returns, replacements, and support parts"
+              caption={tr("Returns, replacements, and support parts")}
             />
             <Stat
-              label="Awaiting approval"
+              label={tr("Awaiting approval")}
               value={waiting.filter((t) => t.approval === "pending").length}
-              caption="These tasks remain in the queue"
+              caption={tr("These tasks remain in the queue")}
             />
           </section>
           <FilteredTable
@@ -1477,7 +1543,10 @@ export function AwaitingDispatch({ query = "" }) {
               )),
               col("Unsent tasks", (r) => (
                 <>
-                  <strong>{r.unsent} task(s)</strong>
+                  <strong>
+                    {r.unsent}
+                    {tr(" task(s)")}
+                  </strong>
                   <small className="cell-sub">{r.taskNames}</small>
                 </>
               )),
@@ -1487,9 +1556,9 @@ export function AwaitingDispatch({ query = "" }) {
             ]}
           />
           <Note>
-            An RMA remains here until all its logistics tasks have a recorded
-            dispatch. Switch to By task to review each shipment or return
-            separately.
+            {tr(
+              "An RMA remains here until all its logistics tasks have a recorded dispatch. Switch to By task to review each shipment or return separately.",
+            )}
           </Note>
         </>
       )}
@@ -1525,7 +1594,7 @@ export function SupportOrders({ query = "" }) {
         {admin(s) && can("supportorder.save") && (
           <Button kind="primary" onClick={() => setEditor({})}>
             <Icon name="plus" />
-            Add support order
+            {tr("Add support order")}
           </Button>
         )}
       </Heading>
@@ -1579,12 +1648,12 @@ export function SupportOrders({ query = "" }) {
                 admin(s) &&
                 can("supportorder.save") && (
                   <Button kind="small" onClick={() => setEditor(r)}>
-                    Edit order
+                    {tr("Edit order")}
                   </Button>
                 )}
               {can("rma.create") && (
                 <Button kind="small" onClick={() => setCreate(r)}>
-                  Create RMA
+                  {tr("Create RMA")}
                 </Button>
               )}
             </div>
@@ -1592,9 +1661,9 @@ export function SupportOrders({ query = "" }) {
         ]}
       />
       <Note>
-        Support orders are local records. Existing ERP sales are also searchable
-        when your sales permission allows them. No marketplace synchronization
-        is configured.
+        {tr(
+          "Support orders are local records. Existing ERP sales are also searchable when your sales permission allows them. No marketplace synchronization is configured.",
+        )}
       </Note>
       {editor && (
         <RecordForm
@@ -1619,7 +1688,7 @@ export function Serials({ query = "" }) {
         {admin(s) && can("serial.save") && (
           <Button kind="primary" onClick={() => setEditor({})}>
             <Icon name="plus" />
-            Register serial
+            {tr("Register serial")}
           </Button>
         )}
       </Heading>
@@ -1665,16 +1734,16 @@ export function Serials({ query = "" }) {
               admin(s) &&
               can("serial.save") && (
                 <Button kind="small" onClick={() => setEditor(r)}>
-                  Edit serial
+                  {tr("Edit serial")}
                 </Button>
               ),
           ),
         ]}
       />
       <Note>
-        Device and printhead serials use a case-insensitive unique registry.
-        Printheads can be linked to their parent device serial and original
-        order.
+        {tr(
+          "Device and printhead serials use a case-insensitive unique registry. Printheads can be linked to their parent device serial and original order.",
+        )}
       </Note>
       {editor && (
         <RecordForm
@@ -1714,16 +1783,16 @@ function RecordForm({ kind, record, onClose }) {
         );
   return (
     <Dialog
-      title={
+      title={tr(
         kind === "order"
           ? record.id
             ? "Edit support order"
             : "Add support order"
           : record.id
             ? "Edit serial"
-            : "Register serial"
-      }
-      subtitle="Maintain a local record and its configured custom fields."
+            : "Register serial",
+      )}
+      subtitle={tr("Maintain a local record and its configured custom fields.")}
       onClose={onClose}
     >
       <form
@@ -1741,29 +1810,29 @@ function RecordForm({ kind, record, onClose }) {
             {kind === "order" ? (
               <>
                 <Input
-                  label="Order number"
+                  label={tr("Order number")}
                   value={v.orderNumber}
                   onChange={(x) => set("orderNumber", x)}
                   required
                 />
                 <Input
-                  label="Customer"
+                  label={tr("Customer")}
                   value={v.customer}
                   onChange={(x) => set("customer", x)}
                   required
                 />
                 <Select
-                  label="Platform"
+                  label={tr("Platform")}
                   value={v.platform}
                   onChange={(x) => set("platform", x)}
                   items={options(
                     s.supportConfig.platforms.filter((p) => p.enabled),
                   )}
-                  empty="Choose platform…"
+                  empty={tr("Choose platform…")}
                   required
                 />
                 <Input
-                  label="Purchase date"
+                  label={tr("Purchase date")}
                   type="date"
                   value={v.purchasedAt}
                   onChange={(x) => set("purchasedAt", x)}
@@ -1773,13 +1842,13 @@ function RecordForm({ kind, record, onClose }) {
             ) : (
               <>
                 <Input
-                  label="Serial number"
+                  label={tr("Serial number")}
                   value={v.sn}
                   onChange={(x) => set("sn", x)}
                   required
                 />
                 <Select
-                  label="Serial type"
+                  label={tr("Serial type")}
                   value={v.kind}
                   onChange={(x) =>
                     setV({ ...v, kind: x, productId: "", parentSn: "" })
@@ -1788,35 +1857,35 @@ function RecordForm({ kind, record, onClose }) {
                 />
                 {v.kind === "printhead" && (
                   <Select
-                    label="Parent device SN"
+                    label={tr("Parent device SN")}
                     value={v.parentSn}
                     onChange={(x) => set("parentSn", x)}
                     items={s.serials
                       .filter((x) => x.kind === "device")
                       .map((x) => ({ value: x.sn, label: x.sn }))}
-                    empty="No parent device"
+                    empty={tr("No parent device")}
                   />
                 )}
                 <Input
-                  label="Order number (optional)"
+                  label={tr("Order number (optional)")}
                   value={v.orderNumber}
                   onChange={(x) => set("orderNumber", x)}
                 />
               </>
             )}
             <Select
-              label="SKU"
+              label={tr("SKU")}
               value={v.productId}
               onChange={(x) => set("productId", x)}
               items={products.map((p) => ({
                 value: p.id,
                 label: sku(s, p.id),
               }))}
-              empty="Choose SKU…"
+              empty={tr("Choose SKU…")}
               required
             />
             <Select
-              label="Status"
+              label={tr("Status")}
               value={v.status}
               onChange={(x) => set("status", x)}
               items={
@@ -1832,7 +1901,7 @@ function RecordForm({ kind, record, onClose }) {
             />
           </div>
         </div>
-        <Footer busy={busy} error={error} onClose={onClose} />
+        <Footer busy={busy} error={tr(error)} onClose={onClose} />
       </form>
     </Dialog>
   );
@@ -1851,23 +1920,23 @@ export function Benefits({ query = "" }) {
       </Heading>
       <section className="stat-grid compact">
         <Stat
-          label="Gift cards recorded sent"
+          label={tr("Gift cards recorded sent")}
           value={rows.filter((x) => x.typeId === "gift_card").length}
-          caption="Completed gift card tasks"
+          caption={tr("Completed gift card tasks")}
         />
         <Stat
-          label="Total gift card value"
+          label={tr("Total gift card value")}
           value={money(
             rows
               .filter((x) => x.typeId === "gift_card")
               .reduce((a, x) => a + x.amountCents, 0),
           )}
-          caption="Recorded value · USD"
+          caption={tr("Recorded value · USD")}
         />
         <Stat
-          label="Promo codes recorded sent"
+          label={tr("Promo codes recorded sent")}
           value={rows.filter((x) => x.typeId === "promo_code").length}
-          caption="Completed promo code tasks"
+          caption={tr("Completed promo code tasks")}
         />
       </section>
       <FilteredTable
@@ -1905,9 +1974,9 @@ export function Benefits({ query = "" }) {
         ]}
       />
       <Note>
-        History is created once when a gift card or promo code task completes.
-        These are recorded external fulfillments; Harbor does not issue or
-        transmit codes.
+        {tr(
+          "History is created once when a gift card or promo code task completes. These are recorded external fulfillments; Harbor does not issue or transmit codes.",
+        )}
       </Note>
     </>
   );
@@ -1927,7 +1996,7 @@ export function SupportConfig() {
   if (!admin(s))
     return (
       <Panel>
-        <h2>Administrator access required</h2>
+        <h2>{tr("Administrator access required")}</h2>
       </Panel>
     );
   const rows = s.supportConfig[tab].map((r) => ({
@@ -1947,9 +2016,9 @@ export function SupportConfig() {
           : tab === "rules"
             ? `${r.typeId} · ${r.field} ${r.operator} ${r.field === "amountCents" ? money(r.value) : r.value}`
             : tab === "fields"
-              ? `${title(r.scope)} · ${r.fieldType} · ${r.required ? "Required" : "Optional"}`
+              ? `${title(r.scope)} · ${r.fieldType} · ${r.required ? tr("Required") : tr("Optional")}`
               : tab === "taskTypes"
-                ? `${title(r.direction)} · ${r.hasAmount ? "Value required" : "No value"}`
+                ? `${title(r.direction)} · ${r.hasAmount ? tr("Value required") : tr("No value")}`
                 : r.id,
   }));
   return (
@@ -1957,7 +2026,7 @@ export function SupportConfig() {
       <Heading>
         <Button kind="primary" onClick={() => setEditor({})}>
           <Icon name="plus" />
-          Add{" "}
+          {tr("Add")}{" "}
           {
             {
               solutions: "solution",
@@ -1981,11 +2050,13 @@ export function SupportConfig() {
       <div className="support-config-callout">
         <Icon name="settings" />
         <div>
-          <strong>Configure the workflow, keep the history.</strong>
+          <strong>{tr("Configure the workflow, keep the history.")}</strong>
           <p>
-            Revision {s.supportConfig.revision}. Changes affect new RMAs.
-            Existing tasks retain their solution and task-type snapshots.
-            Returns and refunds always require approval.
+            {tr("Revision ")}
+            {s.supportConfig.revision}
+            {tr(
+              ". Changes affect new RMAs. Existing tasks retain their solution and task-type snapshots. Returns and refunds always require approval.",
+            )}
           </p>
         </div>
       </div>
@@ -2004,51 +2075,51 @@ export function SupportConfig() {
             "Name",
             (r) => (
               <>
-                <strong>{r.name}</strong>
+                <strong>{tr(r.name)}</strong>
                 <small className="cell-sub mono">{r.id}</small>
               </>
             ),
             "name",
           ),
           col("Configuration", (r) => (
-            <span className="config-summary">{r.summary}</span>
+            <span className="config-summary">{tr(r.summary)}</span>
           )),
           ...(tab === "rootCauses"
             ? [
                 col("Applies to", (r) =>
                   r.productIds.length
                     ? r.productIds.map((id) => sku(s, id)).join(", ")
-                    : "All device / part SKUs",
+                    : tr("All device / part SKUs"),
                 ),
               ]
             : []),
           col("Status", (r) => <Badge value={r.status} />),
           col("", (r) => (
             <Button kind="small" onClick={() => setEditor(r)}>
-              Edit configuration
+              {tr("Edit configuration")}
             </Button>
           )),
         ]}
       />
       {tab === "rules" && (
         <Note>
-          Rules add approval requirements when they match; multiple matching
-          rules are combined. Amount thresholds use USD. Mandatory return/refund
-          approvals cannot be switched off.
+          {tr(
+            "Rules add approval requirements when they match; multiple matching rules are combined. Amount thresholds use USD. Mandatory return/refund approvals cannot be switched off.",
+          )}
         </Note>
       )}
       {tab === "solutions" && (
         <Note>
-          Tasks may run in parallel or depend on multiple earlier tasks. The
-          server rejects cycles and missing dependency keys. Users choose a
-          solution, never individual task types.
+          {tr(
+            "Tasks may run in parallel or depend on multiple earlier tasks. The server rejects cycles and missing dependency keys. Users choose a solution, never individual task types.",
+          )}
         </Note>
       )}
       {tab === "fields" && (
         <Note>
-          Add text, long text, select, number, and date fields to RMA, task,
-          execution, product, support-order and serial forms. Mark fields
-          required or disable them without changing code.
+          {tr(
+            "Add text, long text, select, number, and date fields to RMA, task, execution, product, support-order and serial forms. Mark fields required or disable them without changing code.",
+          )}
         </Note>
       )}
       {editor && (
@@ -2110,18 +2181,20 @@ function ConfigEditor({ entity, record, onClose }) {
     });
   return (
     <Dialog
-      title={
+      title={tr(
         (record.id ? "Edit " : "Add ") +
-        {
-          solutions: "solution",
-          rules: "approval rule",
-          rootCauses: "root cause",
-          platforms: "platform",
-          fields: "custom field",
-          taskTypes: "task type",
-        }[entity]
-      }
-      subtitle="Changes are validated and saved to the support configuration."
+          {
+            solutions: "solution",
+            rules: "approval rule",
+            rootCauses: "root cause",
+            platforms: "platform",
+            fields: "custom field",
+            taskTypes: "task type",
+          }[entity],
+      )}
+      subtitle={tr(
+        "Changes are validated and saved to the support configuration.",
+      )}
       onClose={onClose}
       wide={entity === "solutions"}
     >
@@ -2153,33 +2226,78 @@ function ConfigEditor({ entity, record, onClose }) {
         <div className="modal-body">
           <div className="form-grid">
             <Input
-              label="Name"
+              label={tr("Name")}
               value={v.name}
               onChange={(x) => set("name", x)}
               required
               maxLength="120"
             />
             <Input
-              label="Stable key (optional for new records)"
+              label={tr("Stable key (optional for new records)")}
               value={v.id}
               onChange={(x) => set("id", x)}
               disabled={!!record.id}
               pattern="[a-zA-Z0-9_-]+"
             />
             <Toggle
-              label="Enabled"
+              label={tr("Enabled")}
               checked={v.enabled}
               onChange={(x) => set("enabled", x)}
             />
-            {entity === "solutions" && <>
- <Toggle label="Requires active warranty" checked={v.requiresWarranty} onChange={x=>set("requiresWarranty",x)} />
- <label className="full-field">Eligible SKUs (empty = all)<select aria-label="Eligible SKUs (empty = all)" multiple size="4" value={v.productIds} onChange={e=>set("productIds",Array.from(e.target.selectedOptions,x=>x.value))}>{s.products.map(p=><option key={p.id} value={p.id}>{sku(s,p.id)}</option>)}</select></label>
- <label>Eligible platforms (empty = all)<select aria-label="Eligible platforms (empty = all)" multiple value={v.platforms} onChange={e=>set("platforms",Array.from(e.target.selectedOptions,x=>x.value))}>{cfg.platforms.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
- </>}
+            {entity === "solutions" && (
+              <>
+                <Toggle
+                  label={tr("Requires active warranty")}
+                  checked={v.requiresWarranty}
+                  onChange={(x) => set("requiresWarranty", x)}
+                />
+                <label className="full-field">
+                  {tr("Eligible SKUs (empty = all)")}
+                  <select
+                    aria-label={tr("Eligible SKUs (empty = all)")}
+                    multiple
+                    size="4"
+                    value={v.productIds}
+                    onChange={(e) =>
+                      set(
+                        "productIds",
+                        Array.from(e.target.selectedOptions, (x) => x.value),
+                      )
+                    }
+                  >
+                    {s.products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {sku(s, p.id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {tr("Eligible platforms (empty = all)")}
+                  <select
+                    aria-label={tr("Eligible platforms (empty = all)")}
+                    multiple
+                    value={v.platforms}
+                    onChange={(e) =>
+                      set(
+                        "platforms",
+                        Array.from(e.target.selectedOptions, (x) => x.value),
+                      )
+                    }
+                  >
+                    {cfg.platforms.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {tr(p.name)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
             {entity === "rootCauses" && (
               <>
                 <Select
-                  label="Primary label"
+                  label={tr("Primary label")}
                   value={v.primary}
                   onChange={(x) => set("primary", x)}
                   items={Object.entries(labels).map(([value, label]) => ({
@@ -2188,7 +2306,7 @@ function ConfigEditor({ entity, record, onClose }) {
                   }))}
                 />
                 <label className="full-field">
-                  Applies to device / part SKUs
+                  {tr("Applies to device / part SKUs")}
                   <select
                     multiple
                     size="6"
@@ -2207,11 +2325,12 @@ function ConfigEditor({ entity, record, onClose }) {
                     ))}
                   </select>
                   <small>
-                    Leave empty for all SKUs. Use Command/Ctrl to select
-                    multiple.
+                    {tr(
+                      "Leave empty for all SKUs. Use Command/Ctrl to select multiple.",
+                    )}
                   </small>
                   <Button kind="small" onClick={() => set("productIds", [])}>
-                    Apply to all SKUs
+                    {tr("Apply to all SKUs")}
                   </Button>
                 </label>
               </>
@@ -2219,7 +2338,7 @@ function ConfigEditor({ entity, record, onClose }) {
             {entity === "rules" && (
               <>
                 <Select
-                  label="Task type"
+                  label={tr("Task type")}
                   value={v.typeId}
                   onChange={(x) => set("typeId", x)}
                   items={[
@@ -2228,7 +2347,7 @@ function ConfigEditor({ entity, record, onClose }) {
                   ]}
                 />
                 <Select
-                  label="Condition field"
+                  label={tr("Condition field")}
                   value={v.field}
                   onChange={(x) => setV({ ...v, field: x, value: 0 })}
                   items={[
@@ -2241,7 +2360,7 @@ function ConfigEditor({ entity, record, onClose }) {
                   ]}
                 />
                 <Select
-                  label="Condition"
+                  label={tr("Condition")}
                   value={v.operator}
                   onChange={(x) => set("operator", x)}
                   items={[
@@ -2254,7 +2373,7 @@ function ConfigEditor({ entity, record, onClose }) {
                 {v.operator !== "always" &&
                   (v.field === "amountCents" ? (
                     <Input
-                      label="Threshold ($)"
+                      label={tr("Threshold ($)")}
                       type="number"
                       min="0"
                       max="5000000"
@@ -2265,7 +2384,7 @@ function ConfigEditor({ entity, record, onClose }) {
                     />
                   ) : (
                     <Input
-                      label="Condition value"
+                      label={tr("Condition value")}
                       type={v.field === "qty" ? "number" : "text"}
                       min={v.field === "qty" ? 0 : undefined}
                       value={v.value}
@@ -2280,7 +2399,7 @@ function ConfigEditor({ entity, record, onClose }) {
             {entity === "fields" && (
               <>
                 <Select
-                  label="Form scope"
+                  label={tr("Form scope")}
                   value={v.scope}
                   onChange={(x) => setV({ ...v, scope: x, typeId: "" })}
                   items={[
@@ -2293,28 +2412,28 @@ function ConfigEditor({ entity, record, onClose }) {
                   ]}
                 />
                 <Select
-                  label="Field type"
+                  label={tr("Field type")}
                   value={v.fieldType}
                   onChange={(x) => set("fieldType", x)}
                   items={["text", "textarea", "select", "number", "date"]}
                 />
                 <Toggle
-                  label="Required"
+                  label={tr("Required")}
                   checked={v.required}
                   onChange={(x) => set("required", x)}
                 />
                 {["task", "execution"].includes(v.scope) && (
                   <Select
-                    label="Applies to task type"
+                    label={tr("Applies to task type")}
                     value={v.typeId}
                     onChange={(x) => set("typeId", x)}
                     items={options(cfg.taskTypes)}
-                    empty="All task types"
+                    empty={tr("All task types")}
                   />
                 )}
                 {v.fieldType === "select" && (
                   <TextArea
-                    label="Options (one per line)"
+                    label={tr("Options (one per line)")}
                     value={v.options.join("\n")}
                     onChange={(x) => set("options", x.split("\n"))}
                     required
@@ -2325,35 +2444,36 @@ function ConfigEditor({ entity, record, onClose }) {
             {entity === "taskTypes" && (
               <>
                 <Select
-                  label="Logistics direction"
+                  label={tr("Logistics direction")}
                   value={v.direction}
                   onChange={(x) => set("direction", x)}
                   items={["none", "outbound", "inbound"]}
                 />
                 <Toggle
-                  label="Always require approval"
+                  label={tr("Always require approval")}
                   checked={v.alwaysApprove}
                   onChange={(x) => set("alwaysApprove", x)}
                 />
                 <Toggle
-                  label="Requires positive monetary value"
+                  label={tr("Requires positive monetary value")}
                   checked={v.hasAmount}
                   onChange={(x) => set("hasAmount", x)}
                 />
                 <Toggle
-                  label="Requires sent code / reference on completion"
+                  label={tr("Requires sent code / reference on completion")}
                   checked={v.requiresCode}
                   onChange={(x) => set("requiresCode", x)}
                 />
                 <Toggle
-                  label="Requires SKU and quantity"
+                  label={tr("Requires SKU and quantity")}
                   checked={v.requiresProduct}
                   onChange={(x) => set("requiresProduct", x)}
                 />
                 {record.builtIn && (
                   <p className="help-text full-field">
-                    Built-in execution behavior is protected. Name and enabled
-                    status are editable; add a custom type for other behavior.
+                    {tr(
+                      "Built-in execution behavior is protected. Name and enabled status are editable; add a custom type for other behavior.",
+                    )}
                   </p>
                 )}
               </>
@@ -2362,10 +2482,11 @@ function ConfigEditor({ entity, record, onClose }) {
           {entity === "solutions" && (
             <>
               <div className="support-section-title">
-                <h3>Task DAG</h3>
+                <h3>{tr("Task DAG")}</h3>
                 <small>
-                  Add nodes, set their defaults, and select dependencies.
-                  Unconnected nodes run independently.
+                  {tr(
+                    "Add nodes, set their defaults, and select dependencies. Unconnected nodes run independently.",
+                  )}
                 </small>
               </div>
               <div className="workflow-preview">
@@ -2373,7 +2494,7 @@ function ConfigEditor({ entity, record, onClose }) {
                   <section className="workflow-node" key={i}>
                     <div className="workflow-node-heading">
                       <span className="count-circle">{i + 1}</span>
-                      <strong>{n.key || "New task"}</strong>
+                      <strong>{n.key || tr("New task")}</strong>
                       <Button
                         kind="small danger-quiet"
                         onClick={() =>
@@ -2390,27 +2511,27 @@ function ConfigEditor({ entity, record, onClose }) {
                           )
                         }
                       >
-                        Remove node
+                        {tr("Remove node")}
                       </Button>
                     </div>
                     <div className="form-grid">
                       <Input
-                        label="Node key"
+                        label={tr("Node key")}
                         value={n.key}
                         onChange={(x) => nodeSet(i, "key", x)}
                         pattern="[a-zA-Z0-9_-]+"
                         required
                       />
                       <Select
-                        label="Task type"
+                        label={tr("Task type")}
                         value={n.typeId}
                         onChange={(x) => nodeSet(i, "typeId", x)}
                         items={options(cfg.taskTypes.filter((t) => t.enabled))}
-                        empty="Choose task type…"
+                        empty={tr("Choose task type…")}
                         required
                       />
                       <Input
-                        label="Default value ($)"
+                        label={tr("Default value ($)")}
                         type="number"
                         min="0"
                         max="5000000"
@@ -2421,7 +2542,7 @@ function ConfigEditor({ entity, record, onClose }) {
                         onChange={(x) => nodeSet(i, "amount", x)}
                       />
                       <Input
-                        label="Default quantity"
+                        label={tr("Default quantity")}
                         type="number"
                         min="1"
                         max="1000000"
@@ -2430,24 +2551,24 @@ function ConfigEditor({ entity, record, onClose }) {
                         onChange={(x) => nodeSet(i, "qty", x)}
                       />
                       <Select
-                        label="Default SKU"
+                        label={tr("Default SKU")}
                         value={n.productId || ""}
                         onChange={(x) => nodeSet(i, "productId", x)}
                         items={s.products.map((p) => ({
                           value: p.id,
                           label: sku(s, p.id),
                         }))}
-                        empty="Selected RMA device / user input"
+                        empty={tr("Selected RMA device / user input")}
                       />
                     </div>
                     <div className="node-dependencies">
-                      <strong>Wait for these nodes</strong>
+                      <strong>{tr("Wait for these nodes")}</strong>
                       {v.nodes
                         .filter((_, j) => i !== j)
                         .map((x, j) => (
                           <Toggle
                             key={j}
-                            label={x.key || "Unnamed node"}
+                            label={tr(x.key || "Unnamed node")}
                             checked={(n.dependsOn || []).includes(x.key)}
                             onChange={(checked) =>
                               nodeSet(
@@ -2469,7 +2590,7 @@ function ConfigEditor({ entity, record, onClose }) {
                         ))}
                       {v.nodes.length === 1 && (
                         <small>
-                          No other nodes; this task runs independently.
+                          {tr("No other nodes; this task runs independently.")}
                         </small>
                       )}
                     </div>
@@ -2493,16 +2614,16 @@ function ConfigEditor({ entity, record, onClose }) {
                 }
               >
                 <Icon name="plus" />
-                Add task node
+                {tr("Add task node")}
               </Button>
             </>
           )}
         </div>
         <Footer
           busy={busy}
-          error={error}
+          error={tr(error)}
           onClose={onClose}
-          label="Save configuration"
+          label={tr("Save configuration")}
         />
       </form>
     </Dialog>

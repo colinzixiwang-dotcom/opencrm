@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import React, { useState } from "react";
 import {
   useWorkspace,
@@ -35,7 +36,12 @@ function SummaryLines({ record }) {
   return record.lines.map((l) => (
     <small key={l.productId} className="line-summary">
       {state.products.find((x) => x.id === l.productId)?.sku} × {l.qty}
-      {l.received > 0 && <span>{l.received} received</span>}
+      {l.received > 0 && (
+        <span>
+          {l.received}
+          {tr(" received")}
+        </span>
+      )}
     </small>
   ));
 }
@@ -60,57 +66,61 @@ export function Overview() {
       <div className="overview-summary">
         <span>
           <span className="online-dot" />
-          Workspace up to date
+          {tr("Workspace up to date")}
         </span>
         <span>
-          Example workspace · {s.products.length} products ·{" "}
-          {s.warehouses.length} warehouses
+          {tr("Example workspace · ")}
+          {s.products.length}
+          {tr(" products ·")} {s.warehouses.length}
+          {tr(" warehouses")}
         </span>
       </div>
       <section className="stat-grid">
         <Stat
-          label="Net sales"
+          label={tr("Net sales")}
           value={money(r.revenueCents)}
-          caption="Recognized when orders ship"
+          caption={tr("Recognized when orders ship")}
           featured
           icon="sales"
         />
         <Stat
-          label="Gross profit"
+          label={tr("Gross profit")}
           value={money(r.grossProfitCents)}
-          caption={`${r.revenueCents ? Math.round((r.grossProfitCents / r.revenueCents) * 100) : 0}% margin · after product cost`}
+          caption={tr(
+            `${r.revenueCents ? Math.round((r.grossProfitCents / r.revenueCents) * 100) : 0}% margin · after product cost`,
+          )}
           icon="finance"
         />
         <Stat
-          label="Inventory value"
+          label={tr("Inventory value")}
           value={money(r.stockValueCents)}
-          caption="Moving average · on-hand stock"
+          caption={tr("Moving average · on-hand stock")}
           icon="warehouse"
         />
         <Stat
-          label="Orders shipped"
+          label={tr("Orders shipped")}
           value={num(r.orders)}
-          caption={`${num(r.units)} units sold · net of returns`}
+          caption={tr(`${num(r.units)} units sold · net of returns`)}
           icon="logistics"
         />
       </section>
       <div className="dashboard-grid">
         <Panel className="performance-panel">
           <PanelHeading
-            title="Sales performance"
-            subtitle="Recognized revenue by shipping date"
+            title={tr("Sales performance")}
+            subtitle={tr("Recognized revenue by shipping date")}
           >
-            <span className="legend-dot">Net sales</span>
+            <span className="legend-dot">{tr("Net sales")}</span>
           </PanelHeading>
           <Chart report={r} />
           <div className="chart-summary">
             {[
               [
-                "Average order",
+                tr("Average order"),
                 r.orders ? Math.round(r.revenueCents / r.orders) : 0,
               ],
-              ["Product cost", r.cogsCents],
-              ["Operating expenses", r.expenseCents],
+              [tr("Product cost"), r.cogsCents],
+              [tr("Operating expenses"), r.expenseCents],
             ].map(([l, v]) => (
               <div key={l}>
                 <small>{l}</small>
@@ -121,30 +131,30 @@ export function Overview() {
         </Panel>
         <Panel className="attention-panel">
           <PanelHeading
-            title="Needs your attention"
-            subtitle="A little focus goes a long way."
+            title={tr("Needs your attention")}
+            subtitle={tr("A little focus goes a long way.")}
           >
             <span className="count-circle">{pending + low + tickets}</span>
           </PanelHeading>
           {[
             [
               "purchase",
-              "Purchase approvals",
-              "Ready for your review",
+              tr("Purchase approvals"),
+              tr("Ready for your review"),
               pending,
               "amber",
             ],
             [
               "warehouse",
-              "Low-stock positions",
-              "Below product reorder point",
+              tr("Low-stock positions"),
+              tr("Below product reorder point"),
               low,
               "rose",
             ],
             [
               "service",
-              "Open customer tickets",
-              "Keep the conversation moving",
+              tr("Open customer tickets"),
+              tr("Keep the conversation moving"),
               tickets,
               "blue",
             ],
@@ -163,16 +173,17 @@ export function Overview() {
           ))}
           <div className="attention-note">
             <Icon name="check" />
-            Purchases, sales, and stock stay connected.
+            {tr("Purchases, sales, and stock stay connected.")}
           </div>
         </Panel>
         <Panel className="top-products">
           <PanelHeading
-            title="Products in focus"
-            subtitle="Your top products by net sales."
+            title={tr("Products in focus")}
+            subtitle={tr("Your top products by net sales.")}
           >
             <button className="text-button" onClick={() => go("statistics")}>
-              View performance <Icon name="arrow" />
+              {tr("View performance ")}
+              <Icon name="arrow" />
             </button>
           </PanelHeading>
           <Table
@@ -198,8 +209,8 @@ export function Overview() {
         </Panel>
         <Panel className="activity-panel">
           <PanelHeading
-            title="Recent activity"
-            subtitle="A trail of every important change."
+            title={tr("Recent activity")}
+            subtitle={tr("A trail of every important change.")}
           >
             <Icon name="clock" />
           </PanelHeading>
@@ -235,7 +246,7 @@ export function Products({ query = "" }) {
       <Heading>
         <Export collection="products" />
         <NewButton
-          label="Add product"
+          label={tr("Add product")}
           type="product"
           permission="product.create"
         />
@@ -243,13 +254,13 @@ export function Products({ query = "" }) {
       <Panel>
         <div className="support-filters">
           <label>
-            SKU type
+            {tr("SKU type")}
             <select
-              aria-label="Filter SKU type"
+              aria-label={tr("Filter SKU type")}
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option value="">All SKU types</option>
+              <option value="">{tr("All SKU types")}</option>
               {["general", "device", "part"].map((t) => (
                 <option key={t} value={t}>
                   {title(t)}
@@ -258,13 +269,13 @@ export function Products({ query = "" }) {
             </select>
           </label>
           <label>
-            Compatible device
+            {tr("Compatible device")}
             <select
-              aria-label="Filter compatible device"
+              aria-label={tr("Filter compatible device")}
               value={deviceFilter}
               onChange={(e) => setDeviceFilter(e.target.value)}
             >
-              <option value="">All devices</option>
+              <option value="">{tr("All devices")}</option>
               {s.products
                 .filter((p) => p.productType === "device")
                 .map((p) => (
@@ -278,13 +289,13 @@ export function Products({ query = "" }) {
             <label key={f.id}>
               {f.name}
               <select
-                aria-label={"Filter " + f.name}
+                aria-label={tr("Filter " + f.name)}
                 value={fieldFilters[f.id] || ""}
                 onChange={(e) =>
                   setFieldFilters({ ...fieldFilters, [f.id]: e.target.value })
                 }
               >
-                <option value="">All values</option>
+                <option value="">{tr("All values")}</option>
                 {[
                   ...new Set(
                     s.products.map((p) => String(p.customFields?.[f.id] ?? "")),
@@ -337,7 +348,7 @@ export function Products({ query = "" }) {
                         (id) => s.products.find((d) => d.id === id)?.sku || id,
                       )
                       .join(", ")
-                  : "Universal part"
+                  : tr("Universal part")
                 : "—",
             ),
             ...productFields.map((f) =>
@@ -365,7 +376,7 @@ export function Products({ query = "" }) {
                 can("product.update") && (
                   <button
                     className="icon-button"
-                    aria-label={"Edit " + p.sku}
+                    aria-label={tr("Edit " + p.sku)}
                     onClick={() => setModal({ type: "product", id: p.id })}
                   >
                     <Icon name="edit" />
@@ -376,8 +387,9 @@ export function Products({ query = "" }) {
         />
       </Panel>
       <Note icon="product">
-        SKU identifies a local product; SPU groups variants. Inventory cost
-        changes through receipts, not catalog edits.
+        {tr(
+          "SKU identifies a local product; SPU groups variants. Inventory cost changes through receipts, not catalog edits.",
+        )}
       </Note>
     </>
   );
@@ -414,7 +426,7 @@ export function Purchasing({ query = "" }) {
           permission="purchase.receive"
           kind="small primary"
         >
-          Receive
+          {tr("Receive")}
         </FormButton>
       )}
       {!["draft", "pending", "cancelled"].includes(o.status) &&
@@ -424,7 +436,7 @@ export function Purchasing({ query = "" }) {
             id={o.id}
             permission="purchase.pay"
           >
-            Pay
+            {tr("Pay")}
           </FormButton>
         )}
       {["draft", "pending", "approved", "ordered"].includes(o.status) &&
@@ -436,7 +448,7 @@ export function Purchasing({ query = "" }) {
             status="cancelled"
             kind="small danger-quiet"
           >
-            Cancel
+            {tr("Cancel")}
           </Transition>
         )}
     </div>
@@ -446,7 +458,7 @@ export function Purchasing({ query = "" }) {
       <Heading>
         <Export collection={supplier ? "suppliers" : "purchases"} />
         <NewButton
-          label={supplier ? "Add supplier" : "New purchase order"}
+          label={tr(supplier ? "Add supplier" : "New purchase order")}
           type={supplier ? "supplier" : "purchase"}
           permission={supplier ? "supplier.create" : "purchase.create"}
         />
@@ -480,23 +492,23 @@ export function Purchasing({ query = "" }) {
         <>
           <section className="stat-grid compact">
             <Stat
-              label="Awaiting approval"
+              label={tr("Awaiting approval")}
               value={s.purchases.filter((x) => x.status === "pending").length}
-              caption="Review and approve purchasing"
+              caption={tr("Review and approve purchasing")}
             />
             <Stat
-              label="Awaiting receipt"
+              label={tr("Awaiting receipt")}
               value={
                 s.purchases.filter((x) =>
                   ["ordered", "partial"].includes(x.status),
                 ).length
               }
-              caption="Ordered · partial receipts"
+              caption={tr("Ordered · partial receipts")}
             />
             <Stat
-              label="Outstanding payable"
+              label={tr("Outstanding payable")}
               value={money(s.report.outstandingPurchaseCents)}
-              caption="Approved orders minus payments"
+              caption={tr("Approved orders minus payments")}
             />
           </section>
           <Panel>
@@ -528,7 +540,8 @@ export function Purchasing({ query = "" }) {
                   <>
                     <strong>{money(total(o))}</strong>
                     <small className="cell-sub">
-                      {money(o.paidCents)} paid
+                      {money(o.paidCents)}
+                      {tr(" paid")}
                     </small>
                   </>
                 )),
@@ -569,19 +582,19 @@ export function Sales({ query = "" }) {
             status="cancelled"
             kind="small danger-quiet"
           >
-            Cancel
+            {tr("Cancel")}
           </Transition>
         )}
         {!["draft", "cancelled"].includes(o.status) &&
           o.paidCents < total(o) - o.refundCents && (
             <FormButton type="sale-payment" id={o.id} permission="sale.pay">
-              Record payment
+              {tr("Record payment")}
             </FormButton>
           )}
         {["shipped", "completed"].includes(o.status) &&
           o.lines.some((l) => l.returned < l.qty) && (
             <FormButton type="return" id={o.id} permission="sale.return">
-              Return
+              {tr("Return")}
             </FormButton>
           )}
       </div>
@@ -592,26 +605,26 @@ export function Sales({ query = "" }) {
       <Heading>
         <Export collection="sales" />
         <NewButton
-          label="New sales order"
+          label={tr("New sales order")}
           type="sale"
           permission="sale.create"
         />
       </Heading>
       <section className="stat-grid compact">
         <Stat
-          label="Net sales"
+          label={tr("Net sales")}
           value={money(s.report.revenueCents)}
-          caption="Shipped orders · net of returns"
+          caption={tr("Shipped orders · net of returns")}
         />
         <Stat
-          label="To fulfill"
+          label={tr("To fulfill")}
           value={s.sales.filter((x) => x.status === "confirmed").length}
-          caption="Confirmed and stock reserved"
+          caption={tr("Confirmed and stock reserved")}
         />
         <Stat
-          label="Outstanding receivable"
+          label={tr("Outstanding receivable")}
           value={money(s.report.outstandingSalesCents)}
-          caption="Confirmed orders minus payments"
+          caption={tr("Confirmed orders minus payments")}
         />
       </section>
       <Panel>
@@ -644,7 +657,8 @@ export function Sales({ query = "" }) {
                 <strong>{money(total(o) - o.refundCents)}</strong>
                 {o.refundCents > 0 && (
                   <small className="cell-sub">
-                    {money(o.refundCents)} returned
+                    {money(o.refundCents)}
+                    {tr(" returned")}
                   </small>
                 )}
               </>
@@ -679,7 +693,9 @@ export function Inventory() {
           <Export collection={tab === "stock" ? "stocks" : "movements"} />
         )}
         <NewButton
-          label={tab === "warehouses" ? "Add warehouse" : "Adjust inventory"}
+          label={tr(
+            tab === "warehouses" ? "Add warehouse" : "Adjust inventory",
+          )}
           type={tab === "warehouses" ? "warehouse" : "adjust"}
           permission={
             tab === "warehouses" ? "warehouse.create" : "inventory.adjust"
@@ -707,7 +723,7 @@ export function Inventory() {
               <p>{w.location}</p>
               <div className="warehouse-totals">
                 <div>
-                  <small>On-hand units</small>
+                  <small>{tr("On-hand units")}</small>
                   <strong>
                     {num(
                       s.stocks
@@ -717,7 +733,7 @@ export function Inventory() {
                   </strong>
                 </div>
                 <div>
-                  <small>Inventory value</small>
+                  <small>{tr("Inventory value")}</small>
                   <strong>
                     {money(
                       s.stocks
@@ -760,19 +776,19 @@ export function Inventory() {
         <>
           <section className="stat-grid compact">
             <Stat
-              label="Available units"
+              label={tr("Available units")}
               value={num(s.stocks.reduce((n, x) => n + x.onHand - x.locked, 0))}
-              caption="On hand minus reserved"
+              caption={tr("On hand minus reserved")}
             />
             <Stat
-              label="Reserved units"
+              label={tr("Reserved units")}
               value={num(s.stocks.reduce((n, x) => n + x.locked, 0))}
-              caption="Confirmed sales and shipments"
+              caption={tr("Confirmed sales and shipments")}
             />
             <Stat
-              label="In-transit value"
+              label={tr("In-transit value")}
               value={money(s.report.transitValueCents)}
-              caption="Dispatched, not yet received"
+              caption={tr("Dispatched, not yet received")}
             />
           </section>
           <Panel>
@@ -828,7 +844,7 @@ export function Logistics({ embedded = false, query = "" }) {
         <Heading>
           <Export collection="shipments" />
           <NewButton
-            label="Create transfer"
+            label={tr("Create transfer")}
             type="shipment"
             permission="shipment.create"
           />
@@ -836,22 +852,22 @@ export function Logistics({ embedded = false, query = "" }) {
       )}
       <section className="stat-grid compact">
         <Stat
-          label="Planned transfers"
+          label={tr("Planned transfers")}
           value={
             s.shipments.filter((x) => ["draft", "reserved"].includes(x.status))
               .length
           }
-          caption="Prepare and reserve available stock"
+          caption={tr("Prepare and reserve available stock")}
         />
         <Stat
-          label="In transit"
+          label={tr("In transit")}
           value={s.shipments.filter((x) => x.status === "in_transit").length}
-          caption="Waiting for destination receipt"
+          caption={tr("Waiting for destination receipt")}
         />
         <Stat
-          label="Received"
+          label={tr("Received")}
           value={s.shipments.filter((x) => x.status === "received").length}
-          caption="Stock available at destination"
+          caption={tr("Stock available at destination")}
         />
       </section>
       <Panel>
@@ -865,7 +881,7 @@ export function Logistics({ embedded = false, query = "" }) {
             "cancelled",
           ]}
           rows={s.shipments}
-          empty="No transfers yet."
+          empty={tr("No transfers yet.")}
           columns={[
             col("Shipment", (r) => <DocCell record={r} />),
             col("Route", (r) => (
@@ -881,7 +897,7 @@ export function Logistics({ embedded = false, query = "" }) {
               <>
                 <strong>{r.carrier}</strong>
                 <small className="cell-sub">
-                  {r.tracking || "Not assigned"}
+                  {r.tracking || tr("Not assigned")}
                 </small>
               </>
             )),
@@ -912,7 +928,7 @@ export function Logistics({ embedded = false, query = "" }) {
                       status="cancelled"
                       kind="small danger-quiet"
                     >
-                      Cancel
+                      {tr("Cancel")}
                     </Transition>
                   )}
                 </div>
@@ -922,9 +938,9 @@ export function Logistics({ embedded = false, query = "" }) {
         />
       </Panel>
       <Note icon="logistics">
-        Internal transfers preserve product cost. Freight is tracked separately;
-        record an expense to include it in profit. External STA and carrier APIs
-        are not connected.
+        {tr(
+          "Internal transfers preserve product cost. Freight is tracked separately; record an expense to include it in profit. External STA and carrier APIs are not connected.",
+        )}
       </Note>
     </>
   );
@@ -945,7 +961,7 @@ export function FBA() {
       <Heading>
         {tab === "transfers" && (
           <NewButton
-            label="Create transfer"
+            label={tr("Create transfer")}
             type="shipment"
             permission="shipment.create"
           />
@@ -965,8 +981,9 @@ export function FBA() {
       ) : (
         <>
           <Note icon="alert">
-            Suggestions use a transparent local rule: replenish to twice the
-            product reorder point. This is not Lingxing’s forecasting algorithm.
+            {tr(
+              "Suggestions use a transparent local rule: replenish to twice the product reorder point. This is not Lingxing’s forecasting algorithm.",
+            )}
           </Note>
           <Panel>
             <Table
@@ -978,7 +995,7 @@ export function FBA() {
                       (r) => r.onHand - r.locked < r.product.reorderPoint,
                     )
               }
-              empty="FBA positions are above their reorder points."
+              empty={tr("FBA positions are above their reorder points.")}
               columns={[
                 col("Product", (r) => <ProductCell product={r.product} />),
                 col("Destination", (r) => lookup(s.warehouses, r.warehouseId)),
@@ -1013,7 +1030,7 @@ export function FBA() {
                           })
                         }
                       >
-                        Plan transfer
+                        {tr("Plan transfer")}
                       </Button>
                     ),
                 ),
@@ -1031,14 +1048,15 @@ export function Advertising() {
     <>
       <Heading>
         <NewButton
-          label="Record campaign"
+          label={tr("Record campaign")}
           type="campaign"
           permission="campaign.create"
         />
       </Heading>
       <Note icon="advertising">
-        Campaigns are manually recorded. Pausing changes the local record only.
-        Spend is not automatically booked as a finance expense.
+        {tr(
+          "Campaigns are manually recorded. Pausing changes the local record only. Spend is not automatically booked as a finance expense.",
+        )}
       </Note>
       <Panel>
         <Table
@@ -1050,7 +1068,8 @@ export function Advertising() {
                 <>
                   <strong>{r.name}</strong>
                   <small className="cell-sub">
-                    {r.channel} · manual record
+                    {r.channel}
+                    {tr(" · manual record")}
                   </small>
                 </>
               ),
@@ -1077,7 +1096,7 @@ export function Advertising() {
                 status={r.status === "active" ? "paused" : "active"}
                 kind="small"
               >
-                {r.status === "active" ? "Pause" : "Activate"}
+                {r.status === "active" ? tr("Pause") : tr("Activate")}
               </Transition>
             )),
           ]}
@@ -1093,7 +1112,7 @@ export function Service() {
       <Heading>
         <Export collection="tickets" />
         <NewButton
-          label="New ticket"
+          label={tr("New ticket")}
           type="ticket"
           permission="ticket.create"
         />
@@ -1122,7 +1141,7 @@ export function Service() {
                   kind="small"
                   onClick={() => setModal({ type: "ticket-view", id: r.id })}
                 >
-                  View notes
+                  {tr("View notes")}
                 </Button>
                 <Transition
                   action="ticket.transition"
@@ -1136,10 +1155,10 @@ export function Service() {
                   }
                 >
                   {r.status === "resolved"
-                    ? "Reopen"
+                    ? tr("Reopen")
                     : r.status === "open"
-                      ? "Start"
-                      : "Resolve"}
+                      ? tr("Start")
+                      : tr("Resolve")}
                 </Transition>
               </div>
             )),
@@ -1147,8 +1166,9 @@ export function Service() {
         />
       </Panel>
       <Note icon="service">
-        Tickets and notes are internal records. No emails or marketplace
-        messages are sent.
+        {tr(
+          "Tickets and notes are internal records. No emails or marketplace messages are sent.",
+        )}
       </Note>
     </>
   );
@@ -1162,7 +1182,7 @@ export function Finance() {
       <Heading>
         {tab !== "summary" && <Export collection={tab} />}
         <NewButton
-          label="Record expense"
+          label={tr("Record expense")}
           type="expense"
           permission="expense.create"
         />
@@ -1224,34 +1244,34 @@ export function Finance() {
           <section className="stat-grid">
             <Stat
               featured
-              label="Net sales"
+              label={tr("Net sales")}
               value={money(r.revenueCents)}
-              caption="Shipped sales less returns"
+              caption={tr("Shipped sales less returns")}
             />
             <Stat
-              label="Gross profit"
+              label={tr("Gross profit")}
               value={money(r.grossProfitCents)}
-              caption="Sales less captured product cost"
+              caption={tr("Sales less captured product cost")}
             />
             <Stat
-              label="Expenses"
+              label={tr("Expenses")}
               value={money(r.expenseCents)}
-              caption="Recorded operating expenses"
+              caption={tr("Recorded operating expenses")}
             />
             <Stat
-              label="Net operating profit"
+              label={tr("Net operating profit")}
               value={money(r.netProfitCents)}
-              caption="Gross profit less expenses"
+              caption={tr("Gross profit less expenses")}
             />
           </section>
           <div className="two-columns">
             <Panel>
-              <PanelHeading title="Outstanding balances" />
+              <PanelHeading title={tr("Outstanding balances")} />
               {[
-                ["Accounts receivable", r.outstandingSalesCents],
-                ["Accounts payable", r.outstandingPurchaseCents],
-                ["On-hand inventory", r.stockValueCents],
-                ["Inventory in transit", r.transitValueCents],
+                [tr("Accounts receivable"), r.outstandingSalesCents],
+                [tr("Accounts payable"), r.outstandingPurchaseCents],
+                [tr("On-hand inventory"), r.stockValueCents],
+                [tr("Inventory in transit"), r.transitValueCents],
               ].map(([l, v]) => (
                 <div key={l} className="balance-row">
                   <span>{l}</span>
@@ -1260,18 +1280,21 @@ export function Finance() {
               ))}
             </Panel>
             <Panel className="finance-definition">
-              <h2>A consistent view of profit.</h2>
+              <h2>{tr("A consistent view of profit.")}</h2>
               <p>
-                Revenue is recognized when an order ships. Product cost is
-                captured from moving-average inventory at that moment. Returns
-                reverse both sales and cost.
+                {tr(
+                  "Revenue is recognized when an order ships. Product cost is captured from moving-average inventory at that moment. Returns reverse both sales and cost.",
+                )}
               </p>
               <p>
-                Expenses reduce operating profit. Payments affect receivables
-                and payables, not revenue recognition.
+                {tr(
+                  "Expenses reduce operating profit. Payments affect receivables and payables, not revenue recognition.",
+                )}
               </p>
               <small>
-                USD only · no tax, marketplace fees, FX, or statutory accounting
+                {tr(
+                  "USD only · no tax, marketplace fees, FX, or statutory accounting",
+                )}
               </small>
             </Panel>
           </div>
@@ -1346,12 +1369,12 @@ export function Statistics() {
         <Period />
         <Button kind="secondary" onClick={exportReport}>
           <Icon name="download" />
-          Export report
+          {tr("Export report")}
         </Button>
       </Heading>
       <div className="report-filter">
         <label>
-          From
+          {tr("From")}
           <input
             id="report-from"
             type="date"
@@ -1360,7 +1383,7 @@ export function Statistics() {
           />
         </label>
         <label>
-          To
+          {tr("To")}
           <input
             id="report-to"
             type="date"
@@ -1369,48 +1392,50 @@ export function Statistics() {
           />
         </label>
         <label>
-          Channel
+          {tr("Channel")}
           <select
             id="report-channel"
             value={channel}
             onChange={(e) => setChannel(e.target.value)}
           >
-            <option value="all">All channels</option>
-            {["Amazon", "Shopify", "Direct", "Wholesale"].map((x) => (
-              <option key={x}>{x}</option>
+            <option value="all">{tr("All channels")}</option>
+            {["Amazon", "Shopify", tr("Direct"), tr("Wholesale")].map((x) => (
+              <option key={x} value={x}>
+                {tr(x)}
+              </option>
             ))}
           </select>
         </label>
         <Button kind="primary" onClick={apply}>
-          Apply filters
+          {tr("Apply filters")}
         </Button>
-        <span>Shipment date · returns restate the original sale</span>
+        <span>{tr("Shipment date · returns restate the original sale")}</span>
       </div>
       <section className="stat-grid compact">
         <Stat
-          label="Net sales"
+          label={tr("Net sales")}
           value={money(r.revenueCents)}
-          caption="After returned units"
+          caption={tr("After returned units")}
         />
         <Stat
-          label="Units sold"
+          label={tr("Units sold")}
           value={num(r.units)}
-          caption={`${r.orders} shipped orders`}
+          caption={tr(`${r.orders} shipped orders`)}
         />
         <Stat
-          label="Gross margin"
+          label={tr("Gross margin")}
           value={
             r.revenueCents
               ? `${((r.grossProfitCents / r.revenueCents) * 100).toFixed(1)}%`
               : "—"
           }
-          caption="Net sales less product cost"
+          caption={tr("Net sales less product cost")}
         />
       </section>
       <Panel>
         <PanelHeading
-          title="Product performance"
-          subtitle="Local SKU is the supported aggregation dimension."
+          title={tr("Product performance")}
+          subtitle={tr("Local SKU is the supported aggregation dimension.")}
         />
         <Chart report={r} />
         <Table
@@ -1455,7 +1480,11 @@ export function Tools() {
     <>
       <Heading>
         {tab === "tasks" && (
-          <NewButton label="New task" type="task" permission="task.create" />
+          <NewButton
+            label={tr("New task")}
+            type="task"
+            permission="task.create"
+          />
         )}
       </Heading>
       <Tabs
@@ -1490,7 +1519,7 @@ export function Tools() {
                   status={r.status === "done" ? "open" : "done"}
                   kind="small"
                 >
-                  {r.status === "done" ? "Reopen" : "Mark done"}
+                  {r.status === "done" ? tr("Reopen") : tr("Mark done")}
                 </Transition>
               )),
             ]}
@@ -1521,20 +1550,22 @@ function Calculator() {
   return (
     <Panel className="calculator-panel">
       <div>
-        <span className="eyebrow">UNIT ECONOMICS</span>
-        <h2>Know the room in your margin.</h2>
+        <span className="eyebrow">{tr("UNIT ECONOMICS")}</span>
+        <h2>{tr("Know the room in your margin.")}</h2>
         <p>
-          Calculate an estimate from a selling price and the costs you enter.
+          {tr(
+            "Calculate an estimate from a selling price and the costs you enter.",
+          )}
         </p>
         <form id="calculator-form">
           <div className="form-grid">
             {[
-              ["price", "Selling price ($)"],
-              ["cost", "Product cost ($)"],
-              ["shipping", "Shipping / unit ($)"],
-              ["other", "Other costs / unit ($)"],
-              ["fee", "Marketplace fee (%)"],
-              ["ads", "Advertising / sale (%)"],
+              ["price", tr("Selling price ($)")],
+              ["cost", tr("Product cost ($)")],
+              ["shipping", tr("Shipping / unit ($)")],
+              ["other", tr("Other costs / unit ($)")],
+              ["fee", tr("Marketplace fee (%)")],
+              ["ads", tr("Advertising / sale (%)")],
             ].map(([key, label]) => (
               <label key={key}>
                 {label}
@@ -1555,33 +1586,36 @@ function Calculator() {
       <div id="calculator-result" className="calculator-result">
         {valid ? (
           <>
-            <span className="eyebrow">ESTIMATED PROFIT / UNIT</span>
+            <span className="eyebrow">{tr("ESTIMATED PROFIT / UNIT")}</span>
             <div
               className={"calculator-value " + (profit < 0 ? "negative" : "")}
             >
               {money(Math.round(profit * 100))}
             </div>
             <span className="calculator-margin">
-              {n.price ? ((profit / n.price) * 100).toFixed(1) + "%" : "—"} net
-              margin
+              {n.price ? ((profit / n.price) * 100).toFixed(1) + "%" : "—"}
+              {tr(" net margin")}
             </span>
             <div className="calc-breakdown">
-              <span>Product + shipping + other</span>
+              <span>{tr("Product + shipping + other")}</span>
               <strong>
                 {money(Math.round((n.cost + n.shipping + n.other) * 100))}
               </strong>
-              <span>Marketplace + advertising</span>
+              <span>{tr("Marketplace + advertising")}</span>
               <strong>{money(Math.round(fees * 100))}</strong>
-              <span>Selling price</span>
+              <span>{tr("Selling price")}</span>
               <strong>{money(Math.round(n.price * 100))}</strong>
             </div>
             <p>
-              Planning estimate only. This does not change catalog prices or
-              finance records.
+              {tr(
+                "Planning estimate only. This does not change catalog prices or finance records.",
+              )}
             </p>
           </>
         ) : (
-          <p>Enter nonnegative costs and percentages between 0 and 100.</p>
+          <p>
+            {tr("Enter nonnegative costs and percentages between 0 and 100.")}
+          </p>
         )}
       </div>
     </Panel>

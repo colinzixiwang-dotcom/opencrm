@@ -1,5 +1,14 @@
+import { LanguageSwitcher } from "./language";
+import { tr } from "./i18n";
 import React, { useState, useRef, useEffect } from "react";
-import { useWorkspace, formatDate, money, today, total } from "./context";
+import {
+  useWorkspace,
+  formatDate,
+  money,
+  today,
+  total,
+  title,
+} from "./context";
 import { CustomFields } from "./support";
 import { Icon, Button } from "./components";
 const dollar = (c) => ((c || 0) / 100).toFixed(2);
@@ -25,12 +34,12 @@ function Field({
 }) {
   return (
     <label className={full ? "full-field" : ""}>
-      {label}
+      {tr(label)}
       {options ? (
         <select name={name} defaultValue={value} required={required}>
           {options.map((o) => (
             <option key={o.id ?? o} value={o.id ?? o}>
-              {o.label ?? o.name ?? o}
+              {typeof o === "string" ? title(o) : tr(o.label ?? o.name ?? o)}
             </option>
           ))}
         </select>
@@ -126,7 +135,12 @@ function schema(type, r, s) {
           ["other", "printhead", "accessory", "component"],
           r?.partKind || "other",
         ),
- sel("warrantyClass", "Printhead warranty class", ["none", "printhead_1080", "printhead_3200"], r?.warrantyClass || "none"),
+        sel(
+          "warrantyClass",
+          "Printhead warranty class",
+          ["none", "printhead_1080", "printhead_3200"],
+          r?.warrantyClass || "none",
+        ),
       ];
     case "supplier":
       return [
@@ -484,10 +498,10 @@ function FormDialog({ modal }) {
         actions[type],
         p,
         type === "receive"
-          ? "Purchase receipt recorded. Stock updated."
+          ? tr("Purchase receipt recorded. Stock updated.")
           : type === "return"
-            ? "Return recorded. Stock and balances updated."
-            : "Record saved.",
+            ? tr("Return recorded. Stock and balances updated.")
+            : tr("Record saved."),
       );
     } catch (e) {
       setError(e.message);
@@ -497,17 +511,18 @@ function FormDialog({ modal }) {
     return (
       <dialog ref={dialog} className="modal">
         <div className="modal-header">
+          <LanguageSwitcher />
           <div>
-            <h2>{modal.title}</h2>
-            <p>{modal.description}</p>
+            <h2>{tr(modal.title)}</h2>
+            <p>{tr(modal.description)}</p>
           </div>
         </div>
         <div className="modal-footer">
           <Button kind="secondary" onClick={close}>
-            Keep document
+            {tr("Keep document")}
           </Button>
           <Button kind="danger" onClick={modal.confirm}>
-            Cancel document
+            {tr("Cancel document")}
           </Button>
         </div>
       </dialog>
@@ -516,6 +531,7 @@ function FormDialog({ modal }) {
     return (
       <dialog ref={dialog} className="modal">
         <div className="modal-header">
+          <LanguageSwitcher />
           <div>
             <h2>{record.subject}</h2>
             <p>
@@ -524,7 +540,7 @@ function FormDialog({ modal }) {
           </div>
           <button
             className="icon-button"
-            aria-label="Close dialog"
+            aria-label={tr("Close dialog")}
             onClick={close}
           >
             <Icon name="close" />
@@ -559,12 +575,12 @@ function FormDialog({ modal }) {
               }}
             >
               <label>
-                Add internal note
+                {tr("Add internal note")}
                 <textarea name="note" required maxLength="2000" rows="3" />
               </label>
-              {error && <p className="form-error">{error}</p>}
+              {error && <p className="form-error">{tr(error)}</p>}
               <button className="btn primary" type="submit" disabled={busy}>
-                Add note
+                {tr("Add note")}
               </button>
             </form>
           )}
@@ -575,32 +591,43 @@ function FormDialog({ modal }) {
     isReceipt = type === "receive" || type === "return";
   const schemaRecord = type === "shipment" ? modal.initial : record;
   return (
-    <dialog ref={dialog} className="modal" aria-label={titles[type]}>
+    <dialog ref={dialog} className="modal" aria-label={tr(titles[type])}>
       <div className="modal-header">
+        <LanguageSwitcher />
         <div>
           <span className="eyebrow">
             {["role", "menu", "assign"].includes(type)
-              ? "RUOYI PERMISSION SYSTEM"
-              : "WORKSPACE ACTION"}
+              ? tr("RUOYI PERMISSION SYSTEM")
+              : tr("WORKSPACE ACTION")}
           </span>
           <h2>
-            {record && type === "product" ? "Edit product" : titles[type]}
+            {record && type === "product"
+              ? tr("Edit product")
+              : tr(titles[type])}
           </h2>
           <p>
             {type === "role"
-              ? "Assign page visibility and individual action permissions. Changes apply on the next request."
+              ? tr(
+                  "Assign page visibility and individual action permissions. Changes apply on the next request.",
+                )
               : type === "assign"
-                ? "A user receives the union of permissions from all enabled assigned roles."
+                ? tr(
+                    "A user receives the union of permissions from all enabled assigned roles.",
+                  )
                 : type === "shipment"
-                  ? "Reserve → dispatch → receive. Inventory cost travels with the goods."
+                  ? tr(
+                      "Reserve → dispatch → receive. Inventory cost travels with the goods.",
+                    )
                   : type === "campaign"
-                    ? "Manual tracking only. No external campaign is created."
-                    : record?.id || "Changes are saved in this workspace."}
+                    ? tr(
+                        "Manual tracking only. No external campaign is created.",
+                      )
+                    : record?.id || tr("Changes are saved in this workspace.")}
           </p>
         </div>
         <button
           className="icon-button modal-close"
-          aria-label="Close dialog"
+          aria-label={tr("Close dialog")}
           onClick={close}
         >
           <Icon name="close" />
@@ -621,7 +648,7 @@ function FormDialog({ modal }) {
             )}
             {type === "product" && (
               <label className="full-field">
-                Compatible device SKUs (for support parts)
+                {tr("Compatible device SKUs (for support parts)")}
                 <select
                   multiple
                   size="4"
@@ -639,8 +666,9 @@ function FormDialog({ modal }) {
                     ))}
                 </select>
                 <small>
-                  Leave empty for universal parts. Use Command/Ctrl for multiple
-                  devices.
+                  {tr(
+                    "Leave empty for universal parts. Use Command/Ctrl for multiple devices.",
+                  )}
                 </small>
               </label>
             )}
@@ -648,14 +676,14 @@ function FormDialog({ modal }) {
           {isLines && (
             <div className="line-editor">
               <div className="line-editor-heading">
-                <h3>Line items</h3>
-                <span>USD · whole quantities</span>
+                <h3>{tr("Line items")}</h3>
+                <span>{tr("USD · whole quantities")}</span>
               </div>
               <div id="line-rows">
                 {lines.map((line, index) => (
                   <div className="line-row" key={index}>
                     <label>
-                      Product
+                      {tr("Product")}
                       <select
                         className="line-product"
                         name="line-product"
@@ -689,7 +717,7 @@ function FormDialog({ modal }) {
                       </select>
                     </label>
                     <label>
-                      Quantity
+                      {tr("Quantity")}
                       <input
                         name="line-qty"
                         type="number"
@@ -709,7 +737,8 @@ function FormDialog({ modal }) {
                     </label>
                     {type !== "shipment" && (
                       <label>
-                        Unit {type === "sale" ? "price" : "cost"} ($)
+                        {tr("Unit ")}
+                        {type === "sale" ? "price" : "cost"} ($)
                         <input
                           name="line-price"
                           type="number"
@@ -733,7 +762,7 @@ function FormDialog({ modal }) {
                     <button
                       type="button"
                       className="icon-button remove-line"
-                      aria-label="Remove line item"
+                      aria-label={tr("Remove line item")}
                       onClick={() =>
                         lines.length === 1
                           ? notify(
@@ -772,14 +801,14 @@ function FormDialog({ modal }) {
                 }}
               >
                 <Icon name="plus" />
-                Add another product
+                {tr("Add another product")}
               </Button>
               <div id="line-total" className="line-total">
                 {type === "shipment" ? (
                   `${lines.length} product line(s)`
                 ) : (
                   <>
-                    Document total
+                    {tr("Document total")}
                     <strong>
                       {money(
                         Math.round(
@@ -799,8 +828,12 @@ function FormDialog({ modal }) {
             <div className="receipt-lines">
               <p className="help-text">
                 {type === "receive"
-                  ? "Receive all remaining quantities, or enter a partial receipt."
-                  : "Enter returned quantities. Goods return to the original warehouse."}
+                  ? tr(
+                      "Receive all remaining quantities, or enter a partial receipt.",
+                    )
+                  : tr(
+                      "Enter returned quantities. Goods return to the original warehouse.",
+                    )}
               </p>
               {record.lines
                 .filter(
@@ -817,7 +850,7 @@ function FormDialog({ modal }) {
                         {s.products.find((p) => p.id === l.productId)?.sku} ·{" "}
                         {l.qty -
                           l[type === "receive" ? "received" : "returned"]}{" "}
-                        remaining
+                        {tr("remaining")}
                       </small>
                     </div>
                     <input
@@ -831,10 +864,10 @@ function FormDialog({ modal }) {
                       step="1"
                       defaultValue={type === "receive" ? l.qty - l.received : 0}
                       required
-                      aria-label={
+                      aria-label={tr(
                         "Quantity for " +
-                        s.products.find((p) => p.id === l.productId)?.sku
-                      }
+                          s.products.find((p) => p.id === l.productId)?.sku,
+                      )}
                     />
                   </label>
                 ))}
@@ -845,19 +878,19 @@ function FormDialog({ modal }) {
               <div className="form-grid">
                 <Field
                   name="roleName"
-                  label="Role name"
+                  label={tr("Role name")}
                   value={record?.roleName}
                   required
                 />
                 <Field
                   name="roleKey"
-                  label="Role key"
+                  label={tr("Role key")}
                   value={record?.roleKey}
                   required
                 />
                 <Field
                   name="status"
-                  label="Status"
+                  label={tr("Status")}
                   value={record?.status || "0"}
                   options={[
                     { id: "0", label: "Enabled" },
@@ -866,7 +899,7 @@ function FormDialog({ modal }) {
                 />
                 <Field
                   name="remark"
-                  label="Description"
+                  label={tr("Description")}
                   value={record?.remark}
                 />
               </div>
@@ -875,11 +908,11 @@ function FormDialog({ modal }) {
                   .filter((m) => m.menuType !== "F")
                   .map((root) => (
                     <fieldset key={root.menuId}>
-                      <legend>{root.menuName}</legend>
+                      <legend>{tr(root.menuName)}</legend>
                       <label>
                         <input
                           type="checkbox"
-                          aria-label={"View " + root.menuName}
+                          aria-label={tr("View " + root.menuName)}
                           checked={menuIds.has(root.menuId)}
                           onChange={(e) =>
                             setMenuIds((old) => {
@@ -895,7 +928,8 @@ function FormDialog({ modal }) {
                             })
                           }
                         />
-                        View page <code>{root.perms}</code>
+                        {tr("View page ")}
+                        <code>{root.perms}</code>
                       </label>
                       {s.permissionMenus
                         .filter(
@@ -906,7 +940,7 @@ function FormDialog({ modal }) {
                           <label key={m.menuId}>
                             <input
                               type="checkbox"
-                              aria-label={m.action}
+                              aria-label={tr(m.action)}
                               checked={menuIds.has(m.menuId)}
                               onChange={(e) =>
                                 setMenuIds((old) => {
@@ -934,7 +968,7 @@ function FormDialog({ modal }) {
                 <label key={r.roleId} className="role-choice">
                   <input
                     type="checkbox"
-                    aria-label={r.roleName}
+                    aria-label={tr(r.roleName)}
                     checked={roleIds.has(r.roleId)}
                     onChange={(e) =>
                       setRoleIds((old) => {
@@ -944,30 +978,31 @@ function FormDialog({ modal }) {
                       })
                     }
                   />
-                  <strong>{r.roleName}</strong>
+                  <strong>{tr(r.roleName)}</strong>
                   <span>
-                    {r.roleKey} · {r.status === "0" ? "Enabled" : "Disabled"}
+                    {r.roleKey} ·{" "}
+                    {r.status === "0" ? tr("Enabled") : tr("Disabled")}
                   </span>
                 </label>
               ))}
             </div>
           )}
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error">{tr(error)}</p>}
         </div>
         <div className="modal-footer">
           <span>
             <Icon name="check" />
-            Saved to this workspace
+            {tr("Saved to this workspace")}
           </span>
           <Button kind="secondary" id="form-cancel" onClick={close}>
-            Cancel
+            {tr("Cancel")}
           </Button>
           <button type="submit" className="btn primary" disabled={busy}>
             {busy
-              ? "Saving…"
+              ? tr("Saving…")
               : record && type === "product"
-                ? "Save changes"
-                : "Save record"}
+                ? tr("Save changes")
+                : tr("Save record")}
           </button>
         </div>
       </form>

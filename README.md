@@ -162,3 +162,13 @@ data/                     Runtime database and migration backup (ignored)
 ```
 
 Source is tracked in a standalone Git repository on `codex/rma-workflows`. The previous vanilla-JS/Node implementation remains in Git history. No database, external credentials, or private Lingxing code is committed.
+
+## Warranty eligibility and language
+
+RMA creation now checks solution/SKU/platform eligibility and warranty coverage on the server before any case or tasks are saved. Configure versioned rules in **Settings → Warranty rules** and solution requirements in **Support configuration → Solutions & DAG**. Device defaults are 12 months with a 14-day activation grace period; 1080 and 3200 printheads default to 3 and 6 months. Product forms include printhead warranty classification. See the [warranty guide](docs/rma.md#warranty-and-solution-eligibility) for evidence, date boundaries, scoped overrides and limitations.
+
+Choose **English / 简体中文** on the login screen, in the workspace header or in a form dialog. Language preferences persist in this browser; switching does not navigate, reset forms, change business values or change currency. Navigation, page text, form labels, actions, statuses, built-in configuration labels and validation messages have a shared Chinese translation catalog. User-entered product names, notes, references and editable configuration values retain their original content. Date/number formatting follows the selected language while business date calculation still follows the company timezone.
+
+Translations live in `frontend/src/locales/zh-CN.json`; English source messages are the catalog keys. `frontend/src/i18n.js` handles lookup, placeholders, dynamic validation messages and status labels. API contracts, identifiers and persisted enum values remain language-independent. API errors remain in canonical English and are translated at the presentation boundary. New UI strings should use `tr`, with identifiers in separate `value` attributes.
+
+Run `npm run test:warranty` and `npm run test:i18n` for the added browser checks. `npm run test:browser` includes both alongside the original suites, and `npm test` includes localization tests.

@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import React, { useState, useMemo } from "react";
 import { paths } from "./icons";
 import { useWorkspace, title, money, num, formatDate } from "./context";
@@ -115,7 +116,9 @@ export function Button({ children, onClick, kind = "quiet", ...props }) {
       onClick={onClick}
       {...props}
     >
-      {children}
+      {React.Children.map(children, (child) =>
+        typeof child === "string" ? tr(child) : child,
+      )}
     </button>
   );
 }
@@ -128,14 +131,14 @@ export function NewButton({ label, type, permission, initial }) {
       onClick={() => setModal({ type, initial })}
     >
       <Icon name="plus" />
-      {label}
+      {tr(label)}
     </Button>
   ) : null;
 }
 export const Export = ({ collection }) => (
   <a className="btn secondary" href={"/api/export/" + collection} download>
     <Icon name="download" />
-    Export
+    {tr("Export")}
   </a>
 );
 export function Heading({ children, page: override }) {
@@ -146,11 +149,13 @@ export function Heading({ children, page: override }) {
       <div>
         <div className="eyebrow">
           {p === "home"
-            ? "OPERATIONS / OVERVIEW"
-            : `WORKSPACE / ${p.toUpperCase()}`}
+            ? tr("OPERATIONS / OVERVIEW")
+            : tr("WORKSPACE") +
+              " / " +
+              tr(nav.find((x) => x[0] === p)?.[1] || p)}
         </div>
-        <h1>{info[p]?.[0]}</h1>
-        <p>{info[p]?.[1]}</p>
+        <h1>{tr(info[p]?.[0])}</h1>
+        <p>{tr(info[p]?.[1])}</p>
       </div>
       <div className="heading-actions">{children}</div>
     </div>
@@ -162,8 +167,8 @@ export const Panel = ({ children, className = "" }) => (
 export const PanelHeading = ({ title, subtitle, children }) => (
   <div className="panel-heading">
     <div>
-      <h2>{title}</h2>
-      {subtitle && <p>{subtitle}</p>}
+      <h2>{tr(title)}</h2>
+      {subtitle && <p>{tr(subtitle)}</p>}
     </div>
     {children}
   </div>
@@ -178,7 +183,7 @@ export const Tabs = ({ items, value, onChange }) => (
         aria-selected={key === value}
         onClick={() => onChange(key)}
       >
-        {label}
+        {tr(label)}
         {count != null && <span>{count}</span>}
       </button>
     ))}
@@ -199,13 +204,13 @@ export const Stat = ({
 }) => (
   <article className={"stat-card " + (featured ? "featured" : "")}>
     <div className="stat-label">
-      {label}
+      {tr(label)}
       <span>
         <Icon name={icon} />
       </span>
     </div>
     <div className="stat-value">{value}</div>
-    <div className="stat-caption">{caption}</div>
+    <div className="stat-caption">{tr(caption)}</div>
   </article>
 );
 export function ProductCell({ product }) {
@@ -249,7 +254,7 @@ export function Chart({ report }) {
       className="revenue-chart"
       viewBox="0 0 800 225"
       role="img"
-      aria-label="Revenue by shipping date"
+      aria-label={tr("Revenue by shipping date")}
     >
       <defs>
         <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
@@ -323,14 +328,16 @@ export function Period() {
   return (
     <select
       id="period-select"
-      aria-label="Reporting period"
+      aria-label={tr("Reporting period")}
       value={period}
       onChange={(e) => setPeriod(e.target.value)}
     >
-      <option value="30">Last 30 days</option>
-      <option value="7">Last 7 days</option>
-      <option value="all">All time</option>
-      {period === "custom" && <option value="custom">Custom range</option>}
+      <option value="30">{tr("Last 30 days")}</option>
+      <option value="7">{tr("Last 7 days")}</option>
+      <option value="all">{tr("All time")}</option>
+      {period === "custom" && (
+        <option value="custom">{tr("Custom range")}</option>
+      )}
     </select>
   );
 }
@@ -381,8 +388,8 @@ export function Table({
             <Icon name="search" />
             <input
               id="record-search"
-              aria-label="Search records"
-              placeholder="Search records…"
+              aria-label={tr("Search records")}
+              placeholder={tr("Search records…")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -393,11 +400,11 @@ export function Table({
                 <Icon name="filter" />
                 <select
                   id="status-filter"
-                  aria-label="Filter status"
+                  aria-label={tr("Filter status")}
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <option value="all">All statuses</option>
+                  <option value="all">{tr("All statuses")}</option>
                   {statuses.map((s) => (
                     <option key={s} value={s}>
                       {title(s)}
@@ -408,7 +415,7 @@ export function Table({
             )}
             <span className="table-context">
               <Icon name="check" />
-              Saved locally
+              {tr("Saved locally")}
             </span>
           </div>
         </div>
@@ -422,7 +429,7 @@ export function Table({
                   key={i}
                   tabIndex={c.key ? 0 : undefined}
                   role={c.key ? "button" : undefined}
-                  aria-label={c.key ? "Sort by " + c.label : undefined}
+                  aria-label={tr(c.key ? "Sort by " + c.label : undefined)}
                   onClick={() =>
                     c.key &&
                     setSort({
@@ -440,7 +447,7 @@ export function Table({
                     }
                   }}
                 >
-                  {c.label}
+                  {tr(c.label)}
                   {c.key && (
                     <span className="sort-indicator">
                       {sort.key === c.key ? (sort.dir === 1 ? "↑" : "↓") : "↕"}
@@ -464,11 +471,11 @@ export function Table({
                 <td colSpan={columns.length}>
                   <div className="empty-state">
                     <Icon name="product" />
-                    <strong>{empty}</strong>
+                    <strong>{tr(empty)}</strong>
                     <p>
                       {query || status !== "all"
-                        ? "Try clearing your search or filters."
-                        : "Create your first record to get started."}
+                        ? tr("Try clearing your search or filters.")
+                        : tr("Create your first record to get started.")}
                     </p>
                   </div>
                 </td>
@@ -479,10 +486,12 @@ export function Table({
       </div>
       <div className="table-footer">
         <span>
-          {list.length} record{list.length === 1 ? "" : "s"}{" "}
-          {query ? "matching your search" : ""}
+          {list.length}
+          {tr(" record")}
+          {list.length === 1 ? "" : "s"}{" "}
+          {query ? tr("matching your search") : ""}
         </span>
-        <span>All records shown · USD</span>
+        <span>{tr("All records shown · USD")}</span>
       </div>
     </>
   );

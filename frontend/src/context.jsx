@@ -6,18 +6,24 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import {
+  tr,
+  statusTitle,
+  intlLocale,
+  getLanguage,
+  setLanguage,
+  subscribeLanguage,
+} from "./i18n";
 import { normalizeWorkspace } from "./state";
 export const Workspace = createContext(null);
 export const useWorkspace = () => useContext(Workspace);
 export const money = (c) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    (c || 0) / 100,
-  );
-export const num = (n) => new Intl.NumberFormat("en-US").format(n || 0);
-export const title = (s) =>
-  String(s || "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  new Intl.NumberFormat(intlLocale(), {
+    style: "currency",
+    currency: "USD",
+  }).format((c || 0) / 100);
+export const num = (n) => new Intl.NumberFormat(intlLocale()).format(n || 0);
+export const title = statusTitle;
 export const total = (o) =>
   (o.lines || []).reduce((n, l) => n + l.qty * l.unitCents, 0);
 export const today = (zone = "Asia/Shanghai") =>
@@ -29,7 +35,7 @@ export const today = (zone = "Asia/Shanghai") =>
   }).format(new Date());
 export const formatDate = (v, zone = "Asia/Shanghai") =>
   v
-    ? new Intl.DateTimeFormat("en-US", {
+    ? new Intl.DateTimeFormat(intlLocale(), {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -50,6 +56,13 @@ export async function api(path, options = {}) {
   return data;
 }
 export function Provider({ children }) {
+  const [language, updateLanguage] = useState(getLanguage);
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title =
+      language === "zh-CN" ? "Harbor · 售后与运营" : "Harbor ERP";
+  }, [language]);
+  useEffect(() => subscribeLanguage(() => updateLanguage(getLanguage())), []);
   const [state, setState] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -162,6 +175,8 @@ export function Provider({ children }) {
   };
   const can = (a) => state?.permissions?.includes(a) || false;
   const value = {
+    language,
+    setLanguage,
     state,
     setState,
     loading,
@@ -187,7 +202,7 @@ export function Provider({ children }) {
       <div id="toasts" aria-live="polite">
         {notifications.map((n) => (
           <div key={n.id} className={"toast " + n.type}>
-            {n.message}
+            {tr(n.message)}
           </div>
         ))}
       </div>
