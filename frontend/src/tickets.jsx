@@ -21,7 +21,6 @@ import {
   customDefinition,
   problemPresentation,
   isInitialSubmission,
-  structureProblem,
 } from "./ticket-presentation";
 import { RMAForm } from "./support";
 
@@ -315,66 +314,6 @@ function Fields({ ticket, metadata, omitted = [] }) {
     </>
   );
 }
-function ProblemDetails({ problem, ticket }) {
-  const parts = problem.original
-    ? { main: problem.text, quote: "" }
-    : messageParts(ticket.content, true);
-  const structured = structureProblem(parts.main, ticket);
-  const original =
-    problem.original ||
-    (structured.reformatted || parts.quote ? problem.text : "");
-  return (
-    <section className="ticket-story">
-      <PanelHeading title="Problem details" />
-      <div className="problem-description">
-        <h4>
-          {tr(
-            problem.original ||
-              /^Original customer submission/i.test(problem.text)
-              ? "Customer description"
-              : "Submitted description",
-          )}
-        </h4>
-        <div
-          className={
-            "ticket-content problem-paragraphs" +
-            (structured.numbered ? " problem-numbered" : "")
-          }
-        >
-          {structured.paragraphs.map((paragraph, index) => (
-            <div className="problem-paragraph" key={index}>
-              {structured.numbered && (
-                <span className="problem-index" aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-              )}
-              <p>{paragraph}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      {structured.contacts.length > 0 && (
-        <section className="problem-contact">
-          <h4>{tr("Contact details supplied")}</h4>
-          <dl>
-            {structured.contacts.map((contact) => (
-              <div key={contact.label}>
-                <dt>{tr(contact.label)}</dt>
-                <dd>{contact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
-      {original && (
-        <details className="ticket-original">
-          <summary>{tr("View original submission")}</summary>
-          <div className="ticket-content">{original}</div>
-        </details>
-      )}
-    </section>
-  );
-}
 function MessageBody({ text }) {
   return (
     <div className="conversation-body">
@@ -552,7 +491,16 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
                 {hasValue(plain(data.source.content)) && (
-                  <ProblemDetails problem={problem} ticket={data.source} />
+                  <section className="ticket-story">
+                    <PanelHeading title="Problem details" />
+                    <div className="ticket-content">{problem.text}</div>
+                    {problem.original && (
+                      <details className="ticket-original">
+                        <summary>{tr("View original submission")}</summary>
+                        <div className="ticket-content">{problem.original}</div>
+                      </details>
+                    )}
+                  </section>
                 )}
                 {data.rmaIds?.length > 0 && (
                   <p className="ticket-rma-links">

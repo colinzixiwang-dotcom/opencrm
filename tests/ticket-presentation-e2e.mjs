@@ -140,26 +140,6 @@ try {
   await page.getByRole("button", { name: "刷新工单", exact: true }).click();
   await story.getByText(/Delivery instruction: leave at reception/).waitFor();
   assert.equal(await story.locator("details").count(), 0);
-  ticket.custom_fields.Problem =
-    "I paid twice. That is the first issue. The second is I want to cancel. Customer private@example.com\n46 Example St\nExample City CT 06489\n860-517-9197";
-  ticket.content =
-    "Original customer submission: Order Number: ORDER-101 Customer Question / Problem Description: " +
-    ticket.custom_fields.Problem;
-  await page.getByRole("button", { name: "刷新工单", exact: true }).click();
-  await page.locator(".problem-numbered").waitFor();
-  assert.equal(await page.locator(".problem-paragraph").count(), 2);
-  assert.equal(await page.locator(".problem-contact dt").count(), 2);
-  assert.ok(
-    !(await page.locator(".problem-description").innerText()).includes(
-      "private@example.com",
-    ),
-  );
-  await page.locator(".ticket-original summary").click();
-  assert.ok(
-    (await page.locator(".ticket-original").innerText()).includes(
-      "private@example.com",
-    ),
-  );
   assert.deepEqual(errors, []);
   console.log(
     "PASS structured submission coverage, initial message identity/time checks, expandable HTML/text quotes, trailing new text, bilingual/mobile layout and unknown content preservation",

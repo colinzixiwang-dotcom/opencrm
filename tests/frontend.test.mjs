@@ -157,33 +157,3 @@ test("structured descriptions match mail HTML whitespace and select labels witho
     "",
   );
 });
-
-test("problem reading separates explicit multiple issues and a known contact suffix without guessing", async () => {
-  const { structureProblem } =
-    await import("../frontend/src/ticket-presentation.js");
-  const text =
-    "I paid twice. That is the first issue. The second is I want to cancel. Thank you. Jane Doe jane@example.com\n46 Example St\nExample City CT 06489\n860-517-9197";
-  const result = structureProblem(text, {
-    user_name: "Jane Doe",
-    user_email: "jane@example.com",
-  });
-  assert.equal(result.numbered, true);
-  assert.equal(result.paragraphs.length, 2);
-  assert.ok(result.paragraphs[1].includes("The second is I want to cancel."));
-  assert.equal(result.contacts[0].label, "Submitted address");
-  assert.ok(result.contacts[0].value.includes("46 Example St"));
-  assert.equal(result.contacts[1].value, "860-517-9197");
-  assert.equal(result.reformatted, true);
-  const unknown = text + "\nPlease call after 6pm.";
-  const unchanged = structureProblem(unknown, {
-    user_name: "Jane Doe",
-    user_email: "jane@example.com",
-  });
-  assert.equal(unchanged.contacts.length, 0);
-  assert.ok(unchanged.paragraphs.join(" ").includes("Please call after 6pm."));
-  const prose = "Please write to jane@example.com about the pending order.";
-  assert.equal(
-    structureProblem(prose, { user_email: "jane@example.com" }).paragraphs[0],
-    prose,
-  );
-});
