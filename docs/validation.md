@@ -93,7 +93,7 @@ Verified the shared list controls, ticket deep links, populated-only details and
 - `npm test` (Go packages and frontend/i18n units)
 - `npm run test:e2e`, `npm run test:rma`, `npm run test:i18n`
 - `npm run test:audit`, `npm run test:warranty`, `npm run test:proxy`
-- `npm run test:udesk` (current-page search/sort, source filters/refresh, clickable title, detail reload, empty-field omission, retained zero/false values, v1/v2 custom-field merge, read-only source links, draft persistence, row authorization, bilingual/mobile and outage behavior)
+- `npm run test:udesk` (current-page search/global sort, source filters/refresh, clickable title, detail reload, empty-field omission, retained zero/false values, v1/v2 custom-field merge, read-only source links, draft persistence, row authorization, bilingual/mobile and outage behavior)
 - `./scripts/go.sh vet ./...`
 
 Live LAN checks confirmed #717 uses `/entry/ticket/show/20713607`, ticket-detail links survive navigation and browser Back restores the list. Screenshots inspected during iteration include the original queue, CRM reference, English/Chinese queue and detail, actual #717, and 390px mobile queue/detail. The mobile queue uses cards, and document width stays within the viewport.
@@ -126,3 +126,7 @@ Conversation chronology checks cover two descending source pages, ascending disp
 Chronology validation passed: `npm run check`, `npm test`, `npm run vet`, `npm run test:ticket-presentation`, `npm run test:udesk`. Live #537 verified all 42 replies across three pages: display pages contain 2/20/20 source records, with every timestamp ascending within and across pages (2026-09-18 through 2026-10-09). Screenshot: `test-results/conversation-oldest-first-live.png`. Both LAN services were rebuilt/restarted and health-checked.
 
 HTML email table presentation: `npm run check` and `npm run test:ticket-presentation` passed. Browser checks cover empty cells, colspan, preformatted whitespace, nested quoted tables, quote expansion, unsafe source markup and mobile overflow.
+
+Global sorting checks cover a newer reply on a later source page, timezone-equivalent timestamps and stable ID ties, numeric ticket numbers, missing reply dates, duplicate source pages, authorized totals, invalid sort/cursor and failure of an intermediate source page. All sorts execute before pagination and export uses the same sort parameter.
+
+Live review on 192.168.1.61: #520 retains the website/DA/DR/traffic/domain-age/price table, with trailing history folded. At 390px, document width equals viewport width. The first two default-sorted list pages were checked together: 681 distinct API-readable tickets, 35 pages, reply timestamps descending across the page boundary. Two consecutive list reads took approximately 33 seconds in this session, including source requests and concurrent UI reads. Screenshots: `test-results/ticket-520-mail-tables.png`, `ticket-520-mail-expanded.png`, `ticket-520-mail-mobile.png`, `ticket-queue-global-sort.png`.

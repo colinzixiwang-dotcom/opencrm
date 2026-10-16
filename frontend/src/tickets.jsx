@@ -664,7 +664,7 @@ export function TicketCenter() {
       new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
     ),
     [query, setQuery] = useState(""),
-    [sort, setSort] = useState("updated_at:desc"),
+    [sort, setSort] = useState("replied_at:desc"),
     [number, setNumber] = useState(""),
     [draft, setDraft] = useState(null),
     [drafts, setDrafts] = useState([]),
@@ -681,22 +681,11 @@ export function TicketCenter() {
     addEventListener("hashchange", change);
     return () => removeEventListener("hashchange", change);
   }, []);
-  const items = [...(data?.items || [])]
-    .filter(
-      (item) =>
-        !query ||
-        JSON.stringify(item.source).toLowerCase().includes(query.toLowerCase()),
-    )
-    .sort((a, b) => {
-      const [key, dir] = sort.split(":");
-      return (
-        String(a.source[key] ?? "").localeCompare(
-          String(b.source[key] ?? ""),
-          undefined,
-          { numeric: true },
-        ) * (dir === "desc" ? -1 : 1)
-      );
-    });
+  const items = (data?.items || []).filter(
+    (item) =>
+      !query ||
+      JSON.stringify(item.source).toLowerCase().includes(query.toLowerCase()),
+  );
   const latest = useRef(0);
   useEffect(() => {
     const controller = new window.AbortController();
@@ -717,12 +706,13 @@ export function TicketCenter() {
     loadDrafts();
   }, [refresh]); // Reload own drafts after saving or closing.
   useEffect(() => {
+    if (selected) return;
     const controller = new window.AbortController();
     const version = ++latest.current;
     setBusy(true);
     setError("");
     setData(null);
-    const params = new URLSearchParams({ filterId: filter, cursor });
+    const params = new URLSearchParams({ filterId: filter, cursor, sort });
     api("/api/tickets?" + params, { signal: controller.signal })
       .then((v) => {
         if (version === latest.current) {
@@ -741,7 +731,7 @@ export function TicketCenter() {
           setBusy(false);
       });
     return () => controller.abort();
-  }, [filter, cursor, refresh]);
+  }, [filter, cursor, sort, refresh, selected]);
   useEffect(() => {
     const update = () => {
       setSelected(null);
@@ -831,7 +821,7 @@ export function TicketCenter() {
                 download
                 href={
                   "/api/export/tickets?" +
-                  new URLSearchParams({ filterId: filter, cursor })
+                  new URLSearchParams({ filterId: filter, cursor, sort })
                 }
               >
                 <Icon name="download" />
@@ -864,10 +854,19 @@ export function TicketCenter() {
               ]}
             />
             <SortControl
-              label="Sort current page"
+              label="Sort all authorized tickets"
               value={sort}
-              onChange={setSort}
+              onChange={(value) => {
+                setSort(value);
+                setCursor("");
+                setHistory([]);
+              }}
               options={[
+                {
+                  value: "replied_at:desc",
+                  label: "Last reply · newest first",
+                },
+                { value: "replied_at:asc", label: "Last reply · oldest first" },
                 { value: "updated_at:desc", label: "Updated · newest first" },
                 { value: "updated_at:asc", label: "Updated · oldest first" },
                 { value: "created_at:desc", label: "Created · newest first" },
@@ -885,7 +884,9 @@ export function TicketCenter() {
           </ListToolbar>
           <div className="ticket-queue-subbar">
             <span>
-              {tr("Search and sort apply to the current page.")}{" "}
+              {tr(
+                "Sorting applies to all authorized results. Search applies to this page.",
+              )}{" "}
               {data && (
                 <strong>
                   {items.length} / {data.items.length}
@@ -929,7 +930,7 @@ export function TicketCenter() {
                         "Status",
                         "Priority",
                         "Channel",
-                        "Updated",
+                        "Last reply",
                         "Linked RMAs",
                       ].map((label) => (
                         <th key={label}>{tr(label)}</th>
@@ -981,9 +982,9 @@ export function TicketCenter() {
                           <td data-label={tr("Channel")}>{t.platform}</td>
                           <td
                             className="ticket-date"
-                            data-label={tr("Updated")}
+                            data-label={tr("Last reply")}
                           >
-                            {displayDate(t.updated_at)}
+                            {displayDate(t.replied_at)}
                           </td>
                           <td data-label={tr("Linked RMAs")}>
                             {item.rmaIds.join(", ") || "—"}

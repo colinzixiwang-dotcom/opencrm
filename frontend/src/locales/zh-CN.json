@@ -1146,5 +1146,9 @@
   "Tertiary Symptoms / Keywords": "症状 / 关键词",
   "Morpho Submission ID": "Morpho 提交编号",
   "Submission fields": "提交字段",
-  "Problem description": "问题描述"
+  "Problem description": "问题描述",
+  "Sort all authorized tickets": "全部授权工单排序",
+  "Last reply · newest first": "最后回复时间 · 从新到旧",
+  "Last reply · oldest first": "最后回复时间 · 从旧到新",
+  "Sorting applies to all authorized results. Search applies to this page.": "排序作用于全部授权结果，搜索仅作用于当前页。"
 }

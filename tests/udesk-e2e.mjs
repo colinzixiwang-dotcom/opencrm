@@ -40,9 +40,22 @@ try {
   assert.equal(await page.locator("select option[value='10']").count(), 1);
   assert.equal(await page.locator("nav a.nav-item").count(), 13);
   console.log("PASS source metadata, navigation and filter deduplication");
+  assert.equal(
+    await page
+      .getByLabel("Sort all authorized tickets", { exact: true })
+      .inputValue(),
+    "replied_at:desc",
+  );
+  const sortedResponse = page.waitForResponse(
+    (r) =>
+      new URL(r.url()).pathname === "/api/tickets" &&
+      new URL(r.url()).searchParams.get("sort") === "field_num:desc",
+  );
   await page
-    .getByLabel("Sort current page", { exact: true })
+    .getByLabel("Sort all authorized tickets", { exact: true })
     .selectOption("field_num:desc");
+  assert.equal((await (await sortedResponse).json()).sort, "field_num:desc");
+  await page.locator("tbody tr .text-button").first().waitFor();
   assert.equal(
     await page.locator("tbody tr .text-button").first().innerText(),
     "#104",
@@ -134,12 +147,15 @@ try {
   );
   await page.getByText("Hardware fault", { exact: true }).waitFor();
   await page.getByText("Internal case context", { exact: true }).waitFor();
-  const body = await page.locator(".conversation-body").first().innerText();
+  const body = await page
+    .locator(".ticket-conversation .conversation-body")
+    .first()
+    .innerText();
   assert.ok(!/\n{3,}/.test(body));
   assert.ok(body.includes("Second paragraph."));
   assert.equal(
     await page
-      .locator(".conversation-body")
+      .locator(".ticket-conversation .conversation-body")
       .first()
       .evaluate((el) => getComputedStyle(el).textAlign),
     "left",

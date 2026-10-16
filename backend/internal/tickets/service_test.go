@@ -22,6 +22,7 @@ type fake struct {
 	calls      []string
 	broken     bool
 	replyPages map[int]M
+	listPages  map[int]M
 }
 
 func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
@@ -38,6 +39,13 @@ func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
 		return nil, fmt.Errorf("not found")
 	}
 	if path == "tickets" || path == "tickets/tickets_in_filter" {
+		if f.listPages != nil {
+			page, _ := strconv.Atoi(q.Get("page"))
+			if v, ok := f.listPages[page]; ok {
+				return domain.Clone(v), nil
+			}
+			return nil, fmt.Errorf("unexpected source list page %d", page)
+		}
 		return domain.Clone(M{"contents": f.tickets, "meta": M{"total_pages": 1, "total_count": len(f.tickets)}}), nil
 	}
 	if strings.HasSuffix(path, "/replies") && f.replyPages != nil {
@@ -321,7 +329,7 @@ func TestTotalPagesRespectScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["totalPages"] != nil {
+	if result["totalPages"] != 1 || result["totalCount"] != 1 {
 		t.Fatal("source global count leaked to scoped actor")
 	}
 }
@@ -373,4 +381,63 @@ func TestRepliesReadChronologicallyAcrossSourcePages(t *testing.T) {
 	}
 	_, err = s.Replies(context.Background(), a, "1", 3)
 	checkError(t, err, 400)
+}
+
+func TestGlobalSortBeforePagination(t *testing.T) {
+	db, service, source, admin := fixture(t)
+	old := M{"id": 1, "field_num": "#2", "assignee_id": 11, "replied_at": "2026-10-01T10:00:00Z"}
+	latest := M{"id": 2, "field_num": "#100", "assignee_id": 11, "replied_at": "2026-10-03T10:00:00Z"}
+	foreign := M{"id": 3, "field_num": "#900", "assignee_id": 22, "replied_at": "2026-10-04T10:00:00Z"}
+	same := M{"id": 4, "field_num": "#10", "assignee_id": 11, "replied_at": "2026-10-03T18:00:00+08:00"}
+	missing := M{"id": 5, "field_num": "#20", "assignee_id": 11}
+	source.listPages = map[int]M{
+		1: {"contents": []M{old, missing}, "meta": M{"total_pages": 3, "total_count": 99}},
+		2: {"contents": []M{latest, foreign, same}, "meta": M{"total_pages": 3}},
+		3: {"contents": []M{old, missing}, "meta": M{"total_pages": 3}},
+	}
+	own := actor(t, db, "one@example.com")
+	page, e := service.List(context.Background(), own, "", "", 2)
+	if e != nil {
+		t.Fatal(e)
+	}
+	items := domain.Rows(page, "items")
+	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "4" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "2" {
+		t.Fatalf("wrong global default order: %v", items)
+	}
+	if page["totalCount"] != 4 || page["totalPages"] != 2 {
+		t.Fatalf("wrong authorized deduplicated totals: %v", page)
+	}
+	second, e := service.List(context.Background(), own, "", domain.Str(page["nextCursor"]), 2)
+	if e != nil {
+		t.Fatal(e)
+	}
+	items = domain.Rows(second, "items")
+	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "1" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "5" || second["nextCursor"] != "" {
+		t.Fatalf("wrong next page: %v", second)
+	}
+	ascending, e := service.ListSorted(context.Background(), own, "", "", 10, "replied_at:asc")
+	if e != nil {
+		t.Fatal(e)
+	}
+	items = domain.Rows(ascending, "items")
+	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "1" || fmt.Sprint(domain.Obj(items[3]["source"])["id"]) != "5" {
+		t.Fatalf("missing date must stay last: %v", items)
+	}
+	numeric, e := service.ListSorted(context.Background(), admin, "", "", 2, "field_num:desc")
+	if e != nil {
+		t.Fatal(e)
+	}
+	items = domain.Rows(numeric, "items")
+	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "3" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "2" {
+		t.Fatalf("wrong global numeric order: %v", items)
+	}
+	_, e = service.ListSorted(context.Background(), admin, "", "", 2, "content:desc")
+	checkError(t, e, 400)
+	_, e = service.List(context.Background(), admin, "", "1:0", 2)
+	checkError(t, e, 400)
+	delete(source.listPages, 2)
+	_, e = service.List(context.Background(), admin, "", "", 2)
+	if e == nil {
+		t.Fatal("failed source page must fail the complete result")
+	}
 }

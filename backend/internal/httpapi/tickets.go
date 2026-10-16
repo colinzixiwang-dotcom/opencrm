@@ -36,7 +36,7 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 			}
 			size = n
 		}
-		v, e := s.Tickets.List(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), size)
+		v, e := s.Tickets.ListSorted(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), size, c.Query("sort"))
 		s.ticketResponse(c, v, e)
 	})
 	t.GET("/metadata", func(c *gin.Context) {
@@ -91,7 +91,7 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 }
 func (s *Server) exportTickets(c *gin.Context) {
 	s.require(c, ruoyi.ViewPermission("service"))
-	v, e := s.Tickets.List(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), 100)
+	v, e := s.Tickets.ListSorted(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), 100, c.Query("sort"))
 	if e != nil {
 		s.ticketResponse(c, nil, e)
 		return

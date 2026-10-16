@@ -9,6 +9,7 @@ import (
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -232,9 +233,12 @@ func (s *Service) public(actor, t M, at string) M {
 	return M{"source": t, "fetchedAt": at, "udeskUrl": strings.TrimRight(base, "/") + "/entry/ticket/show/" + url.PathEscape(id(t["id"])), "rmaIds": rmas}
 }
 
-// List scans only enough source pages for this authorized page, with a bounded budget.
-// Cursor is a source page + offset, not a local-cache or global source count.
+// List always sorts the complete live authorized result before pagination.
 func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size int) (M, error) {
+	return s.ListSorted(ctx, actor, filter, cursor, size, "replied_at:desc")
+}
+
+func (s *Service) ListSorted(ctx context.Context, actor M, filter, cursor string, size int, order string) (result M, err error) {
 	if e := s.readPermission(actor); e != nil {
 		return nil, e
 	}
@@ -244,22 +248,37 @@ func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size
 	if size < 1 || size > 100 {
 		return nil, fail("Page size must be between 1 and 100.", 400)
 	}
-	page, offset := 1, 0
+	if order == "" {
+		order = "replied_at:desc"
+	}
+	allowed := map[string]bool{"replied_at:desc": true, "replied_at:asc": true, "updated_at:desc": true, "updated_at:asc": true, "created_at:desc": true, "created_at:asc": true, "field_num:desc": true, "field_num:asc": true, "subject:asc": true, "assignee_name:asc": true, "status:asc": true}
+	if !allowed[order] {
+		return nil, fail("Invalid ticket sort order.", 400)
+	}
+	offset := 0
 	if cursor != "" {
-		if _, e := fmt.Sscanf(cursor, "%d:%d", &page, &offset); e != nil || page < 1 || page > 100000 || offset < 0 || offset >= 100 {
+		if !strings.HasPrefix(cursor, "global:") {
 			return nil, fail("Invalid ticket cursor.", 400)
 		}
+		n, e := strconv.Atoi(strings.TrimPrefix(cursor, "global:"))
+		if e != nil || n < 0 || n > 1000000000 {
+			return nil, fail("Invalid ticket cursor.", 400)
+		}
+		offset = n
 	}
-	items := []M{}
 	at := domain.Now()
-	next := ""
-	exhausted := false
-	var totalPages any
 	run := Run{ID: domain.ID("SYNC"), UserID: domain.Str(actor["id"]), Kind: "tickets", Status: "running", CreatedAt: at}
 	if e := s.DB.Create(&run).Error; e != nil {
 		return nil, e
 	}
-	for scan := 0; scan < 3 && !exhausted; scan++ {
+	defer func() {
+		if err != nil {
+			s.DB.Model(&run).Updates(map[string]any{"status": "failed", "error": err.Error(), "completed_at": domain.Now()})
+		}
+	}()
+	all := []M{}
+	seen := map[string]bool{}
+	for page, pages := 1, 1; page <= pages; page++ {
 		path := "tickets"
 		params := url.Values{"page": {strconv.Itoa(page)}, "per_page": {"100"}}
 		if filter != "" {
@@ -268,56 +287,99 @@ func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size
 		}
 		v, e := s.API.Get(ctx, path, params)
 		if e != nil {
-			s.DB.Model(&run).Updates(map[string]any{"status": "failed", "error": e.Error(), "completed_at": domain.Now()})
 			return nil, e
 		}
-		source := rows(v["contents"])
-		pages := int(domain.N(obj(v["meta"])["total_pages"]))
-		// Only an administrator's source count equals their authorized count.
-		if admin(actor) {
-			if count, exists := obj(v["meta"])["total_count"]; exists {
-				n := int(domain.N(count))
-				totalPages = max(1, (n+size-1)/size)
+		if page == 1 {
+			pages = max(1, int(domain.N(obj(v["meta"])["total_pages"])))
+			if pages > 10000 {
+				return nil, fail("Udesk result is too large for live global sorting.", 502)
 			}
 		}
-		for i := offset; i < len(source); i++ {
-			t := sourceTicket(source[i])
-			if !s.canRead(actor, t) {
+		for _, row := range rows(v["contents"]) {
+			t := sourceTicket(row)
+			key := id(t["id"])
+			if key == "" || seen[key] {
 				continue
 			}
-			if e := s.persist(t, at); e != nil {
-				return nil, e
-			}
-			items = append(items, s.public(actor, t, at))
-			if len(items) >= size {
-				next = ""
-				if i+1 < len(source) {
-					next = fmt.Sprintf("%d:%d", page, i+1)
-				} else if page < pages {
-					next = fmt.Sprintf("%d:0", page+1)
-				}
-				exhausted = true
-				break
-			}
-		}
-		if !exhausted {
-			page++
-			offset = 0
-			if len(source) == 0 || page > pages {
-				exhausted = true
-			} else {
-				next = fmt.Sprintf("%d:0", page)
+			seen[key] = true
+			if s.canRead(actor, t) {
+				all = append(all, t)
 			}
 		}
 	}
-	if exhausted && len(items) < size {
-		next = ""
-	}
-	if e := s.DB.Model(&run).Updates(map[string]any{"status": "completed", "count": len(items), "completed_at": domain.Now()}).Error; e != nil {
+	// Udesk may repeat a source page or report a larger total_count than rows
+	// available through the API. Count only distinct, authorized source rows.
+	parts := strings.Split(order, ":")
+	sort.Slice(all, func(i, j int) bool { return ticketLess(all[i], all[j], parts[0], parts[1] == "desc") })
+	if e := s.DB.Transaction(func(tx *gorm.DB) error {
+		copyService := &Service{DB: tx, API: s.API, Tenant: s.Tenant}
+		for _, t := range all {
+			if e := copyService.persist(t, at); e != nil {
+				return e
+			}
+		}
+		return nil
+	}); e != nil {
 		return nil, e
 	}
-	return M{"items": items, "nextCursor": next, "fetchedAt": at, "filterId": filter, "scanLimited": !exhausted, "runId": run.ID, "totalPages": totalPages}, nil
+	items := []M{}
+	end := min(len(all), offset+size)
+	for i := offset; i < end; i++ {
+		items = append(items, s.public(actor, all[i], at))
+	}
+	next := ""
+	if end < len(all) {
+		next = fmt.Sprintf("global:%d", end)
+	}
+	if e := s.DB.Model(&run).Updates(map[string]any{"status": "completed", "count": len(all), "completed_at": domain.Now()}).Error; e != nil {
+		return nil, e
+	}
+	return M{"items": items, "nextCursor": next, "fetchedAt": at, "filterId": filter, "sort": order, "scanLimited": false, "runId": run.ID, "totalPages": max(1, (len(all)+size-1)/size), "totalCount": len(all)}, nil
 }
+
+func ticketLess(a, b M, field string, descending bool) bool {
+	av, bv := domain.Str(a[field]), domain.Str(b[field])
+	cmp := 0
+	if strings.HasSuffix(field, "_at") {
+		parse := func(value string) (time.Time, bool) {
+			for _, layout := range []string{time.RFC3339Nano, "2006-01-02 15:04:05 -0700", "2006-01-02 15:04:05", "2006-01-02T15:04:05"} {
+				if t, e := time.Parse(layout, value); e == nil {
+					return t, true
+				}
+			}
+			return time.Time{}, false
+		}
+		at, aok := parse(av)
+		bt, bok := parse(bv)
+		if aok != bok {
+			return aok
+		} // Missing/invalid dates always last.
+		cmp = at.Compare(bt)
+	} else if field == "field_num" {
+		an, _ := strconv.ParseInt(strings.TrimPrefix(av, "#"), 10, 64)
+		bn, _ := strconv.ParseInt(strings.TrimPrefix(bv, "#"), 10, 64)
+		if an < bn {
+			cmp = -1
+		} else if an > bn {
+			cmp = 1
+		}
+	} else {
+		cmp = strings.Compare(strings.ToLower(av), strings.ToLower(bv))
+	}
+	if cmp == 0 {
+		an, _ := strconv.ParseUint(id(a["id"]), 10, 64)
+		bn, _ := strconv.ParseUint(id(b["id"]), 10, 64)
+		if an != bn {
+			return an > bn
+		}
+		return id(a["id"]) > id(b["id"])
+	}
+	if descending {
+		return cmp > 0
+	}
+	return cmp < 0
+}
+
 func (s *Service) detail(ctx context.Context, actor M, key string, number bool) (M, string, error) {
 	if e := s.readPermission(actor); e != nil {
 		return nil, "", e
