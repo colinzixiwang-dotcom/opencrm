@@ -344,6 +344,19 @@ export function Period() {
     </select>
   );
 }
+// Shared list controls keep local and remote work queues visually consistent.
+export function ListToolbar({ children, actions }) {
+  return <div className="table-toolbar list-toolbar"><div className="list-controls">{children}</div>{actions && <div className="toolbar-right">{actions}</div>}</div>;
+}
+export function SearchControl({ value, onChange, label = "Search records", placeholder = "Search records…", id, required = false }) {
+  return <label className="search-field"><Icon name="search" /><input id={id} aria-label={tr(label)} placeholder={tr(placeholder)} value={value} onChange={e => onChange(e.target.value)} required={required} /></label>;
+}
+export function FilterControl({ value, onChange, label = "Filter status", options = [], disabled = false, id, icon = "filter" }) {
+  return <label className="filter-select"><Icon name={icon} /><select id={id} aria-label={tr(label)} title={tr(label)} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>{options.map(o => <option key={o.value} value={o.value}>{tr(o.label)}</option>)}</select></label>;
+}
+export function SortControl(props) {
+  return <FilterControl {...props} label={props.label || "Sort records"} />;
+}
 export function Table({
   columns,
   rows,
@@ -386,42 +399,13 @@ export function Table({
   return (
     <>
       {search && (
-        <div className="table-toolbar">
-          <label className="search-field">
-            <Icon name="search" />
-            <input
-              id="record-search"
-              aria-label={tr("Search records")}
-              placeholder={tr("Search records…")}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <div className="toolbar-right">
-            {statuses.length > 0 && (
-              <label className="filter-select">
-                <Icon name="filter" />
-                <select
-                  id="status-filter"
-                  aria-label={tr("Filter status")}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="all">{tr("All statuses")}</option>
-                  {statuses.map((s) => (
-                    <option key={s} value={s}>
-                      {title(s)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <span className="table-context">
-              <Icon name="check" />
-              {tr("Saved locally")}
-            </span>
-          </div>
-        </div>
+        <ListToolbar actions={<>
+          {statuses.length > 0 && <FilterControl id="status-filter" value={status} onChange={setStatus} options={[{value:"all",label:"All statuses"},...statuses.map(s=>({value:s,label:title(s)}))]} />}
+          <SortControl value={sort.key ? sort.key + ":" + sort.dir : ""} onChange={v => { const [key, dir] = v.split(":"); setSort({key, dir:Number(dir)||1}); }} options={[{value:"",label:"Default order"},...columns.filter(c=>c.key).flatMap(c=>[{value:c.key+":1",label:tr(c.label)+" ↑"},{value:c.key+":-1",label:tr(c.label)+" ↓"}])]} />
+          <span className="table-context"><Icon name="check" />{tr("Saved locally")}</span>
+        </>}>
+          <SearchControl id="record-search" value={query} onChange={setQuery} />
+        </ListToolbar>
       )}
       <div className="table-scroll">
         <table>

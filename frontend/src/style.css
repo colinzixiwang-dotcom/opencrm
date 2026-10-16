@@ -2973,3 +2973,11 @@ td {
     max-width: 100%;
   }
 }
+
+/* Shared list controls */
+.list-toolbar { flex-wrap: wrap; }
+.list-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.list-toolbar .toolbar-right { flex-wrap: wrap; gap: 10px; }
+.filter-select select { max-width: 230px; }
+.search-field:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px #285d4b0c; }
+@media(max-width:700px) { .list-toolbar { align-items: stretch; } .list-controls { width:100%; } .list-controls .search-field { flex:1; min-width:0; } .list-controls .search-field input { width:100%; min-width:0; } }

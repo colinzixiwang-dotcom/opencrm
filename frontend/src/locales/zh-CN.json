@@ -1034,5 +1034,7 @@
   "Refresh": "刷新",
   "Previous": "上一页",
   "Next": "下一页",
-  "Attachments": "附件"
+  "Attachments": "附件",
+  "Sort records": "排序",
+  "Default order": "默认顺序"
 }

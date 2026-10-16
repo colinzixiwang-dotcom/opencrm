@@ -3,6 +3,7 @@ import { tr } from "./i18n";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useWorkspace, api, money, title, formatDate, today } from "./context";
 import {
+  FilterControl,
   Heading,
   Panel,
   PanelHeading,
@@ -282,20 +283,8 @@ function FilteredTable({
     <Panel>
       <div className="support-filters">
         {filters.map((f) => (
-          <Select
-            key={f.key}
-            label={tr(f.label)}
-            value={v[f.key] || ""}
-            onChange={(x) => setV({ ...v, [f.key]: x })}
-            empty={tr("All") + " " + tr(f.label)}
-            items={
-              f.items ||
-              [...new Set(rows.map((r) => String(r[f.key] ?? "")))]
-                .filter(Boolean)
-                .sort()
-                .map((x) => ({ value: x, label: title(x) }))
-            }
-          />
+          <FilterControl key={f.key} label={f.label} value={v[f.key] || ""} onChange={x=>setV({...v,[f.key]:x})}
+            options={[{value:"",label:tr("All")+" "+tr(f.label)}, ...(f.items || [...new Set(rows.map(r=>String(r[f.key]??"")))].filter(Boolean).sort().map(x=>({value:x,label:title(x)})))]} />
         ))}
         {dateKey && (
           <>
