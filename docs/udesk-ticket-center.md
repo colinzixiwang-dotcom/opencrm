@@ -103,3 +103,17 @@ Run `npm run test:udesk` for a temporary-database, signed mock integration brows
 - Content and read-only conversation have a dedicated main column; populated field information occupies a responsive sidebar. HTML is converted to inert text, excluding script/style content. Editing and replies still happen in Udesk. RMA draft creation and all existing permission checks remain unchanged.
 - Both `custom_fields` and `custom_fields_v2` are merged for presentation (v1 wins on overlapping keys); v2 is not rendered again as a raw standard field. Long custom values use the full sidebar width. Original source payloads are unchanged.
 - At phone widths, each list row becomes a labeled ticket card so titles and customer details remain readable without horizontal table scrolling.
+
+## Shared pagination, conversation layout and previews (2026-10-16)
+
+CRM tables, Udesk lists and conversations now use the shared `Pagination` component. Local tables paginate 20 records, reset the page for searches/status changes, and show their exact page count. Conversations show the source reply page count. Administrators receive ticket totals derived from live Udesk `meta.total_count` and the CRM page size. Scoped actors do not receive a global source count; while their authorized cursor traversal is incomplete, the UI explicitly shows that the total is pending, and shows the actual traversed page total at the end. Entry does not scan/import all history merely to produce a count.
+
+Mail content is converted to inert text with structural paragraph/line boundaries. Source indentation, repeated empty lines and nonbreaking spaces are normalized; message bodies align left, with author/date information in a separate header. Script/style contents remain excluded.
+
+Attachments render as thumbnail cards with a modal preview for images and PDFs, plus native audio/video controls where supported. Unsupported types retain an original-file link. Image failures have an explicit fallback, and pending images use the shared loading state.
+
+Preview bytes use `GET /api/tickets/:id/attachment?ref={origin+path}&replyPage={page}`. The reference contains no OSS signature. The server checks live ticket permission, finds the matching attachment in that ticket or its authorized reply page, and obtains the current signed storage URL. It restricts storage hosts, rejects private network addresses in production, does not forward session/API credentials or follow storage redirects, enforces a 25 MiB limit and checks the media type. Responses use private/no-store caching. Existing page CSP remains unchanged. This also lets previews work on production pages where direct external images are disallowed by CSP.
+
+`LoadingState` supplies shared skeleton layouts for workspace startup, lists, ticket details, fields, conversations and image previews, with reduced-motion support. A failed conversation read shows an error/retry state instead of an endless loader.
+
+PDF previews use a lazily loaded PDF.js worker and canvas renderer with evaluation disabled, rather than an embedded browser PDF plugin. PDF page navigation reuses `Pagination`; responsive canvas sizing fits desktop and phone widths.

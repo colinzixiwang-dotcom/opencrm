@@ -38,3 +38,13 @@ test("normalization preserves configured graph edges and existing values", () =>
   assert.deepEqual(n.supportConfig.solutions[0].nodes[1].dependsOn, ["a"]);
   assert.equal(n.rmas[0].customFields.flag, "kept");
 });
+
+test("mail text normalization collapses empty lines without losing paragraphs or zero", async () => {
+  const { normalizeMessage } =
+    await import("../frontend/src/ticket-content.js");
+  assert.equal(
+    normalizeMessage("  Hello\r\n\r\n \t\r\nWorld\u00a0 \n  Last line  "),
+    "Hello\n\nWorld\nLast line",
+  );
+  assert.equal(normalizeMessage(0), "0");
+});

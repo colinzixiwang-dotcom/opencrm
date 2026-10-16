@@ -99,3 +99,12 @@ Verified the shared list controls, ticket deep links, populated-only details and
 Live LAN checks confirmed #717 uses `/entry/ticket/show/20713607`, ticket-detail links survive navigation and browser Back restores the list. Screenshots inspected during iteration include the original queue, CRM reference, English/Chinese queue and detail, actual #717, and 390px mobile queue/detail. The mobile queue uses cards, and document width stays within the viewport.
 
 Screenshots are local ignored artifacts in `test-results/`: `tickets-before.png`, `ticket-queue-live-zh.png`, `ticket-detail-live-preview.png`, `ticket-717-live-zh.png`, `ticket-detail-en.png`, `ticket-detail-zh.png`, `ticket-detail-mobile.png`, `ticket-queue-mobile.png`. Live screenshots contain tenant/customer information; synthetic screenshots use the isolated mock fixture.
+
+## Ticket UI follow-up — 2026-10-16
+
+- Shared pagination and exact admin/local/reply page counts; no global source count disclosed to scoped users.
+- HTML mail fixture includes nested divs, empty breaks, paragraphs, nonbreaking spaces, centered source markup and table cells. Browser checks confirm normalized paragraph content and left alignment; unit coverage checks text normalization.
+- Browser checks cover two reply pages, first/last disabled controls, paused-request skeleton display, same-origin image decoding, image failure fallback, Escape dismissal, PDF preview response, unsafe URL omission and denial of foreign-ticket attachments.
+- Live tenant checks confirmed the ticket list shows 36 pages and #717 image preview decodes through the authorized CRM endpoint. Inspected desktop/mobile previews, pagination, conversation and loading screenshots. Mobile document width remains within 390px.
+- Checks: `npm run check`, `npm test`, `npm run vet`, `npm run test:udesk`, `npm run test:e2e`, `npm run test:rma`, `npm run test:i18n`.
+- Screenshots: `test-results/ticket-pagination-refined.png`, `ticket-loading-refined.png`, `ticket-attachment-live.png`, `ticket-attachment-preview.png`, `ticket-pdf-preview.png`, `ticket-attachment-mobile-refined.png`, `ticket-conversation-mobile-refined.png` and refreshed bilingual detail screenshots. Live screenshots contain tenant/customer data.

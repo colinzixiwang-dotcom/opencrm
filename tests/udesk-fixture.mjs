@@ -90,6 +90,43 @@ export async function startUdeskMock() {
   };
   const server = createServer((req, res) => {
     const url = new URL(req.url, "http://mock");
+    if (url.pathname === "/preview/example.svg") {
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.end(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><rect width="800" height="500" fill="#edf3e8"/><rect x="80" y="80" width="640" height="340" rx="24" fill="#285d4b"/><text x="400" y="240" text-anchor="middle" fill="#e9f5c6" font-size="38" font-family="sans-serif">Attachment preview</text><text x="400" y="300" text-anchor="middle" fill="white" font-size="22" font-family="sans-serif">Udesk fixture image</text></svg>',
+      );
+      return;
+    }
+    if (url.pathname === "/preview/manual.pdf") {
+      const stream = "BT /F1 24 Tf 40 200 Td (Attachment PDF preview) Tj ET\n";
+      const objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 500 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}endstream`,
+      ];
+      let pdf = "%PDF-1.4\n",
+        offsets = [0];
+      objects.forEach((object, i) => {
+        offsets.push(Buffer.byteLength(pdf));
+        pdf += `${i + 1} 0 obj\n${object}\nendobj\n`;
+      });
+      const xref = Buffer.byteLength(pdf);
+      pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+      offsets.slice(1).forEach((offset) => {
+        pdf += String(offset).padStart(10, "0") + " 00000 n \n";
+      });
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.end(pdf);
+      return;
+    }
+    if (url.pathname.startsWith("/preview/")) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     const p = url.pathname.replace("/open_api_v1/", "");
     const q = url.searchParams;
     state.requests.push(p);
@@ -190,8 +227,9 @@ export async function startUdeskMock() {
       data.replies = [
         {
           id: 1,
-          content: "Internal case context",
-          content_format: "text",
+          content:
+            '<div style="text-align:center"><p>Internal case context</p>\n    <div><br><br><br><br></div><p>  Second paragraph.&nbsp;  </p><table><tr><td>Aligned</td><td>content</td></tr></table></div>',
+          content_format: "html",
           function_type: "internat",
           author: { nick_name: "Agent One" },
           created_at: "2026-10-16T10:00:00Z",
@@ -204,9 +242,41 @@ export async function startUdeskMock() {
       total_pages: 1,
       total_count: data.contents?.length || 0,
     };
+    if (/tickets\/\d+\/replies/.test(p)) {
+      data.meta = {
+        current_page: Number(q.get("page") || 1),
+        total_pages: 2,
+        total_count: 21,
+      };
+      if (q.get("page") === "2")
+        data.replies = [
+          {
+            id: 2,
+            content: "Second conversation page",
+            content_format: "text",
+            author: { nick_name: "Agent One" },
+            created_at: "2026-10-16T11:00:00Z",
+          },
+        ];
+    }
     res.end(JSON.stringify(data));
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const previewBase = `http://127.0.0.1:${server.address().port}`;
+  own.attachments.push(
+    {
+      url: previewBase + "/preview/example.svg",
+      file_name: "device-photo.svg",
+      content_type: "image/svg+xml",
+    },
+    { url: previewBase + "/preview/missing.jpg", file_name: "missing.jpg" },
+    {
+      url: previewBase + "/preview/manual.pdf",
+      file_name: "manual.pdf",
+      content_type: "application/pdf",
+    },
+    { url: "javascript:alert(1)", file_name: "unsafe.html" },
+  );
   return {
     ...state,
     state,

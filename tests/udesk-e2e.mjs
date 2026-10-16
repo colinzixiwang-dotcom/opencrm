@@ -56,6 +56,29 @@ try {
     path: "test-results/ticket-queue-en.png",
     fullPage: true,
   });
+  assert.ok(
+    (
+      await page
+        .getByRole("navigation", { name: "Ticket pagination", exact: true })
+        .innerText()
+    ).includes("1 pages total"),
+  );
+  let releaseList;
+  const listGate = new Promise((resolve) => {
+    releaseList = resolve;
+  });
+  await page.route("**/api/tickets?*", async (route) => {
+    await listGate;
+    await route.continue();
+  });
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await page
+    .getByRole("status", { name: "Fetching tickets from Udesk…", exact: true })
+    .waitFor();
+  await page.screenshot({ path: "test-results/ticket-loading-refined.png" });
+  releaseList();
+  await page.locator("tbody tr").first().waitFor();
+  await page.unroute("**/api/tickets?*");
   const before = mock.state.requests.filter((p) => p === "tickets").length;
   const refreshed = page.waitForResponse(
     (r) => new URL(r.url()).pathname === "/api/tickets",
@@ -107,6 +130,92 @@ try {
   );
   await page.getByText("Hardware fault", { exact: true }).waitFor();
   await page.getByText("Internal case context", { exact: true }).waitFor();
+  const body = await page.locator(".conversation-body").first().innerText();
+  assert.ok(!/\n{3,}/.test(body));
+  assert.ok(body.includes("Second paragraph."));
+  assert.equal(
+    await page
+      .locator(".conversation-body")
+      .first()
+      .evaluate((el) => getComputedStyle(el).textAlign),
+    "left",
+  );
+  const pagination = page.getByRole("navigation", {
+    name: "Conversation pagination",
+    exact: true,
+  });
+  assert.ok((await pagination.innerText()).includes("2 pages total"));
+  await pagination.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByText("Second conversation page", { exact: true }).waitFor();
+  assert.equal(
+    await pagination
+      .getByRole("button", { name: "Next", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await pagination
+    .getByRole("button", { name: "Previous", exact: true })
+    .click();
+  await page.getByText("Internal case context", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Preview device-photo.svg", exact: true })
+    .click();
+  const preview = page.getByRole("dialog", {
+    name: "Attachment preview",
+    exact: true,
+  });
+  await preview.waitFor();
+  await preview.locator("img").evaluate((img) => img.decode());
+  assert.ok(
+    (await preview.locator("img").getAttribute("src")).startsWith(
+      "/api/tickets/101/attachment?ref=",
+    ),
+  );
+  await page.screenshot({ path: "test-results/ticket-attachment-preview.png" });
+  await page.keyboard.press("Escape");
+  await preview.waitFor({ state: "detached" });
+  await page
+    .getByRole("button", { name: "Preview missing.jpg", exact: true })
+    .click();
+  await page
+    .getByText(
+      "Preview unavailable. Open the original attachment to view it.",
+      { exact: true },
+    )
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Close preview", exact: true })
+    .click();
+  const pdfResponse = page.waitForResponse(
+    (r) => r.url().includes("/attachment?") && r.url().includes("manual.pdf"),
+  );
+  await page
+    .getByRole("button", { name: "Preview manual.pdf", exact: true })
+    .click();
+  assert.equal((await pdfResponse).status(), 200);
+  await preview.locator('canvas[data-rendered="true"]').waitFor();
+  assert.ok(
+    await preview.locator("canvas").evaluate((canvas) => {
+      const bytes = canvas
+        .getContext("2d")
+        .getImageData(0, 0, canvas.width, canvas.height).data;
+      let dark = 0;
+      for (let i = 0; i < bytes.length; i += 4) {
+        if (bytes[i] < 100 && bytes[i + 3] > 0) dark++;
+      }
+      return dark > 100;
+    }),
+  );
+  await page.screenshot({ path: "test-results/ticket-pdf-preview.png" });
+  await page
+    .getByRole("button", { name: "Close preview", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Preview unsafe.html", exact: true })
+      .count(),
+    0,
+  );
   assert.equal(
     await page.evaluate(() => window.sourceScriptExecuted),
     undefined,
@@ -217,6 +326,7 @@ try {
   for (const path of [
     "/api/tickets/102",
     "/api/tickets/102/replies",
+    "/api/tickets/102/attachment?ref=https%3A%2F%2Fexample.com%2Fphoto.jpg",
     "/api/tickets/lookup?number=%23102",
   ])
     assert.equal((await ap.request.get(app.base + path)).status(), 404);

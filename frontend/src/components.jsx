@@ -413,22 +413,84 @@ export function FilterControl({
 export function SortControl(props) {
   return <FilterControl {...props} label={props.label || "Sort records"} />;
 }
-export function LoadingState({ label = "Loading…", variant = "list", rows = 5 }) {
-  return <div className={"loading-state loading-"+variant} role="status" aria-label={tr(label)} aria-live="polite">
-    <div className="loading-caption"><span className="loading-spinner" aria-hidden="true" /><span>{tr(label)}</span></div>
-    <div className="loading-skeleton" aria-hidden="true">{Array.from({length:rows},(_,i)=><div className="skeleton-row" key={i}><span className="skeleton-avatar" /><div><span className="skeleton-line" /><span className="skeleton-line skeleton-short" /></div><span className="skeleton-pill" /></div>)}</div>
-  </div>;
-}
-export function Pagination({ page, totalPages, onPrevious, onNext, hasNext, disabled = false, context, label = "Pagination" }) {
-  const total = totalPages == null ? null : Math.max(1, totalPages);
-  return <nav className="pagination" aria-label={tr(label)}>
-    {context && <span className="pagination-context">{context}</span>}
-    <div className="pagination-controls">
-      <button type="button" className="pagination-button" aria-label={tr("Previous")} disabled={disabled || page <= 1} onClick={onPrevious}><span aria-hidden="true">‹</span>{tr("Previous")}</button>
-      <span className="pagination-position" aria-live="polite"><strong>{tr("Page {page}", {page})}</strong><span className="pagination-divider">/</span><span>{total == null ? tr("Total pages pending") : tr("{total} pages total", {total})}</span></span>
-      <button type="button" className="pagination-button" aria-label={tr("Next")} disabled={disabled || !(hasNext ?? (total != null && page < total))} onClick={onNext}>{tr("Next")}<span aria-hidden="true">›</span></button>
+export function LoadingState({
+  label = "Loading…",
+  variant = "list",
+  rows = 5,
+}) {
+  return (
+    <div
+      className={"loading-state loading-" + variant}
+      role="status"
+      aria-label={tr(label)}
+      aria-live="polite"
+    >
+      <div className="loading-caption">
+        <span className="loading-spinner" aria-hidden="true" />
+        <span>{tr(label)}</span>
+      </div>
+      <div className="loading-skeleton" aria-hidden="true">
+        {Array.from({ length: rows }, (_, i) => (
+          <div className="skeleton-row" key={i}>
+            <span className="skeleton-avatar" />
+            <div>
+              <span className="skeleton-line" />
+              <span className="skeleton-line skeleton-short" />
+            </div>
+            <span className="skeleton-pill" />
+          </div>
+        ))}
+      </div>
     </div>
-  </nav>;
+  );
+}
+export function Pagination({
+  page,
+  totalPages,
+  onPrevious,
+  onNext,
+  hasNext,
+  disabled = false,
+  context,
+  label = "Pagination",
+}) {
+  const total = totalPages == null ? null : Math.max(1, totalPages);
+  return (
+    <nav className="pagination" aria-label={tr(label)}>
+      {context && <span className="pagination-context">{context}</span>}
+      <div className="pagination-controls">
+        <button
+          type="button"
+          className="pagination-button"
+          aria-label={tr("Previous")}
+          disabled={disabled || page <= 1}
+          onClick={onPrevious}
+        >
+          <span aria-hidden="true">‹</span>
+          {tr("Previous")}
+        </button>
+        <span className="pagination-position" aria-live="polite">
+          <strong>{tr("Page {page}", { page })}</strong>
+          <span className="pagination-divider">/</span>
+          <span>
+            {total == null
+              ? tr("Total pages pending")
+              : tr("{total} pages total", { total })}
+          </span>
+        </span>
+        <button
+          type="button"
+          className="pagination-button"
+          aria-label={tr("Next")}
+          disabled={disabled || !(hasNext ?? (total != null && page < total))}
+          onClick={onNext}
+        >
+          {tr("Next")}
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+    </nav>
+  );
 }
 export function Table({
   columns,
@@ -473,7 +535,10 @@ export function Table({
   const pageSize = limit || 20;
   const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const visible = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const visible = list.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   return (
     <>
       {search && (
@@ -484,7 +549,10 @@ export function Table({
                 <FilterControl
                   id="status-filter"
                   value={status}
-                  onChange={v => {setStatus(v);setPage(1);}}
+                  onChange={(v) => {
+                    setStatus(v);
+                    setPage(1);
+                  }}
                   options={[
                     { value: "all", label: "All statuses" },
                     ...statuses.map((s) => ({ value: s, label: title(s) })),
@@ -581,7 +649,13 @@ export function Table({
           </tbody>
         </table>
       </div>
-      <Pagination page={currentPage} totalPages={totalPages} onPrevious={()=>setPage(currentPage-1)} onNext={()=>setPage(currentPage+1)} context={tr("{count} records", {count:list.length})} />
+      <Pagination
+        page={currentPage}
+        totalPages={totalPages}
+        onPrevious={() => setPage(currentPage - 1)}
+        onNext={() => setPage(currentPage + 1)}
+        context={tr("{count} records", { count: list.length })}
+      />
     </>
   );
 }
