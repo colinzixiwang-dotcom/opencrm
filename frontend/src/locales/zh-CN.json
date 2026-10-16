@@ -1121,5 +1121,8 @@
   "Preview {name}": "预览 {name}",
   "Preview attachment": "点击预览",
   "File": "文件",
-  "Loading…": "正在加载…"
+  "Loading…": "正在加载…",
+  "Loading attachment…": "正在加载附件…",
+  "PDF pagination": "PDF 分页",
+  "PDF page {page}": "PDF 第 {page} 页"
 }

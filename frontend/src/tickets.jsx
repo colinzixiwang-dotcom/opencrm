@@ -14,7 +14,7 @@ import {
   Pagination,
   LoadingState,
 } from "./components";
-import { AttachmentList } from "./attachments";
+import { AttachmentList, AttachmentContext } from "./attachments";
 import { messageText } from "./ticket-content";
 import { RMAForm } from "./support";
 
@@ -24,7 +24,7 @@ const text = (value) =>
     : typeof value === "object"
       ? JSON.stringify(value)
       : String(value);
-const plain = value => messageText(value, true);
+const plain = (value) => messageText(value, true);
 const displayDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -58,7 +58,14 @@ function Value({ value, field }) {
       )
       .join(" / ");
   }
-  if (Array.isArray(value) && value.some(v => v && typeof v === "object" && (v.url || v.file_url || v.download_url))) return <AttachmentList value={value} />;
+  if (
+    Array.isArray(value) &&
+    value.some(
+      (v) =>
+        v && typeof v === "object" && (v.url || v.file_url || v.download_url),
+    )
+  )
+    return <AttachmentList value={value} />;
   return <span>{text(value)}</span>;
 }
 const labels = {
@@ -147,7 +154,14 @@ const friendly = (key) =>
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/^./, (c) => c.toUpperCase());
 function Fields({ ticket, metadata }) {
-  if (!metadata) return <LoadingState label="Loading Udesk field definitions…" variant="compact" rows={3} />;
+  if (!metadata)
+    return (
+      <LoadingState
+        label="Loading Udesk field definitions…"
+        variant="compact"
+        rows={3}
+      />
+    );
   const fields = metadata?.fields?.fields || [];
   const template = (metadata?.templates?.templates || []).find(
     (t) => String(t.id) === String(ticket.template_id),
@@ -341,127 +355,187 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     }
   };
   return (
-    <section className="ticket-detail panel" aria-label={tr("Ticket details")}>
-      <div className="ticket-toolbar">
-        <Button onClick={onClose}>Back to tickets</Button>
-        <Button disabled={busy} onClick={() => setRefresh((x) => x + 1)}>
-          Refresh ticket
-        </Button>
-        {data && (
-          <a
-            className="btn secondary"
-            target="_blank"
-            rel="noreferrer"
-            href={data.udeskUrl}
-          >
-            {tr("Open in Udesk")}
-          </a>
-        )}
-        {data && can("rma.create") && (
-          <Button kind="primary" disabled={busy || !metadata} onClick={create}>
-            Create RMA draft
+    <AttachmentContext.Provider value={{ ticketId: id, replyPage }}>
+      <section
+        className="ticket-detail panel"
+        aria-label={tr("Ticket details")}
+      >
+        <div className="ticket-toolbar">
+          <Button onClick={onClose}>Back to tickets</Button>
+          <Button disabled={busy} onClick={() => setRefresh((x) => x + 1)}>
+            Refresh ticket
           </Button>
+          {data && (
+            <a
+              className="btn secondary"
+              target="_blank"
+              rel="noreferrer"
+              href={data.udeskUrl}
+            >
+              {tr("Open in Udesk")}
+            </a>
+          )}
+          {data && can("rma.create") && (
+            <Button
+              kind="primary"
+              disabled={busy || !metadata}
+              onClick={create}
+            >
+              Create RMA draft
+            </Button>
+          )}
+        </div>
+        {error && (
+          <p className="form-error" role="alert">
+            {tr(error)}
+          </p>
         )}
-      </div>
-      {error && (
-        <p className="form-error" role="alert">
-          {tr(error)}
-        </p>
-      )}
-      {!data ? (
-        busy ? <LoadingState label="Loading Udesk ticket…" variant="detail" rows={4} /> : <p className="muted">{tr("Ticket could not be loaded.")}</p>
-      ) : (
-        <>
-          <header className="ticket-detail-header">
-            <div className="ticket-kicker">
-              <span>
-                {tr("Ticket")} {data.source.field_num}
-              </span>
-              <span className="ticket-status">{data.source.status}</span>
-              <span>{data.source.platform}</span>
-            </div>
-            <h2>{data.source.subject}</h2>
-            <div className="ticket-detail-meta">
-              {[
-                data.source.user_name,
-                data.source.assignee_name,
-                data.source.updated_at && displayDate(data.source.updated_at),
-              ]
-                .filter(hasValue)
-                .map((v, i) => (
-                  <span key={i}>{v}</span>
-                ))}
-            </div>
-          </header>
-          <div className="ticket-detail-layout">
-            <div className="ticket-main-column">
-              {hasValue(plain(data.source.content)) && (
-                <section className="ticket-story">
-                  <PanelHeading title="Content" />
-                  <div className="ticket-content">
-                    {plain(data.source.content)}
-                  </div>
-                </section>
-              )}
-              {data.rmaIds?.length > 0 && (
-                <p className="ticket-rma-links">
-                  {tr("Linked RMAs")}: {data.rmaIds.join(", ")}
-                </p>
-              )}
-              <section className="ticket-thread">
-                <PanelHeading
-                  title="Conversation"
-                  subtitle="Read only. Reply and edit in Udesk."
-                />
-                {replies ? (
-                  <>
-                    <div className="ticket-conversation">
-                      {!replies.replies?.length && (
-                        <p className="ticket-empty-conversation">
-                          {tr("No conversation yet.")}
-                        </p>
-                      )}
-                      {(replies.replies || []).map((r) => (
-                        <article key={r.id}>
-                          <header className="conversation-header">
-                            <div className="conversation-author"><span className="conversation-avatar" aria-hidden="true">{(r.author?.nick_name || r.author?.user_type || "U").slice(0,1).toUpperCase()}</span><strong>{r.author?.nick_name || r.author?.user_type}</strong></div>
-                            <span>
-                              {displayDate(r.created_at)} ·{" "}
-                              {tr(
-                                ["internat", "internal"].includes(
-                                  r.function_type,
-                                )
-                                  ? "Internal note"
-                                  : "External reply",
-                              )}
-                            </span>
-                          </header>
-                          <div className="conversation-body">{messageText(r.content, r.content_format === "html").split(/\n\n+/).filter(Boolean).map((paragraph,i)=><p key={i}>{paragraph}</p>)}</div>
-                          {hasValue(r.attachments) && (
-                            <Value value={r.attachments} />
-                          )}
-                        </article>
-                      ))}
+        {!data ? (
+          busy ? (
+            <LoadingState
+              label="Loading Udesk ticket…"
+              variant="detail"
+              rows={4}
+            />
+          ) : (
+            <p className="muted">{tr("Ticket could not be loaded.")}</p>
+          )
+        ) : (
+          <>
+            <header className="ticket-detail-header">
+              <div className="ticket-kicker">
+                <span>
+                  {tr("Ticket")} {data.source.field_num}
+                </span>
+                <span className="ticket-status">{data.source.status}</span>
+                <span>{data.source.platform}</span>
+              </div>
+              <h2>{data.source.subject}</h2>
+              <div className="ticket-detail-meta">
+                {[
+                  data.source.user_name,
+                  data.source.assignee_name,
+                  data.source.updated_at && displayDate(data.source.updated_at),
+                ]
+                  .filter(hasValue)
+                  .map((v, i) => (
+                    <span key={i}>{v}</span>
+                  ))}
+              </div>
+            </header>
+            <div className="ticket-detail-layout">
+              <div className="ticket-main-column">
+                {hasValue(plain(data.source.content)) && (
+                  <section className="ticket-story">
+                    <PanelHeading title="Content" />
+                    <div className="ticket-content">
+                      {plain(data.source.content)}
                     </div>
-                    <Pagination label="Conversation pagination" page={replyPage} totalPages={replies.meta?.total_pages || 1} onPrevious={()=>setReplyPage(n=>n-1)} onNext={()=>setReplyPage(n=>n+1)} />
-                  </>
-                ) : (
-                  replyError ? <div className="conversation-error" role="alert"><p>{tr(replyError)}</p><Button onClick={()=>setRefresh(v=>v+1)}>Refresh ticket</Button></div> : <LoadingState label="Loading conversation…" variant="conversation" rows={2} />
+                  </section>
                 )}
-              </section>
+                {data.rmaIds?.length > 0 && (
+                  <p className="ticket-rma-links">
+                    {tr("Linked RMAs")}: {data.rmaIds.join(", ")}
+                  </p>
+                )}
+                <section className="ticket-thread">
+                  <PanelHeading
+                    title="Conversation"
+                    subtitle="Read only. Reply and edit in Udesk."
+                  />
+                  {replies ? (
+                    <>
+                      <div className="ticket-conversation">
+                        {!replies.replies?.length && (
+                          <p className="ticket-empty-conversation">
+                            {tr("No conversation yet.")}
+                          </p>
+                        )}
+                        {(replies.replies || []).map((r) => (
+                          <article key={r.id}>
+                            <header className="conversation-header">
+                              <div className="conversation-author">
+                                <span
+                                  className="conversation-avatar"
+                                  aria-hidden="true"
+                                >
+                                  {(
+                                    r.author?.nick_name ||
+                                    r.author?.user_type ||
+                                    "U"
+                                  )
+                                    .slice(0, 1)
+                                    .toUpperCase()}
+                                </span>
+                                <strong>
+                                  {r.author?.nick_name || r.author?.user_type}
+                                </strong>
+                              </div>
+                              <span>
+                                {displayDate(r.created_at)} ·{" "}
+                                {tr(
+                                  ["internat", "internal"].includes(
+                                    r.function_type,
+                                  )
+                                    ? "Internal note"
+                                    : "External reply",
+                                )}
+                              </span>
+                            </header>
+                            <div className="conversation-body">
+                              {messageText(
+                                r.content,
+                                r.content_format === "html",
+                              )
+                                .split(/\n\n+/)
+                                .filter(Boolean)
+                                .map((paragraph, i) => (
+                                  <p key={i}>{paragraph}</p>
+                                ))}
+                            </div>
+                            {hasValue(r.attachments) && (
+                              <Value value={r.attachments} />
+                            )}
+                          </article>
+                        ))}
+                      </div>
+                      <Pagination
+                        label="Conversation pagination"
+                        page={replyPage}
+                        totalPages={replies.meta?.total_pages || 1}
+                        onPrevious={() => setReplyPage((n) => n - 1)}
+                        onNext={() => setReplyPage((n) => n + 1)}
+                      />
+                    </>
+                  ) : replyError ? (
+                    <div className="conversation-error" role="alert">
+                      <p>{tr(replyError)}</p>
+                      <Button onClick={() => setRefresh((v) => v + 1)}>
+                        Refresh ticket
+                      </Button>
+                    </div>
+                  ) : (
+                    <LoadingState
+                      label="Loading conversation…"
+                      variant="conversation"
+                      rows={2}
+                    />
+                  )}
+                </section>
+              </div>
+              <aside className="ticket-sidebar">
+                <Fields ticket={data.source} metadata={metadata} />
+                <p className="ticket-sync-stamp">
+                  {tr("Fetched from Udesk")}
+                  <br />
+                  {new Date(data.fetchedAt).toLocaleString()}
+                </p>
+              </aside>
             </div>
-            <aside className="ticket-sidebar">
-              <Fields ticket={data.source} metadata={metadata} />
-              <p className="ticket-sync-stamp">
-                {tr("Fetched from Udesk")}
-                <br />
-                {new Date(data.fetchedAt).toLocaleString()}
-              </p>
-            </aside>
-          </div>
-        </>
-      )}
-    </section>
+          </>
+        )}
+      </section>
+    </AttachmentContext.Provider>
   );
 }
 export function TicketCenter() {
@@ -727,7 +801,9 @@ export function TicketCenter() {
               )}
             </p>
           </details>
-          {busy && <LoadingState label="Fetching tickets from Udesk…" rows={5} />}
+          {busy && (
+            <LoadingState label="Fetching tickets from Udesk…" rows={5} />
+          )}
           {!busy && data && (
             <>
               <div className="table-scroll ticket-table">
@@ -816,10 +892,29 @@ export function TicketCenter() {
                   )}
                 </p>
               )}
-              <Pagination label="Ticket pagination" page={history.length+1} totalPages={data.totalPages ?? (!data.nextCursor ? history.length+1 : null)} hasNext={!!data.nextCursor} disabled={busy}
-                context={<>{tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}</>}
-                onPrevious={()=>{setCursor(history.at(-1));setHistory(history.slice(0,-1));}}
-                onNext={()=>{setHistory([...history,cursor]);setCursor(data.nextCursor);}} />
+              <Pagination
+                label="Ticket pagination"
+                page={history.length + 1}
+                totalPages={
+                  data.totalPages ??
+                  (!data.nextCursor ? history.length + 1 : null)
+                }
+                hasNext={!!data.nextCursor}
+                disabled={busy}
+                context={
+                  <>
+                    {tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}
+                  </>
+                }
+                onPrevious={() => {
+                  setCursor(history.at(-1));
+                  setHistory(history.slice(0, -1));
+                }}
+                onNext={() => {
+                  setHistory([...history, cursor]);
+                  setCursor(data.nextCursor);
+                }}
+              />
             </>
           )}
         </Panel>

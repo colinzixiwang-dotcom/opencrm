@@ -316,3 +316,25 @@ func TestTotalPagesRespectScope(t *testing.T) {
 		t.Fatal("source global count leaked to scoped actor")
 	}
 }
+
+func TestAttachmentReferenceRequiresLiveTicketAccess(t *testing.T) {
+	db, service, source, admin := fixture(t)
+	source.tickets[0]["attachments"] = []any{M{"url": "https://bucket.aliyuncs.com/photo.jpg?Signature=first"}}
+	ref := "https://bucket.aliyuncs.com/photo.jpg"
+	raw, err := service.AttachmentURL(context.Background(), admin, "1", ref, 0)
+	if err != nil || raw != "https://bucket.aliyuncs.com/photo.jpg?Signature=first" {
+		t.Fatalf("attachment resolution: %v %v", raw, err)
+	}
+	source.tickets[0]["attachments"] = []any{M{"url": "https://bucket.aliyuncs.com/photo.jpg?Signature=renewed"}}
+	raw, err = service.AttachmentURL(context.Background(), admin, "1", ref, 0)
+	if err != nil || raw != "https://bucket.aliyuncs.com/photo.jpg?Signature=renewed" {
+		t.Fatal("did not renew signed attachment URL")
+	}
+	_, err = service.AttachmentURL(context.Background(), admin, "1", "http://127.0.0.1/secret", 0)
+	checkError(t, err, 404)
+	_, err = service.AttachmentURL(context.Background(), actor(t, db, "two@example.com"), "1", ref, 0)
+	checkError(t, err, 404)
+	source.tickets[0]["assignee_id"] = 22
+	_, err = service.AttachmentURL(context.Background(), actor(t, db, "one@example.com"), "1", ref, 0)
+	checkError(t, err, 404)
+}

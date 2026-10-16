@@ -52,6 +52,7 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 		v, e := s.Tickets.Detail(c.Request.Context(), s.actor(c), c.Param("id"), false)
 		s.ticketResponse(c, v, e)
 	})
+	t.GET("/:id/attachment", s.ticketAttachment)
 	t.GET("/:id/replies", func(c *gin.Context) {
 		page := 1
 		if q := c.Query("page"); q != "" {
