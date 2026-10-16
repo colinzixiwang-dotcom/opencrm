@@ -356,16 +356,42 @@ func (s *Service) Replies(ctx context.Context, actor M, key string, page int) (M
 	if _, _, e := s.detail(ctx, actor, key, false); e != nil {
 		return nil, e
 	}
-	v, e := s.API.Get(ctx, "tickets/"+url.PathEscape(key)+"/replies", url.Values{"page": {strconv.Itoa(page)}, "per_page": {"20"}})
+	path := "tickets/" + url.PathEscape(key) + "/replies"
+	v, e := s.API.Get(ctx, path, url.Values{"page": {"1"}, "per_page": {"20"}})
 	if e != nil {
 		return nil, e
 	}
+	// Udesk returns newest replies first. Traverse source pages from the end,
+	// then reverse the selected page so the entire conversation reads oldest first.
+	pages := int(domain.N(obj(v["meta"])["total_pages"]))
+	if page > max(1, pages) {
+		return nil, fail("Invalid replies page.", 400)
+	}
+	sourcePage := max(1, pages) - page + 1
+	if sourcePage != 1 {
+		v, e = s.API.Get(ctx, path, url.Values{"page": {strconv.Itoa(sourcePage)}, "per_page": {"20"}})
+		if e != nil {
+			return nil, e
+		}
+	}
 	at := domain.Now()
-	if e = s.DB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "ticket_id"}, {Name: "page"}}, DoUpdates: clause.AssignmentColumns([]string{"fetched_at", "raw"})}).Create(&ReplyPage{Tenant: s.Tenant, TicketID: key, Page: page, FetchedAt: at, Raw: enc(v)}).Error; e != nil {
+	if e = s.DB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "ticket_id"}, {Name: "page"}}, DoUpdates: clause.AssignmentColumns([]string{"fetched_at", "raw"})}).Create(&ReplyPage{Tenant: s.Tenant, TicketID: key, Page: sourcePage, FetchedAt: at, Raw: enc(v)}).Error; e != nil {
 		return nil, e
 	}
+	replies := rows(v["replies"])
+	for left, right := 0, len(replies)-1; left < right; left, right = left+1, right-1 {
+		replies[left], replies[right] = replies[right], replies[left]
+	}
+	ordered := make([]any, len(replies))
+	for i, reply := range replies {
+		ordered[i] = reply
+	}
+	v["replies"] = ordered
+	meta := obj(v["meta"])
+	meta["current_page"] = page
+	v["meta"] = meta
 	if !admin(actor) {
-		for _, r := range rows(v["replies"]) {
+		for _, r := range replies {
 			delete(r, "cc")
 			a := obj(r["author"])
 			delete(a, "email")

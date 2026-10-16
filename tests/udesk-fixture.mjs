@@ -248,7 +248,7 @@ export async function startUdeskMock() {
         total_pages: 2,
         total_count: 21,
       };
-      if (q.get("page") === "2")
+      if (q.get("page") !== "2")
         data.replies = [
           {
             id: 2,
@@ -260,7 +260,7 @@ export async function startUdeskMock() {
         ];
     }
     if (/tickets\/\d+\/replies/.test(p) && state.replyOverride) {
-      data.replies = state.replyOverride;
+      data.replies = [...state.replyOverride].reverse();
       data.meta = {
         current_page: 1,
         total_pages: 1,

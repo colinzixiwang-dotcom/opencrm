@@ -10,16 +10,18 @@ import (
 	"harbor/internal/store"
 	"harbor/internal/tickets"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 )
 
 type M = domain.M
 type fake struct {
-	data    map[string]M
-	tickets []M
-	calls   []string
-	broken  bool
+	data       map[string]M
+	tickets    []M
+	calls      []string
+	broken     bool
+	replyPages map[int]M
 }
 
 func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
@@ -37,6 +39,13 @@ func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
 	}
 	if path == "tickets" || path == "tickets/tickets_in_filter" {
 		return domain.Clone(M{"contents": f.tickets, "meta": M{"total_pages": 1, "total_count": len(f.tickets)}}), nil
+	}
+	if strings.HasSuffix(path, "/replies") && f.replyPages != nil {
+		page, _ := strconv.Atoi(q.Get("page"))
+		if v, ok := f.replyPages[page]; ok {
+			return domain.Clone(v), nil
+		}
+		return nil, fmt.Errorf("unexpected source reply page %d", page)
 	}
 	if v, ok := f.data[path]; ok {
 		return domain.Clone(v), nil
@@ -337,4 +346,31 @@ func TestAttachmentReferenceRequiresLiveTicketAccess(t *testing.T) {
 	source.tickets[0]["assignee_id"] = 22
 	_, err = service.AttachmentURL(context.Background(), actor(t, db, "one@example.com"), "1", ref, 0)
 	checkError(t, err, 404)
+}
+
+func TestRepliesReadChronologicallyAcrossSourcePages(t *testing.T) {
+	_, s, f, a := fixture(t)
+	f.replyPages = map[int]M{
+		1: {"replies": []M{{"id": 4, "created_at": "2026-10-04T10:00:00Z"}, {"id": 3, "created_at": "2026-10-03T10:00:00Z"}}, "meta": M{"current_page": 1, "total_pages": 2, "total_count": 4}},
+		2: {"replies": []M{{"id": 2, "created_at": "2026-10-02T10:00:00Z", "attachments": []M{{"url": "https://example.com/old.png"}}}, {"id": 1, "created_at": "2026-10-01T10:00:00Z"}}, "meta": M{"current_page": 2, "total_pages": 2, "total_count": 4}},
+	}
+	for page := 1; page <= 2; page++ {
+		got, err := s.Replies(context.Background(), a, "1", page)
+		if err != nil {
+			t.Fatal(err)
+		}
+		list := domain.Rows(got, "replies")
+		if len(list) != 2 || domain.N(list[0]["id"]) != int64(page*2-1) || domain.N(list[1]["id"]) != int64(page*2) {
+			t.Fatalf("page %d: %v", page, got)
+		}
+		if domain.N(domain.Obj(got["meta"])["current_page"]) != int64(page) {
+			t.Fatal("source page leaked into display pagination", got)
+		}
+	}
+	raw, err := s.AttachmentURL(context.Background(), a, "1", "https://example.com/old.png", 1)
+	if err != nil || raw != "https://example.com/old.png" {
+		t.Fatal("oldest page attachment lost", raw, err)
+	}
+	_, err = s.Replies(context.Background(), a, "1", 3)
+	checkError(t, err, 400)
 }
