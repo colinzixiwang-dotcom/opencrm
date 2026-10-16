@@ -1144,5 +1144,10 @@
   "Primary Category": "一级分类",
   "Secondary Issue": "二级问题",
   "Tertiary Symptoms / Keywords": "症状 / 关键词",
-  "Morpho Submission ID": "Morpho 提交编号"
+  "Morpho Submission ID": "Morpho 提交编号",
+  "Customer description": "客户描述",
+  "Contact details supplied": "客户附带的联系信息",
+  "Submitted address": "提交地址",
+  "Submitted phone": "提交电话",
+  "Submitted description": "提交描述"
 }
