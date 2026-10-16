@@ -8,6 +8,12 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 5173,
-    proxy: { "/api": "http://127.0.0.1:4317" },
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:4317",
+        // Keep the browser's Host aligned with Origin for backend write checks.
+        changeOrigin: false,
+      },
+    },
   },
 });
