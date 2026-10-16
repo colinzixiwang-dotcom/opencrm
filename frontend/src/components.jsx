@@ -18,12 +18,15 @@ export const nav = [
   ["warehouse", "Warehouse"],
   ["logistics", "Logistics"],
   ["advertising", "Advertising"],
-  ["service", "Service"],
+  ["service", "Ticket center"],
   ["finance", "Finance"],
   ["statistics", "Statistics"],
   ["tools", "Tools"],
   ["settings", "Settings"],
 ];
+export const disabledModules = new Set([
+  "fba", "advertising", "finance", "statistics", "tools", "sales", "purchase",
+]);
 export const info = {
   rma: [
     "Return merchandise authorizations",
@@ -71,7 +74,7 @@ export const info = {
     "Record campaign performance and keep spending in view.",
   ],
   service: [
-    "Customer service",
+    "Ticket center",
     "A clear queue for questions, issues, and returns.",
   ],
   finance: ["Finance", "Reconcile costs, payments, and operating results."],

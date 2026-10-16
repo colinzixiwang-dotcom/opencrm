@@ -3,7 +3,7 @@ import { tr } from "./i18n";
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Provider, useWorkspace, api, title } from "./context";
-import { nav, Icon, Button } from "./components";
+import { nav, disabledModules, Icon, Button } from "./components";
 import {
   Overview,
   Products,
@@ -236,11 +236,12 @@ function App() {
       .filter((m) => m.menuType === "C" && m.visible === "0")
       .sort((a, b) => a.orderNum - b.orderNum),
     navigation = menus
-      .map((m) => [m.url, m.menuName])
+      .map((m) => [m.url, m.url === "service" ? "Ticket center" : m.menuName])
       .filter(([p]) => Object.hasOwn(views, p)),
     View = Object.hasOwn(views, page) ? views[page] : null,
     allowed = permitted(page);
   const navigate = (p) => {
+    if (disabledModules.has(p)) return;
     setMobile(false);
     setRouteSearch({ page: "", query: "", key: routeSearch.key + 1 });
     go(p);
@@ -308,14 +309,17 @@ function App() {
           {navigation.map(([id, label]) => (
             <a
               key={id}
-              href={"#" + id}
-              className={"nav-item " + (page === id ? "active" : "")}
+              href={disabledModules.has(id) ? undefined : "#" + id}
+              role={disabledModules.has(id) ? "link" : undefined}
+              aria-disabled={disabledModules.has(id) || undefined}
+              title={disabledModules.has(id) ? tr("Temporarily disabled") : undefined}
+              className={"nav-item " + (disabledModules.has(id) ? "disabled" : page === id ? "active" : "")}
               aria-current={page === id ? "page" : undefined}
               onClick={() => navigate(id)}
             >
               <Icon name={id} />
               <span>{tr(label)}</span>
-              {id === "purchase" &&
+              {!disabledModules.has(id) && id === "purchase" &&
                 s.purchases.some((x) => x.status === "pending") && (
                   <span className="nav-count">
                     {s.purchases.filter((x) => x.status === "pending").length}
@@ -403,7 +407,15 @@ function App() {
           </div>
         </header>
         <main id="main-content" className="main-content">
-          {View && allowed ? (
+          {disabledModules.has(page) ? (
+            <section className="panel permission-empty">
+              <h1>{tr("Temporarily disabled")}</h1>
+              <p>{tr("This module is temporarily unavailable.")}</p>
+              <Button onClick={() => navigate("service")}>
+                {tr("Ticket center")}
+              </Button>
+            </section>
+          ) : View && allowed ? (
             <View
               key={page + "-" + routeSearch.key}
               query={routeSearch.page === page ? routeSearch.query : ""}

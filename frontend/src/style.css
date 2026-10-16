@@ -381,6 +381,13 @@ label select {
   background: #234b42;
   color: #edf6e8;
 }
+.nav-item.disabled,
+.nav-item.disabled:hover {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+  color: #a7c0b6;
+}
 .nav-item .icon {
   width: 17px;
   height: 17px;
