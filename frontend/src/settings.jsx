@@ -15,6 +15,7 @@ import {
 } from "./components";
 import { intlLocale } from "./i18n";
 import { WarrantySettings } from "./warranty";
+import { UdeskAccounts } from "./tickets";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
   const { state: s, can, setModal, act } = useWorkspace(),
@@ -30,6 +31,9 @@ export function Settings() {
     ...(can("menu.save") ? [["menus", "Menus & buttons"]] : []),
     ["audit", "Audit trail"],
     ["integrations", "Integrations"],
+    ...(s.currentUser.roles.includes("admin")
+      ? [["udesk", "Udesk accounts & access"]]
+      : []),
   ];
   return (
     <>
@@ -53,6 +57,8 @@ export function Settings() {
       <Tabs value={tab} onChange={setTab} items={tabs} />
       {tab === "warranty" ? (
         <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
+      ) : tab === "udesk" ? (
+        <UdeskAccounts />
       ) : tab === "users" ? (
         <>
           <Panel>

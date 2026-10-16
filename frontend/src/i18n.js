@@ -57,6 +57,11 @@ export function tr(text, params = {}) {
   );
 }
 const patterns = [
+  [/^Udesk returned HTTP (\d+)\.$/, (m) => `Udesk 返回 HTTP ${m[1]}。`],
+  [
+    /^Udesk rejected the request \(code (.+)\)\.$/,
+    (m) => `Udesk 拒绝了请求（错误码 ${m[1]}）。`,
+  ],
   [/^View (.+)$/, (m) => `查看${tr(m[1])}`],
   [/^Sort by (.+)$/, (m) => `按${tr(m[1])}排序`],
   [/^Edit (.+)$/, (m) => `编辑${tr(m[1])}`],
@@ -128,6 +133,8 @@ const statusLabels = {
   admin: "管理员",
   operator: "运营人员",
   analyst: "分析员",
+  support_agent: "售后客服",
+  support_supervisor: "售后主管",
   device: "整机",
   part: "配件",
   general: "通用",

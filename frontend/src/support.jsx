@@ -1,7 +1,7 @@
 import { LanguageSwitcher } from "./language";
 import { tr } from "./i18n";
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useWorkspace, money, title, formatDate, today } from "./context";
+import { useWorkspace, api, money, title, formatDate, today } from "./context";
 import {
   Heading,
   Panel,
@@ -104,6 +104,7 @@ function TextArea({ label, value, onChange, required = false, ...rest }) {
     <label className="full-field">
       {tr(label)}
       <textarea
+        aria-label={tr(label)}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         rows="3"
@@ -449,26 +450,29 @@ function TaskParameters({
     </div>
   );
 }
-function RMAForm({ onClose, initial = {} }) {
+export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
   const { state: s } = useWorkspace(),
     cfg = s.supportConfig;
   const [v, setV] = useState({
-      ticketNumber: "",
+      ticketNumber: initial.ticketNumber || "",
+      draftId: initial.draftId || "",
+      ticketSnapshotId: initial.ticketSnapshotId || "",
       orderNumber: initial.orderNumber || "",
       platform: initial.platform || "",
       productId: initial.productId || "",
-      rootCauseId: "",
-      description: "",
-      solutionId: "",
+      rootCauseId: initial.rootCauseId || "",
+      description: initial.description || "",
+      solutionId: initial.solutionId || "",
       sn: initial.sn || "",
-      warrantyEvidence: {},
-      customFields: {},
+      warrantyEvidence: initial.warrantyEvidence || {},
+      customFields: initial.customFields || {},
     }),
-    [inputs, setInputs] = useState({});
+    [inputs, setInputs] = useState(initial.taskInputs || {});
+  const [draftMessage, setDraftMessage] = useState("");
   const [configRevision] = useState(cfg.revision);
   const [warrantyRevision] = useState(cfg.warrantyPolicy.revision);
   const [assessment, setAssessment] = useState(null);
-  const { submit, busy, error } = useSupportAction(onClose),
+  const { submit, busy, error, setError } = useSupportAction(onClose),
     set = (k, x) => setV({ ...v, [k]: x }),
     solution = cfg.solutions.find((x) => x.id === v.solutionId),
     causes = cfg.rootCauses.filter(
@@ -535,6 +539,7 @@ function RMAForm({ onClose, initial = {} }) {
               label={tr("Support ticket number")}
               name="ticketNumber"
               value={v.ticketNumber}
+              readOnly={!!v.draftId}
               onChange={(x) => set("ticketNumber", x)}
               required
               maxLength="160"
@@ -708,6 +713,41 @@ function RMAForm({ onClose, initial = {} }) {
             </>
           )}
         </div>
+        {v.draftId && (
+          <div className="ticket-draft-actions">
+            <p className="muted">
+              {tr("Udesk source snapshot")}: {v.ticketSnapshotId}
+            </p>
+            {duplicateRmaIds.length > 0 && (
+              <p role="status">
+                {tr("Existing RMAs for this ticket")}:{" "}
+                {duplicateRmaIds.join(", ")}
+              </p>
+            )}
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                try {
+                  setError("");
+                  const saved = await api(
+                    `/api/tickets/${encodeURIComponent(initial.ticketId || initial.sourceTicketId || "")}/drafts`,
+                    {
+                      method: "POST",
+                      body: JSON.stringify({ ...v, taskInputs: inputs }),
+                    },
+                  );
+                  setV({ ...v, ...saved.payload });
+                  setDraftMessage(tr("Draft saved"));
+                } catch (e) {
+                  setError(e.message);
+                }
+              }}
+            >
+              Save draft
+            </Button>
+            {draftMessage && <span role="status">{draftMessage}</span>}
+          </div>
+        )}
         <Footer
           busy={busy}
           error={tr(error)}

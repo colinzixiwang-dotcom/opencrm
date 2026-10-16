@@ -56,13 +56,13 @@ Returns and refunds always require approval; the starter gift-card rule requires
 | Logistics | Multi-line transfers → reservation → dispatch → receipt; tracking reference, ETA, carrier, and freight tracking |
 | Sales | Multi-line orders → confirmation/reservation → shipping → completion; customer payments; partial/full returned quantities and collected-payment refunds |
 | Advertising | Manual campaign records, budget, spend, attributed sales, ACOS/ROAS, local pause/activate |
-| Service | Internal tickets, linked orders, priorities, notes, open/in-progress/resolved states |
+| Ticket center | Live authorized Udesk pages, source filters, all custom fields/options, read-only communications, source refresh, Udesk links and persisted RMA drafts |
 | Finance | Revenue/COGS/profit, operating expenses, recorded payments, receivables, payables, on-hand/transit inventory values |
 | Statistics | Date/channel filters, SKU performance, daily chart, real CSV download |
 | Tools | Tasks, completion/reopening, unit-profit calculator with explicit inputs |
 | Settings | Company/timezone preferences, users, custom roles, multiple-role assignment, page/button permissions, menu visibility/order, audit trail, business snapshot export, integration status |
 
-Search tables, sort supported column headings, use the global product/document search, and export the record collections. Forms validate inputs in the browser and on the server. All tables display all matching records; pagination and large-data virtualization are not implemented.
+Search tables, sort supported column headings, use the global product/document search, and export the record collections. Forms validate inputs in the browser and on the server. Legacy ERP tables display all matching records. The Udesk ticket center uses independent server-side cursor pagination and dedicated indexed storage.
 
 ## Try a connected workflow
 
@@ -172,3 +172,13 @@ Choose **English / 简体中文** on the login screen, in the workspace header o
 Translations live in `frontend/src/locales/zh-CN.json`; English source messages are the catalog keys. `frontend/src/i18n.js` handles lookup, placeholders, dynamic validation messages and status labels. API contracts, identifiers and persisted enum values remain language-independent. API errors remain in canonical English and are translated at the presentation boundary. New UI strings should use `tr`, with identifiers in separate `value` attributes.
 
 Run `npm run test:warranty` and `npm run test:i18n` for the added browser checks. `npm run test:browser` includes both alongside the original suites, and `npm test` includes localization tests.
+
+## Udesk ticket center
+
+Configure backend-only `UDESK_BASE_URL`, `UDESK_ADMIN_EMAIL` and `UDESK_OPEN_API_TOKEN` in `.env`; backend startup loads this file. Open Settings → **Udesk accounts & access** to synchronize accounts and explicitly authorize supervisor groups. Imported accounts use `HarborDemo!2026` initially; inactive Udesk accounts remain disabled. Synchronizing existing accounts preserves their passwords unless the administrator API explicitly requests a reset. The initial tenant setup reset all existing/imported passwords once at the user's request.
+
+Entering the ticket center, refreshing, selecting a Udesk saved filter, or changing pages fetches live source data. Opening detail fetches the ticket again; communications are read-only. Only Udesk tickets appear here. Changes and replies are made in Udesk. Create an RMA draft to retain source evidence, complete the local qualification data, and submit through the existing warranty/Solution gate.
+
+Ordinary agents see their own assigned tickets, supervisors see explicitly granted source groups, and administrators see all tickets. These scopes apply to every read, export and draft endpoint. Udesk personal filters execute in the configured integration account context; CRM always intersects source results with its own authorization. Source errors are shown with synchronization freshness. [Implementation and operating guide](docs/udesk-ticket-center.md).
+
+FBA, Advertising, Finance, Statistics, Tools, Sales and Purchase are currently hidden from sidebar navigation and their UI routes show a disabled-module page. Their historical data and backend workflows remain available for future use.

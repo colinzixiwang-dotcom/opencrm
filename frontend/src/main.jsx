@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Provider, useWorkspace, api, title } from "./context";
 import { nav, disabledModules, Icon, Button } from "./components";
+import { TicketCenter } from "./tickets";
 import {
   Overview,
   Products,
@@ -13,7 +14,6 @@ import {
   Logistics,
   FBA,
   Advertising,
-  Service,
   Finance,
   Statistics,
   Tools,
@@ -190,7 +190,7 @@ const views = {
   logistics: Logistics,
   fba: FBA,
   advertising: Advertising,
-  service: Service,
+  service: TicketCenter,
   finance: Finance,
   statistics: Statistics,
   tools: Tools,
@@ -313,14 +313,24 @@ function App() {
               href={disabledModules.has(id) ? undefined : "#" + id}
               role={disabledModules.has(id) ? "link" : undefined}
               aria-disabled={disabledModules.has(id) || undefined}
-              title={disabledModules.has(id) ? tr("Temporarily disabled") : undefined}
-              className={"nav-item " + (disabledModules.has(id) ? "disabled" : page === id ? "active" : "")}
+              title={
+                disabledModules.has(id) ? tr("Temporarily disabled") : undefined
+              }
+              className={
+                "nav-item " +
+                (disabledModules.has(id)
+                  ? "disabled"
+                  : page === id
+                    ? "active"
+                    : "")
+              }
               aria-current={page === id ? "page" : undefined}
               onClick={() => navigate(id)}
             >
               <Icon name={id} />
               <span>{tr(label)}</span>
-              {!disabledModules.has(id) && id === "purchase" &&
+              {!disabledModules.has(id) &&
+                id === "purchase" &&
                 s.purchases.some((x) => x.status === "pending") && (
                   <span className="nav-count">
                     {s.purchases.filter((x) => x.status === "pending").length}
@@ -397,11 +407,13 @@ function App() {
             <button
               className="icon-button"
               aria-label={tr("Refresh workspace")}
-              onClick={() =>
+              onClick={() => {
+                if (page === "service")
+                  window.dispatchEvent(new window.Event("udesk:refresh"));
                 reload()
                   .then(() => notify("Workspace refreshed."))
-                  .catch((e) => notify(e.message, "error"))
-              }
+                  .catch((e) => notify(e.message, "error"));
+              }}
             >
               <Icon name="refresh" />
             </button>
