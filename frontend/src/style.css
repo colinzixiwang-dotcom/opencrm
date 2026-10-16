@@ -3454,3 +3454,6 @@ td {
 .ticket-table td {
   white-space: normal;
 }
+.ticket-fields > .ticket-field-wide {
+  grid-column: 1 / -1;
+}

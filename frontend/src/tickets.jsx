@@ -176,7 +176,7 @@ const labels = {
 const hasValue = (value) =>
   value != null &&
   (typeof value === "string"
-    ? value.trim() !== "" && !["—", "-"].includes(value.trim())
+    ? value.trim() !== "" && !/^[-—–－]+$/.test(value.trim())
     : Array.isArray(value)
       ? value.some(hasValue)
       : typeof value === "object"
@@ -214,8 +214,13 @@ function Fields({ ticket, metadata }) {
     })
     .filter(
       ([key, value]) =>
-        !["custom_fields", "content", "subject", "status_en"].includes(key) &&
-        hasValue(value),
+        ![
+          "custom_fields",
+          "custom_fields_v2",
+          "content",
+          "subject",
+          "status_en",
+        ].includes(key) && hasValue(value),
     );
   const technical = standard.filter(
     ([key]) =>
@@ -246,9 +251,22 @@ function Fields({ ticket, metadata }) {
       </dd>
     </div>
   );
-  const custom = Object.entries(ticket.custom_fields || {}).filter(
-    ([, value]) => hasValue(value),
-  );
+  const customMap = (value) => {
+    if (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        return {};
+      }
+    }
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value
+      : {};
+  };
+  const custom = Object.entries({
+    ...customMap(ticket.custom_fields_v2),
+    ...customMap(ticket.custom_fields),
+  }).filter(([, value]) => hasValue(value));
   return (
     <>
       <section className="ticket-field-section">
@@ -271,7 +289,14 @@ function Fields({ ticket, metadata }) {
                   (f) => f.field_name === name,
                 );
               return (
-                <div key={name}>
+                <div
+                  key={name}
+                  className={
+                    typeof value === "object" || String(value).length > 100
+                      ? "ticket-field-wide"
+                      : undefined
+                  }
+                >
                   <dt>
                     {field?.field_label ||
                       definition?.field_title ||
