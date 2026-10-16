@@ -221,7 +221,11 @@ function App() {
     return () => removeEventListener("keydown", key);
   }, []);
   if (loading)
-    return <main className="workspace-loading"><LoadingState label="Opening workspace…" variant="detail" rows={4} /></main>;
+    return (
+      <main className="workspace-loading">
+        <LoadingState label="Opening workspace…" variant="detail" rows={4} />
+      </main>
+    );
   if (!s)
     return (
       <>
@@ -452,7 +456,7 @@ function App() {
               {tr(" Independent local implementation")}
             </span>
             <span>
-              {tr("Saved in SQLite · ")}
+              {tr("Saved in PostgreSQL · ")}
               {s.settings.timezone}
             </span>
           </footer>

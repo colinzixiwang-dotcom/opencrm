@@ -316,12 +316,12 @@ export function Settings() {
             </form>
           </Panel>
           <Panel className="workspace-details">
-            <h2>{tr("Your local workspace")}</h2>
+            <h2>{tr("Workspace storage")}</h2>
             {[
               [tr("Frontend"), "React + Vite"],
               [tr("Backend"), "Go + Gin"],
               [tr("Permissions"), tr("RuoYi-Go adapted RBAC")],
-              [tr("Storage"), tr("SQLite · persistent")],
+              [tr("Storage"), tr("PostgreSQL · persistent")],
               [tr("Currency"), "USD"],
               [tr("State revision"), s.version],
             ].map(([k, v]) => (
@@ -331,9 +331,7 @@ export function Settings() {
               </div>
             ))}
             <p>
-              {tr(
-                "Business records and permissions are saved on this computer.",
-              )}
+              {tr("Business records and permissions are saved in PostgreSQL.")}
             </p>
             {can("role.save") && (
               <a className="btn secondary" href="/api/backup" download>
@@ -343,7 +341,7 @@ export function Settings() {
             )}
             <small>
               {tr(
-                "Business snapshot excludes authentication data. Back up the SQLite database for complete recovery.",
+                "Business snapshot excludes authentication data. Back up PostgreSQL for complete recovery.",
               )}
             </small>
           </Panel>

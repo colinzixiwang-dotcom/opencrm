@@ -1150,5 +1150,10 @@
   "Sort all authorized tickets": "全部授权工单排序",
   "Last reply · newest first": "最后回复时间 · 从新到旧",
   "Last reply · oldest first": "最后回复时间 · 从旧到新",
-  "Sorting applies to all authorized results. Search applies to this page.": "排序作用于全部授权结果，搜索仅作用于当前页。"
+  "Sorting applies to all authorized results. Search applies to this page.": "排序作用于全部授权结果，搜索仅作用于当前页。",
+  "Saved in PostgreSQL · ": "已保存到 PostgreSQL · ",
+  "PostgreSQL · persistent": "PostgreSQL · 持久化",
+  "Workspace storage": "工作区存储",
+  "Business records and permissions are saved in PostgreSQL.": "业务记录和权限保存在 PostgreSQL 中。",
+  "Business snapshot excludes authentication data. Back up PostgreSQL for complete recovery.": "业务快照不包含认证数据。完整恢复请备份 PostgreSQL。"
 }
