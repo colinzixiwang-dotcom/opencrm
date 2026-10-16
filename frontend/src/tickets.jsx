@@ -1,7 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, useWorkspace } from "./context";
 import { tr } from "./i18n";
-import { Heading, Panel, Button, PanelHeading } from "./components";
+import {
+  Heading,
+  Panel,
+  Button,
+  PanelHeading,
+  ListToolbar,
+  SearchControl,
+  FilterControl,
+  SortControl,
+  Icon,
+} from "./components";
 import { RMAForm } from "./support";
 
 const text = (value) =>
@@ -10,9 +20,22 @@ const text = (value) =>
     : typeof value === "object"
       ? JSON.stringify(value)
       : String(value);
-const plain = (value) =>
-  new window.DOMParser().parseFromString(String(value || ""), "text/html").body
-    .textContent || "";
+const plain = (value) => {
+  const doc = new window.DOMParser().parseFromString(
+    String(value || ""),
+    "text/html",
+  );
+  doc
+    .querySelectorAll("script,style,noscript")
+    .forEach((node) => node.remove());
+  doc
+    .querySelectorAll("br")
+    .forEach((node) => node.replaceWith(doc.createTextNode("\n")));
+  doc
+    .querySelectorAll("p,div,li")
+    .forEach((node) => node.append(doc.createTextNode("\n")));
+  return (doc.body.textContent || "").trim();
+};
 const safeURL = (value) => {
   try {
     const u = new URL(value);
@@ -21,7 +44,22 @@ const safeURL = (value) => {
     return null;
   }
 };
+const displayDate = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+};
 function Value({ value, field }) {
+  if (typeof value === "boolean")
+    return <span>{tr(value ? "Yes" : "No")}</span>;
   if (value == null || value === "") return <span className="muted">—</span>;
   const options = [];
   const visit = (list) =>
@@ -65,6 +103,57 @@ function Value({ value, field }) {
   return <span>{text(value)}</span>;
 }
 const labels = {
+  agent_emails_count: "Agent email count",
+  agent_replied_at: "Agent last replied",
+  agent_summary: "Agent summary",
+  assignee_avatar: "Agent avatar",
+  call_result: "Call result",
+  call_type: "Call type",
+  content_type: "Content format",
+  conversation_id: "Conversation ID",
+  creator_id: "Created by",
+  customer_emails_count: "Customer email count",
+  customer_owner_group_id: "Customer owner group ID",
+  customer_owner_group_name: "Customer owner group",
+  customer_owner_id: "Customer owner ID",
+  customer_owner_name: "Customer owner",
+  customer_replied_at: "Customer last replied",
+  customer_telephone: "Customer telephone",
+  email_reply_status: "Email reply status",
+  emails_count: "Email count",
+  first_replied_at: "First replied",
+  followers: "Followers",
+  im_sub_session_id: "Chat session ID",
+  is_associated: "Associated ticket",
+  knowledge_catalog: "Knowledge category",
+  knowledge_question: "Knowledge question",
+  last_closed_operator_name: "Last closed by",
+  organization_id: "Organization ID",
+  participate_handling_robots: "Participating bots",
+  reminder_count: "Reminder count",
+  replied_by: "Last replied by",
+  resolved_at: "Resolved at",
+  robot_summary: "Bot summary",
+  satisfaction: "Satisfaction",
+  solving_at: "Processing started",
+  source: "Source",
+  survey_vote_desc: "Survey feedback",
+  survey_vote_tags: "Survey tags",
+  ticket_category: "Ticket category",
+  ticket_category_name: "Ticket category name",
+  timers: "Timers",
+  unexecuted_alarm_count: "Pending reminders",
+  updator_id: "Updated by",
+  has_reminder: "Has reminder",
+
+  id: "Udesk ticket ID",
+  assignee_id: "Agent ID",
+  user_id: "Customer ID",
+  user_group_id: "Agent group ID",
+  url: "Ticket link",
+  solved_at: "Solved at",
+  closed_at: "Closed at",
+  replied_at: "Last reply",
   field_num: "Ticket number",
   subject: "Subject",
   content: "Content",
@@ -84,60 +173,119 @@ const labels = {
   solved_deadline: "Due date",
   attachments: "Attachments",
 };
+const hasValue = (value) =>
+  value != null &&
+  (typeof value === "string"
+    ? value.trim() !== "" && !["—", "-"].includes(value.trim())
+    : Array.isArray(value)
+      ? value.some(hasValue)
+      : typeof value === "object"
+        ? Object.values(value).some(hasValue)
+        : true);
+const friendly = (key) =>
+  key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
 function Fields({ ticket, metadata }) {
   if (!metadata) return <p>{tr("Loading Udesk field definitions…")}</p>;
   const fields = metadata?.fields?.fields || [];
   const template = (metadata?.templates?.templates || []).find(
     (t) => String(t.id) === String(ticket.template_id),
   );
-  const names = new Set([
-    ...fields.map((f) => f.field_name),
-    ...(template?.custom_fields || []).map((f) => f.field_name),
-    ...Object.keys(ticket.custom_fields || {}),
-  ]);
+  const standard = Object.entries(ticket)
+    .sort(([a], [b]) => {
+      const order = [
+        "user_name",
+        "user_email",
+        "user_cellphone",
+        "assignee_name",
+        "user_group_name",
+        "status",
+        "priority",
+        "platform",
+        "created_at",
+        "updated_at",
+      ];
+      return (
+        (order.includes(a) ? order.indexOf(a) : 99) -
+        (order.includes(b) ? order.indexOf(b) : 99)
+      );
+    })
+    .filter(
+      ([key, value]) =>
+        !["custom_fields", "content", "subject", "status_en"].includes(key) &&
+        hasValue(value),
+    );
+  const technical = standard.filter(
+    ([key]) =>
+      key === "id" ||
+      key.endsWith("_id") ||
+      [
+        "content_type",
+        "has_reminder",
+        "reminder_count",
+        "creator_id",
+        "updator_id",
+      ].includes(key),
+  );
+  const business = standard.filter((entry) => !technical.includes(entry));
+  const renderField = ([key, value]) => (
+    <div key={key}>
+      <dt>{tr(labels[key] || friendly(key))}</dt>
+      <dd>
+        <Value
+          value={
+            key === "template_id"
+              ? template?.name || template?.title || value
+              : /(_at|_deadline)$/.test(key)
+                ? displayDate(value)
+                : value
+          }
+        />
+      </dd>
+    </div>
+  );
+  const custom = Object.entries(ticket.custom_fields || {}).filter(
+    ([, value]) => hasValue(value),
+  );
   return (
     <>
-      <PanelHeading title="Ticket fields" />
-      <dl className="ticket-fields">
-        {Object.entries(ticket)
-          .filter(([key]) => !["custom_fields", "content"].includes(key))
-          .map(([key, value]) => (
-            <div key={key}>
-              <dt>
-                {tr(labels[key] || key)}
-                <small>{key}</small>
-              </dt>
-              <dd>
-                <Value value={value} />
-              </dd>
-            </div>
-          ))}
-      </dl>
-      <PanelHeading
-        title="Custom fields"
-        subtitle="Field names, types and values come from Udesk."
-      />
-      <dl className="ticket-fields">
-        {[...names].map((name) => {
-          const field = fields.find((f) => f.field_name === name);
-          const definition = template?.custom_fields?.find(
-            (f) => f.field_name === name,
-          );
-          return (
-            <div key={name}>
-              <dt>
-                {field?.field_label || definition?.field_title || name}
-                <small>
-                  {name} · {field?.content_type || definition?.field_type || ""}
-                </small>
-              </dt>
-              <dd>
-                <Value field={field} value={ticket.custom_fields?.[name]} />
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
+      <section className="ticket-field-section">
+        <PanelHeading title="Ticket fields" />
+        <dl className="ticket-fields">{business.map(renderField)}</dl>
+        {technical.length > 0 && (
+          <details className="ticket-technical">
+            <summary>{tr("More ticket information")}</summary>
+            <dl className="ticket-fields">{technical.map(renderField)}</dl>
+          </details>
+        )}
+      </section>
+      {custom.length > 0 && (
+        <section className="ticket-field-section">
+          <PanelHeading title="Custom fields" />
+          <dl className="ticket-fields">
+            {custom.map(([name, value]) => {
+              const field = fields.find((f) => f.field_name === name),
+                definition = template?.custom_fields?.find(
+                  (f) => f.field_name === name,
+                );
+              return (
+                <div key={name}>
+                  <dt>
+                    {field?.field_label ||
+                      definition?.field_title ||
+                      friendly(name)}
+                  </dt>
+                  <dd>
+                    <Value field={field} value={value} />
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      )}
     </>
   );
 }
@@ -240,71 +388,115 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
         </p>
       ) : (
         <>
-          <p className="muted">
-            {tr("Fetched from Udesk")}: {data.fetchedAt}
-          </p>
-          <h2>
-            {data.source.field_num} · {data.source.subject}
-          </h2>
-          <div className="ticket-content">{plain(data.source.content)}</div>
-          {data.rmaIds?.length > 0 && (
-            <p>
-              {tr("Linked RMAs")}: {data.rmaIds.join(", ")}
-            </p>
-          )}
-          <Fields ticket={data.source} metadata={metadata} />
-          <PanelHeading
-            title="Conversation"
-            subtitle="Read only. Reply and edit in Udesk."
-          />
-          {replies ? (
-            <>
-              <div className="ticket-conversation">
-                {(replies.replies || []).map((r) => (
-                  <article key={r.id}>
-                    <div>
-                      <strong>
-                        {r.author?.nick_name || r.author?.user_type}
-                      </strong>
-                      <span>
-                        {r.created_at} ·{" "}
-                        {tr(
-                          ["internat", "internal"].includes(r.function_type)
-                            ? "Internal note"
-                            : "External reply",
-                        )}
-                      </span>
-                    </div>
-                    <p>
-                      {r.content_format === "html"
-                        ? plain(r.content)
-                        : r.content}
-                    </p>
-                    <Value value={r.attachments} />
-                  </article>
+          <header className="ticket-detail-header">
+            <div className="ticket-kicker">
+              <span>
+                {tr("Ticket")} {data.source.field_num}
+              </span>
+              <span className="ticket-status">{data.source.status}</span>
+              <span>{data.source.platform}</span>
+            </div>
+            <h2>{data.source.subject}</h2>
+            <div className="ticket-detail-meta">
+              {[
+                data.source.user_name,
+                data.source.assignee_name,
+                data.source.updated_at && displayDate(data.source.updated_at),
+              ]
+                .filter(hasValue)
+                .map((v, i) => (
+                  <span key={i}>{v}</span>
                 ))}
-              </div>
-              <div className="ticket-toolbar">
-                <Button
-                  disabled={replyPage === 1}
-                  onClick={() => setReplyPage((n) => n - 1)}
-                >
-                  Previous
-                </Button>
-                <span>
-                  {tr("Page")} {replyPage}
-                </span>
-                <Button
-                  disabled={replyPage >= (replies.meta?.total_pages || 1)}
-                  onClick={() => setReplyPage((n) => n + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </>
-          ) : (
-            <p>{tr("Loading conversation…")}</p>
-          )}
+            </div>
+          </header>
+          <div className="ticket-detail-layout">
+            <div className="ticket-main-column">
+              {hasValue(plain(data.source.content)) && (
+                <section className="ticket-story">
+                  <PanelHeading title="Content" />
+                  <div className="ticket-content">
+                    {plain(data.source.content)}
+                  </div>
+                </section>
+              )}
+              {data.rmaIds?.length > 0 && (
+                <p className="ticket-rma-links">
+                  {tr("Linked RMAs")}: {data.rmaIds.join(", ")}
+                </p>
+              )}
+              <section className="ticket-thread">
+                <PanelHeading
+                  title="Conversation"
+                  subtitle="Read only. Reply and edit in Udesk."
+                />
+                {replies ? (
+                  <>
+                    <div className="ticket-conversation">
+                      {!replies.replies?.length && (
+                        <p className="ticket-empty-conversation">
+                          {tr("No conversation yet.")}
+                        </p>
+                      )}
+                      {(replies.replies || []).map((r) => (
+                        <article key={r.id}>
+                          <div>
+                            <strong>
+                              {r.author?.nick_name || r.author?.user_type}
+                            </strong>
+                            <span>
+                              {displayDate(r.created_at)} ·{" "}
+                              {tr(
+                                ["internat", "internal"].includes(
+                                  r.function_type,
+                                )
+                                  ? "Internal note"
+                                  : "External reply",
+                              )}
+                            </span>
+                          </div>
+                          <p>
+                            {r.content_format === "html"
+                              ? plain(r.content)
+                              : r.content}
+                          </p>
+                          {hasValue(r.attachments) && (
+                            <Value value={r.attachments} />
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                    <div className="ticket-toolbar">
+                      <Button
+                        disabled={replyPage === 1}
+                        onClick={() => setReplyPage((n) => n - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <span>
+                        {tr("Page")} {replyPage}
+                      </span>
+                      <Button
+                        disabled={replyPage >= (replies.meta?.total_pages || 1)}
+                        onClick={() => setReplyPage((n) => n + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <p>{tr("Loading conversation…")}</p>
+                )}
+              </section>
+            </div>
+            <aside className="ticket-sidebar">
+              <Fields ticket={data.source} metadata={metadata} />
+              <p className="ticket-sync-stamp">
+                {tr("Fetched from Udesk")}
+                <br />
+                {new Date(data.fetchedAt).toLocaleString()}
+              </p>
+            </aside>
+          </div>
         </>
       )}
     </section>
@@ -320,11 +512,43 @@ export function TicketCenter() {
     [cursor, setCursor] = useState(""),
     [history, setHistory] = useState([]),
     [refresh, setRefresh] = useState(0),
-    [selected, setSelected] = useState(null),
+    [selected, updateSelected] = useState(() =>
+      new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
+    ),
+    [query, setQuery] = useState(""),
+    [sort, setSort] = useState("updated_at:desc"),
     [number, setNumber] = useState(""),
     [draft, setDraft] = useState(null),
     [drafts, setDrafts] = useState([]),
     [lastSync, setLastSync] = useState("");
+  const setSelected = (id) => {
+    location.hash = id ? "service?ticket=" + encodeURIComponent(id) : "service";
+    updateSelected(id);
+  };
+  useEffect(() => {
+    const change = () =>
+      updateSelected(
+        new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
+      );
+    addEventListener("hashchange", change);
+    return () => removeEventListener("hashchange", change);
+  }, []);
+  const items = [...(data?.items || [])]
+    .filter(
+      (item) =>
+        !query ||
+        JSON.stringify(item.source).toLowerCase().includes(query.toLowerCase()),
+    )
+    .sort((a, b) => {
+      const [key, dir] = sort.split(":");
+      return (
+        String(a.source[key] ?? "").localeCompare(
+          String(b.source[key] ?? ""),
+          undefined,
+          { numeric: true },
+        ) * (dir === "desc" ? -1 : 1)
+      );
+    });
   const latest = useRef(0);
   useEffect(() => {
     const controller = new window.AbortController();
@@ -442,64 +666,109 @@ export function TicketCenter() {
         />
       ) : (
         <Panel>
-          <div className="ticket-toolbar">
-            <label>
-              {tr("Udesk filter")}
-              <select
-                aria-label={tr("Udesk filter")}
-                value={filter}
-                disabled={!metadata || busy}
-                onChange={(e) => {
-                  setFilter(e.target.value);
-                  setCursor("");
-                  setHistory([]);
-                }}
+          <div className="ticket-queue-heading">
+            <div>
+              <span className="eyebrow">UDESK</span>
+              <h2>{tr("Ticket queue")}</h2>
+            </div>
+            <span className="ticket-live-label">
+              <span />
+              {tr("Read only")}
+            </span>
+          </div>
+          <ListToolbar
+            actions={
+              <a
+                className="btn secondary"
+                download
+                href={
+                  "/api/export/tickets?" +
+                  new URLSearchParams({ filterId: filter, cursor })
+                }
               >
-                <option value="">{tr("All authorized tickets")}</option>
-                {(metadata?.filters || []).map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <Icon name="download" />
+                {tr("Export authorized page")}
+              </a>
+            }
+          >
+            <SearchControl
+              label="Search current page"
+              placeholder="Search current page…"
+              value={query}
+              onChange={setQuery}
+            />
+            <FilterControl
+              label="Udesk filter"
+              value={filter}
+              disabled={!metadata || busy}
+              onChange={(v) => {
+                setFilter(v);
+                setCursor("");
+                setHistory([]);
+                setQuery("");
+              }}
+              options={[
+                { value: "", label: "All authorized tickets" },
+                ...(metadata?.filters || []).map((f) => ({
+                  value: f.id,
+                  label: f.name,
+                })),
+              ]}
+            />
+            <SortControl
+              label="Sort current page"
+              value={sort}
+              onChange={setSort}
+              options={[
+                { value: "updated_at:desc", label: "Updated · newest first" },
+                { value: "updated_at:asc", label: "Updated · oldest first" },
+                { value: "created_at:desc", label: "Created · newest first" },
+                { value: "created_at:asc", label: "Created · oldest first" },
+                {
+                  value: "field_num:desc",
+                  label: "Ticket number · descending",
+                },
+                { value: "field_num:asc", label: "Ticket number · ascending" },
+                { value: "subject:asc", label: "Subject · A–Z" },
+                { value: "assignee_name:asc", label: "Assignee · A–Z" },
+                { value: "status:asc", label: "Status · A–Z" },
+              ]}
+            />
+          </ListToolbar>
+          <div className="ticket-queue-subbar">
+            <span>
+              {tr("Search and sort apply to the current page.")}{" "}
+              {data && (
+                <strong>
+                  {items.length} / {data.items.length}
+                </strong>
+              )}
+            </span>
             <form onSubmit={lookup}>
-              <label>
-                {tr("Find ticket by number")}
-                <input
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  placeholder="#848"
-                  required
-                />
-              </label>
+              <SearchControl
+                label="Find ticket by number"
+                placeholder="Ticket number, e.g. #717"
+                value={number}
+                onChange={setNumber}
+                required
+              />
               <button className="btn secondary" disabled={busy}>
                 {tr("Find")}
               </button>
             </form>
-            <a
-              className="btn secondary"
-              download
-              href={
-                "/api/export/tickets?" +
-                new URLSearchParams({ filterId: filter, cursor })
-              }
-            >
-              {tr("Export authorized page")}
-            </a>
           </div>
-          <p className="muted ticket-filter-note">
-            {tr(
-              "Filters are maintained in Udesk. Personal filters use the integration account; your CRM access scope is always applied.",
-            )}
-          </p>
+          <details className="ticket-filter-note">
+            <summary>{tr("About Udesk filters")}</summary>
+            <p>
+              {tr(
+                "Filters are maintained in Udesk. Personal filters use the integration account; your CRM access scope is always applied.",
+              )}
+            </p>
+          </details>
           {busy && <p role="status">{tr("Fetching tickets from Udesk…")}</p>}
           {!busy && data && (
             <>
-              <p className="muted">
-                {tr("Fetched from Udesk")}: {data.fetchedAt}
-              </p>
-              <div className="table-wrap">
+              <div className="table-scroll ticket-table">
                 <table>
                   <thead>
                     <tr>
@@ -518,10 +787,16 @@ export function TicketCenter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map((item) => {
+                    {items.map((item) => {
                       const t = item.source;
                       return (
-                        <tr key={t.id}>
+                        <tr
+                          key={t.id}
+                          onClick={(e) => {
+                            if (!e.target.closest("a,button"))
+                              setSelected(String(t.id));
+                          }}
+                        >
                           <td>
                             <button
                               className="text-button"
@@ -531,7 +806,14 @@ export function TicketCenter() {
                             </button>
                           </td>
                           <td>
-                            <strong>{t.subject}</strong>
+                            <a
+                              className="ticket-subject"
+                              href={
+                                "#service?ticket=" + encodeURIComponent(t.id)
+                              }
+                            >
+                              {t.subject}
+                            </a>
                             <small className="cell-sub">
                               {t.user_name || t.user_email}
                             </small>
@@ -542,10 +824,14 @@ export function TicketCenter() {
                               {t.user_group_name}
                             </small>
                           </td>
-                          <td>{t.status}</td>
+                          <td>
+                            <span className="ticket-status">{t.status}</span>
+                          </td>
                           <td>{t.priority}</td>
                           <td>{t.platform}</td>
-                          <td>{t.updated_at}</td>
+                          <td className="ticket-date">
+                            {displayDate(t.updated_at)}
+                          </td>
                           <td>{item.rmaIds.join(", ") || "—"}</td>
                         </tr>
                       );
@@ -553,7 +839,7 @@ export function TicketCenter() {
                   </tbody>
                 </table>
               </div>
-              {!data.items.length && (
+              {!items.length && (
                 <p>{tr("No authorized tickets on this source page.")}</p>
               )}
               {data.scanLimited && (
@@ -563,7 +849,10 @@ export function TicketCenter() {
                   )}
                 </p>
               )}
-              <div className="ticket-toolbar">
+              <div className="ticket-toolbar ticket-pagination">
+                <span className="ticket-page-sync">
+                  {tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}
+                </span>
                 <Button
                   disabled={!history.length}
                   onClick={() => {
@@ -596,7 +885,7 @@ export function TicketCenter() {
           <div className="ticket-toolbar">
             {drafts.map(({ draft: d }) => (
               <Button key={d.id} onClick={() => resume(d.id)}>
-                {d.id} · {d.updatedAt}
+                {tr("Ticket")} {d.ticketId} · {displayDate(d.updatedAt)}
               </Button>
             ))}
           </div>

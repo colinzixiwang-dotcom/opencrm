@@ -70,7 +70,7 @@ export function Provider({ children }) {
     [notifications, setNotifications] = useState([]),
     [modal, setModal] = useState(null),
     [busy, setBusy] = useState(false),
-    [page, setPage] = useState(location.hash.slice(1) || "home"),
+    [page, setPage] = useState(location.hash.slice(1).split("?")[0] || "home"),
     [period, setPeriod] = useState("30"),
     [filters, setFilters] = useState({ from: "", to: "", channel: "all" }),
     [report, setReport] = useState(null);
@@ -101,7 +101,8 @@ export function Provider({ children }) {
       .finally(() => setLoading(false));
   }, [reload]);
   useEffect(() => {
-    const change = () => setPage(location.hash.slice(1) || "home");
+    const change = () =>
+      setPage(location.hash.slice(1).split("?")[0] || "home");
     addEventListener("hashchange", change);
     return () => removeEventListener("hashchange", change);
   }, []);

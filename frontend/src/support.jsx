@@ -283,8 +283,20 @@ function FilteredTable({
     <Panel>
       <div className="support-filters">
         {filters.map((f) => (
-          <FilterControl key={f.key} label={f.label} value={v[f.key] || ""} onChange={x=>setV({...v,[f.key]:x})}
-            options={[{value:"",label:tr("All")+" "+tr(f.label)}, ...(f.items || [...new Set(rows.map(r=>String(r[f.key]??"")))].filter(Boolean).sort().map(x=>({value:x,label:title(x)})))]} />
+          <FilterControl
+            key={f.key}
+            label={f.label}
+            value={v[f.key] || ""}
+            onChange={(x) => setV({ ...v, [f.key]: x })}
+            options={[
+              { value: "", label: tr("All") + " " + tr(f.label) },
+              ...(f.items ||
+                [...new Set(rows.map((r) => String(r[f.key] ?? "")))]
+                  .filter(Boolean)
+                  .sort()
+                  .map((x) => ({ value: x, label: title(x) }))),
+            ]}
+          />
         ))}
         {dateKey && (
           <>
