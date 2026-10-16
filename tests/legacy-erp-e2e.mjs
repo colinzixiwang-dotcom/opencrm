@@ -15,7 +15,7 @@ try {
   );
 }
 const temp = mkdtempSync(join(tmpdir(), "harbor-e2e-"));
-const app = await startServer(join(temp, "test.sqlite"));
+const app = await startServer(join(temp, "test-workspace"));
 const base = app.base;
 const browser = await playwright.chromium.launch({
   headless: true,

@@ -9,7 +9,7 @@ const temp = mkdtempSync(join(tmpdir(), "harbor-udesk-"));
 const mock = await startUdeskMock();
 let app, browser;
 try {
-  app = await startServer(join(temp, "test.sqlite"), mock.env);
+  app = await startServer(join(temp, "test-workspace"), mock.env);
   browser = await chromium.launch({
     headless: true,
     ...(process.env.CHROME_EXECUTABLE

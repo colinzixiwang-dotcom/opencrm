@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startServer } from "./server.mjs";
 const temp = mkdtempSync(join(tmpdir(), "harbor-i18n-")),
-  app = await startServer(join(temp, "test.sqlite"));
+  app = await startServer(join(temp, "test-workspace"));
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHROME_EXECUTABLE

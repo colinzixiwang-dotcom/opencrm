@@ -5,6 +5,25 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: morpho_test
+          POSTGRES_USER: morpho_test
+          POSTGRES_PASSWORD: isolated_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U morpho_test -d morpho_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: morpho_test
+      PGUSER: morpho_test
+      PGPASSWORD: isolated_ci_only
+      PGSSLMODE: disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

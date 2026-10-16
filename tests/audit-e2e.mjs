@@ -1,11 +1,10 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { DatabaseSync } from 'node:sqlite';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer } from './server.mjs';
-const temp=mkdtempSync(join(tmpdir(),'harbor-audit-')), path=join(temp,'audit.sqlite');
+const temp=mkdtempSync(join(tmpdir(),'harbor-audit-')), path=join(temp,'audit-workspace');
 let app=await startServer(path);
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_EXECUTABLE?{executablePath:process.env.CHROME_EXECUTABLE}:{})});
 const context=await browser.newContext({viewport:{width:1440,height:1000}}), page=await context.newPage();
@@ -14,7 +13,7 @@ const errors=[],checks=[];
 page.on('pageerror',e=>errors.push(e.message));
 const pass=s=>{checks.push(s);console.log('PASS',s);};
 const data=async()=> (await page.request.get(app.base+'/api/bootstrap')).json();
-const disk=()=>{const db=new DatabaseSync(path,{readOnly:true});try{return JSON.parse(db.prepare('SELECT data FROM app_state WHERE id=1').get().data);}finally{db.close();}};
+const disk=()=>app.readState();
 const post=async(action,payload)=>{const r=await page.request.post(app.base+'/api/action',{data:{action,payload}});assert.equal(r.status(),200,await r.text());return (await r.json()).result;};
 const nav=async id=>{await page.locator(`a.nav-item[href="#${id}"]`).click();await page.locator('.page-heading').waitFor();};
 const dialog=()=>page.getByRole('dialog').last();
@@ -34,7 +33,7 @@ try {
  await page.reload();await nav('rma');await page.getByRole('button',{name:'Create RMA',exact:true}).click();
  for(const sol of s.supportConfig.solutions){await dialog().getByLabel('Proposed solution').selectOption(sol.id);assert.equal(await dialog().locator('.workflow-node').count(),sol.nodes.length);}
  await close();await page.unroute('**/api/bootstrap');await page.reload();
- pass('all shipped solutions render even with legacy null dependencies; SQLite stores arrays');
+ pass('all shipped solutions render even with legacy null dependencies; PostgreSQL preserves arrays');
  const createForm=async(sol,index)=>{await nav('rma');await page.getByRole('button',{name:'Create RMA',exact:true}).click();const d=dialog();await d.getByLabel('Support ticket number').fill('AUDIT-TICKET-'+index);await d.getByLabel('Order number',{exact:true}).fill('AUDIT-ORDER-'+index);await d.getByLabel('Purchased platform').selectOption('Amazon');await d.getByLabel('Affected device / part SKU').selectOption(device.id);await d.getByLabel('Root cause',{exact:true}).selectOption(s.supportConfig.rootCauses[0].id);await d.getByLabel('Description',{exact:true}).fill('Regression test for shipped solution '+sol.id);await d.getByLabel('Proposed solution').selectOption(sol.id);if(await d.getByLabel('Delivery date',{exact:true}).count())await d.getByLabel('Delivery date',{exact:true}).fill(new Date(Date.now()-30*86400000).toISOString().slice(0,10));for(const input of await d.getByLabel('Value ($)',{exact:true}).all())await input.fill('100.01');for(const select of await d.getByLabel('Task SKU',{exact:true}).all()){if(!(await select.inputValue()))await select.selectOption(part.id);} };
  for(const [i,sol] of s.supportConfig.solutions.entries()){
   await createForm(sol,i);
@@ -79,12 +78,12 @@ try {
  await page.getByRole('tab',{name:'Platforms',exact:true}).click();await page.locator('tbody tr').filter({hasText:'audit_platforms'}).getByRole('button',{name:'Edit configuration'}).click();
  let current=(await data()).supportConfig.platforms.find(x=>x.id==='audit_platforms');await post('rmaconfig.save',{entity:'platforms',record:{...current,name:'Newer administrator value'}});await dialog().getByLabel('Name',{exact:true}).fill('Stale edit');await dialog().getByRole('button',{name:'Save configuration',exact:true}).click();await dialog().getByText(/Support configuration changed/).waitFor();assert.equal(disk().supportConfig.platforms.find(x=>x.id==='audit_platforms').name,'Newer administrator value');await close();
  pass('stale configuration edits are rejected without overwriting current database values');
- await page.reload();const links=await page.locator('a.nav-item').evaluateAll(xs=>xs.map(x=>x.getAttribute('href').slice(1)));
+ await page.reload();await page.locator('a.nav-item').first().waitFor();const links=await page.locator('a.nav-item').evaluateAll(xs=>xs.map(x=>x.getAttribute('href').slice(1)));
  assert.equal(links.length,13);
  for(const id of links){await nav(id);assert.equal(await page.getByText('Workspace could not be displayed',{exact:true}).count(),0);}
  for(const bad of ['constructor','__proto__']){await page.goto(app.base+'/#'+bad);await page.getByText('Access restricted',{exact:true}).waitFor();}
  for(const collection of ['rmas','rmaTasks','supportOrders','serials','benefitHistory']){const r=await page.request.get(app.base+'/api/export/'+collection);assert.equal(r.status(),200);assert.ok((await r.body()).length>0);}
- const before=disk();await app.close();app=await startServer(path);await page.goto(app.base);await page.locator('.page-heading').waitFor();const after=await data();assert.deepEqual(after.rmas,before.rmas);assert.deepEqual(after.rmaTasks,before.rmaTasks);assert.deepEqual(after.benefitHistory,before.benefitHistory);assert.deepEqual(errors,[]);
+ const before=disk();await app.close({preserve:true});app=await startServer(path);await page.goto(app.base);await page.locator('.page-heading').waitFor();const after=await data();assert.deepEqual(after.rmas,before.rmas);assert.deepEqual(after.rmaTasks,before.rmaTasks);assert.deepEqual(after.benefitHistory,before.benefitHistory);assert.deepEqual(errors,[]);
  pass('all 13 active pages, unsupported routes, support CSV exports and authenticated server restart pass without JavaScript errors');
  await page.screenshot({path:'test-results/audit-final.png',fullPage:true});
  writeFileSync('test-results/audit-report.json',JSON.stringify({passed:true,checks,errors},null,2));console.log(checks.length+' audit checkpoints passed.');

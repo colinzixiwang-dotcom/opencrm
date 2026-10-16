@@ -10,17 +10,17 @@ A working, local ERP and configurable RMA workspace inspired by the Lingxing fro
 ./start.sh
 ```
 
-Open **http://127.0.0.1:4317**. The launcher installs missing npm dependencies, builds the React frontend with Vite, compiles the Gin server, and runs the Go binary. Node is used only for development/build/test tooling; the running application is served by Go.
+The deployed frontend is **http://192.168.1.61:5176** and backend is **http://192.168.1.61:4317**. A prebuilt single-server launch uses the configured `HOST` and `PORT`. The launcher installs missing npm dependencies, builds the React frontend with Vite, compiles the Gin server, and runs the Go binary. Node is used only for development/build/test tooling; the running application is served by Go.
 
-Requirements: **Node 22.19+ (22.x), 24.11+ (24.x), or 26+**, **Go 1.25+**, and a C compiler for the SQLite driver (Xcode command-line tools on macOS). The launcher can use the installed Codex Node runtime and the workspace-local Go toolchain. Elsewhere, install these tools on PATH or provide `HARBOR_NODE` / `HARBOR_GO`:
+Requirements: **Node 22.19+ (22.x), 24.11+ (24.x), or 26+**, **Go 1.25+**, and access to the configured **PostgreSQL 16+** database. The launcher can use the installed Codex Node runtime and the workspace-local Go toolchain. Elsewhere, install these tools on PATH or provide `HARBOR_NODE` / `HARBOR_GO`:
 
 ```sh
 HARBOR_NODE=/absolute/path/to/node HARBOR_GO=/absolute/path/to/go ./start.sh
 ```
 
-`PORT` changes the listening port. `DB_PATH` changes the SQLite path. `DIST_DIR` changes the built frontend directory. The server binds only to `127.0.0.1`. Data defaults to `data/harbor.sqlite`, with SQLite WAL sidecars. Runtime data is ignored by Git.
+`HOST` and `PORT` select the listening address; `DIST_DIR` selects the built frontend. PostgreSQL is required: configure `DATABASE_URL` or `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE` in ignored `.env`. There is no SQLite/local database fallback. The deployed target is `192.168.1.84:5432/morpho_rma_crm`. See [PostgreSQL operations](docs/postgresql.md) for initialization and migration.
 
-For frontend development, run the Go backend on 4317 and `npm run dev` in another terminal. Vite serves React on 5173 and proxies `/api` to Gin. For a prebuilt launch without Node:
+For frontend development, run Go on `192.168.1.61:4317` and Vite on `192.168.1.61:5176`, with the API proxy targeting that backend. For a prebuilt launch without Node:
 
 ```sh
 npm ci && npm run build
@@ -91,15 +91,13 @@ Search tables, sort supported column headings, use the global product/document s
 - Report day boundaries use the company timezone. Expense/payment date fields are explicit calendar dates. Channel filters apply to sales; expenses are not allocated by channel.
 - The stock coverage setting is stored for future forecasting. The implemented suggestions use each product's reorder point, not a demand forecasting model.
 
-Every mutation operates on a cloned snapshot, validates invariants, and commits in a serialized GORM/SQLite transaction. Failed multi-line actions roll back. Mutations support `Idempotency-Key`: replaying the same key and payload returns the prior result without applying it twice; reuse for a different payload is rejected.
+Every mutation operates on a cloned snapshot, validates invariants, and commits in a PostgreSQL transaction with a database advisory lock for existing compatibility commands. Failed multi-line actions roll back. Mutations support `Idempotency-Key`: replaying the same key and payload returns the prior result without applying it twice; reuse for a different payload is rejected.
 
 ## Data and recovery
 
-The application persists its business state in a SQLite JSON document (`app_state`), with separate `sessions` and `request_receipts` tables. RuoYi permissions use normalized `sys_user`, `sys_role`, `sys_menu`, `sys_user_role`, and `sys_role_menu` tables. Those normalized tables are authoritative for access; the legacy user entries are retained for migration compatibility. This small-workspace design serializes mutations and is not intended as a multi-tenant, high-volume ERP storage architecture.
+The application uses PostgreSQL exclusively. Current responsibilities have separate namespaces: Access, Support Access, Configuration, RMA, Catalog, Operations, Integration and Audit. Business aggregates are separate rows with JSONB for flexible fields and snapshots; credentials and grants have one normalized authoritative source. The compatibility repository assembles existing API responses while future modules can use dedicated typed repositories. No `app_state` table is used.
 
-To back up everything, stop the server, then copy the `data/` directory. Restore by replacing that directory while the server is stopped. Settings also offers a portable **business snapshot** JSON export; it excludes users/passwords/sessions and has no import/restore UI. CSV exports are real downloads and neutralize spreadsheet formula-like text.
-
-To start a fresh example workspace, stop the server and choose a new `DB_PATH`. Keep the existing database if its changes matter.
+Use PostgreSQL backups and restore procedures for complete recovery. Settings offers a portable **business snapshot** JSON export, excluding credentials/sessions; it is not a full database backup. Old SQLite files are migration sources/backups only. See [database operations](docs/postgresql.md).
 
 ## Integrations and scope
 
@@ -122,7 +120,7 @@ The backend adapts the MIT-licensed community Go port [lostvip-com/ruoyi-go](htt
 
 ## Migration
 
-The Go server opens the existing SQLite database and initializes RuoYi user/role/menu tables on first launch. Business collections and preferences are retained. Existing scrypt password hashes remain valid; new accounts use bcrypt. Existing session rows are compatible. Stop the old server before launching Go; do not run both against the same database.
+The deployed Go server now opens PostgreSQL and preserves existing credentials, grants, sessions, settings and business records. The legacy SQLite-to-PostgreSQL migration tool reads a consistent source snapshot explicitly; it is never used by the runtime.
 
 Before replacing the old server, the existing local database was tested on a consistent copy: all 14 business collections and settings were unchanged and the legacy administrator login worked. A complete pre-framework SQLite backup is retained in ignored `data/pre-react-gin.sqlite`. The RMA upgrade has a separate `data/pre-rma-v3.sqlite` backup.
 
@@ -135,12 +133,12 @@ npm test
 ./scripts/go.sh vet ./...
 ./scripts/go.sh test -race ./...
 npx playwright install chromium
-npm run test:browser   # ERP, RMA and expanded UI/API/SQLite audit
+npm run test:browser   # ERP, RMA and expanded UI/API/PostgreSQL audit
 ```
 
-An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and temporary SQLite database. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`. `npm run test:all` runs lint, build, Go/frontend tests, vet and all three browser suites. GitHub Actions repeats these checks and the race detector for pushes and pull requests.
+An existing Chrome executable may be selected with `CHROME_EXECUTABLE=/absolute/path/to/chrome npm run test:e2e`. Browser tests start a separate Go server and isolated PostgreSQL schema sets on the configured instance, then remove those test schemas. They do not modify the delivered workspace. Screenshots and JSON reports go to ignored `test-results/`. `npm run test:all` runs lint, build, Go/frontend tests, vet and all eight browser suites. GitHub Actions repeats these checks and the race detector for pushes and pull requests.
 
-`npm run test:migration` verifies migration of the existing local legacy database on a temporary copy; set `MIGRATION_DB` to choose another legacy database. It requires the original example administrator credentials. This is an optional local migration check, separate from the portable unit/browser suites.
+`npm run test:migration` reads a consistent, read-only export of the legacy database and imports it into isolated PostgreSQL schemas; set `MIGRATION_DB` to choose another legacy source. It requires the original example administrator credentials. This is an optional migration check, separate from the portable unit/browser suites.
 
 See [validation results](docs/validation.md) for coverage and limitations.
 
@@ -153,7 +151,7 @@ backend/cmd/harbor/       Go server entry point
 backend/internal/httpapi/ Gin routes, authentication, exports
 backend/internal/domain/ ERP validation, workflows, valuation, reporting
 backend/internal/ruoyi/   Adapted RuoYi RBAC models and permission service
-backend/internal/store/   SQLite persistence and transactional mutations
+backend/internal/store/   PostgreSQL transactions and compatibility application services
 backend/internal/support/ Configurable RMA domain, ownership and workflow engine
 backend/third_party/      Upstream MIT license
 scripts/go.sh             Go toolchain resolver

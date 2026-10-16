@@ -1,7 +1,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { resolve, dirname } from "node:path";
-export async function startServer(databasePath, integrationEnv = {}) {
+export async function startServer(
+  databasePath,
+  integrationEnv = {},
+  options = {},
+) {
   const executable = resolve(dirname(databasePath), "harbor-test");
   const build = spawnSync(
     "./scripts/go.sh",
@@ -9,6 +13,24 @@ export async function startServer(databasePath, integrationEnv = {}) {
     { stdio: "inherit" },
   );
   if (build.status !== 0) throw Error("Go build failed");
+  const dbExecutable = resolve(dirname(databasePath), "harbor-db-test");
+  const dbBuild = spawnSync(
+    "./scripts/go.sh",
+    ["build", "-o", dbExecutable, "./cmd/db"],
+    { stdio: "inherit" },
+  );
+  if (dbBuild.status !== 0) throw Error("Database tool build failed");
+  const dbCommand = (action, args = []) => {
+    const result = spawnSync(
+      dbExecutable,
+      ["-action", action, "-namespace", databasePath, ...args],
+      { encoding: "utf8" },
+    );
+    if (result.status !== 0)
+      throw Error("PostgreSQL test administration failed: " + result.stderr);
+    return result.stdout;
+  };
+  if (options.importFile) dbCommand("import", ["-file", options.importFile]);
   const port = await new Promise((resolve, reject) => {
     const s = createServer();
     s.on("error", reject);
@@ -25,7 +47,7 @@ export async function startServer(databasePath, integrationEnv = {}) {
       UDESK_ADMIN_EMAIL: "",
       UDESK_OPEN_API_TOKEN: "",
       ...integrationEnv,
-      DB_PATH: databasePath,
+      PG_TEST_NAMESPACE: databasePath,
       PORT: String(port),
       DIST_DIR: resolve("frontend/dist"),
     },
@@ -52,9 +74,13 @@ export async function startServer(databasePath, integrationEnv = {}) {
   }
   return {
     base,
-    close: () =>
+    readState: () => JSON.parse(dbCommand("dump")),
+    close: ({ preserve = false } = {}) =>
       new Promise((r) => {
-        child.once("exit", r);
+        child.once("exit", () => {
+          if (!preserve) dbCommand("destroy-test");
+          r();
+        });
         child.kill("SIGTERM");
       }),
   };

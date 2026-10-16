@@ -4,7 +4,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {startServer} from './server.mjs';
-const temp=mkdtempSync(join(tmpdir(),'harbor-warranty-')),app=await startServer(join(temp,'test.sqlite'));
+const temp=mkdtempSync(join(tmpdir(),'harbor-warranty-')),app=await startServer(join(temp,'test-workspace'));
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_EXECUTABLE?{executablePath:process.env.CHROME_EXECUTABLE}:{})});
 const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
 const data=async()=>(await page.request.get(app.base+'/api/bootstrap')).json();

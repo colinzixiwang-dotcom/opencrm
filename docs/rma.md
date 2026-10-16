@@ -1,6 +1,6 @@
 # RMA and support operations
 
-The RMA workspace is built into the existing React/Gin application and uses its persistent SQLite database. No new external service is required. Open **RMAs**, **Task center**, **Awaiting dispatch**, **Support orders**, **Serial numbers**, **Cards & promo codes**, or **Support configuration** from the sidebar. The Harbor design language is retained.
+The RMA workspace is built into the existing React/Gin application and uses the configured PostgreSQL database. Open **RMAs**, **Task center**, **Awaiting dispatch**, **Support orders**, **Serial numbers**, **Cards & promo codes**, or **Support configuration** from the sidebar. The Harbor design language is retained.
 
 ## Quick start
 
@@ -61,9 +61,9 @@ Support lists automatically expose enabled custom fields as filter options. Prod
 
 ## Persistence and recovery
 
-The additive migration initializes `supportConfig`, `rmas`, `rmaTasks`, `supportOrders`, `serials` and `benefitHistory` inside the existing transactional workspace state. It also adds seven RuoYi pages and eight action grants. Original ERP business collections and user/role assignments are preserved.
+These existing API collections are persisted as separate PostgreSQL aggregate rows/configuration documents, grouped into their current owning contexts. It also adds seven RuoYi pages and eight action grants. Original ERP business collections and user/role assignments are preserved.
 
-The complete pre-upgrade SQLite backup is retained in ignored **`data/pre-rma-v3.sqlite`**. Stop the server before restoring a full database. To roll back to the old application, restore that pre-RMA database along with the matching old code; the old application did not enforce RMA ownership. Business JSON exports are not a full database/permission backup.
+The complete pre-upgrade SQLite backup is retained in ignored **`data/pre-rma-v3.sqlite`**. These files are legacy backups only; current complete recovery requires PostgreSQL backup/restore. To roll back to the old application, restore that pre-RMA database along with the matching old code; the old application did not enforce RMA ownership. Business JSON exports are not a full database/permission backup.
 
 ## Verification
 

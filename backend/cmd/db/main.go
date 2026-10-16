@@ -103,6 +103,15 @@ func run(action, file, namespace string) error {
 		fmt.Println(string(b))
 		return nil
 	case "verify":
+		var server struct {
+			Database, Server, Role string
+			Port                   int
+			TLS                    bool
+		}
+		if e := db.Raw("SELECT current_database() AS database,inet_server_addr()::text AS server,inet_server_port() AS port,current_user AS role,COALESCE((SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()),false) AS tls").Scan(&server).Error; e != nil {
+			return e
+		}
+		fmt.Printf("Database: %s; server: %s:%d; role: %s; TLS: %t\n", server.Database, server.Server, server.Port, server.Role, server.TLS)
 		state, e := persistence.Read(db)
 		if e != nil {
 			return e

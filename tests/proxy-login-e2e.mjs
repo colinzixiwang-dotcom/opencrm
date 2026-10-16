@@ -10,7 +10,7 @@ const temp = mkdtempSync(join(tmpdir(), "harbor-proxy-login-"));
 let backend, frontend, browser;
 const previousTarget = process.env.VITE_API_PROXY_TARGET;
 try {
-  backend = await startServer(join(temp, "test.sqlite"));
+  backend = await startServer(join(temp, "test-workspace"));
   process.env.VITE_API_PROXY_TARGET = backend.base;
   frontend = await createServer({
     configFile: "frontend/vite.config.js",

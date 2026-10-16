@@ -31,7 +31,7 @@ The ticket center displays only Udesk records. Legacy internal tickets remain in
 
 Implemented `internal/integrations/udesk` for the signed HTTP client and external DTOs, and `internal/tickets` for authorization, query, snapshots and synchronization. Translate external DTOs at the boundary; RMA domain code consumes a small ticket reference/snapshot contract rather than the raw Udesk object.
 
-Do not append bulk Udesk tickets to the existing JSON `app_state`. Every action rewrites that state and bootstrap sends the collection to the browser. The implementation uses dedicated indexed tables and list/detail endpoints. These tables can begin in SQLite and move to the design's PostgreSQL target later:
+Do not append bulk Udesk tickets to the existing JSON `app_state`. Every action rewrites that state and bootstrap sends the collection to the browser. The implementation uses dedicated indexed tables and list/detail endpoints. These tables now live in PostgreSQL under Support Access, RMA and Integration ownership. Existing page/reply/cache semantics are preserved:
 
 | Implemented table | Purpose |
 | --- | --- |
