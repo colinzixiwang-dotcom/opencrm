@@ -11,6 +11,7 @@ import (
 	"harbor/internal/domain"
 	"harbor/internal/ruoyi"
 	"harbor/internal/support"
+	"harbor/internal/tickets"
 	"os"
 	"path/filepath"
 	"sync"
@@ -67,6 +68,12 @@ func Open(path string) (*Store, error) {
 		}
 		return svc.EnsureSupportMenus()
 	}); e != nil {
+		return nil, e
+	}
+	if e := tickets.Init(db); e != nil {
+		return nil, e
+	}
+	if e := tickets.EnsureRoles(db); e != nil {
 		return nil, e
 	}
 	return s, nil
@@ -168,6 +175,11 @@ func (s *Store) Apply(uid, action string, b M, key string) (response M, err erro
 			}
 			if e != nil {
 				return e
+			}
+			if action == "rma.create" {
+				if e := tickets.AttachDraft(tx, actor, b, result); e != nil {
+					return e
+				}
 			}
 			if domain.In(action, "product.create", "product.update") {
 				fields, e := support.ProductFields(state, result, b)

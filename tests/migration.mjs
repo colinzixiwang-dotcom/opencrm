@@ -46,17 +46,32 @@ try {
     "payments",
     "expenses",
     "campaigns",
-    "tickets",
     "tasks",
     "audit",
   ]) {
     assert.deepEqual(after[k], before[k], k + " changed during migration");
     counts[k] = after[k].length;
   }
+  assert.deepEqual(
+    after.tickets,
+    [],
+    "legacy tickets must not appear in the Udesk workspace bootstrap",
+  );
+  const migratedDb = new DatabaseSync(copy, { readOnly: true });
+  const stored = JSON.parse(
+    migratedDb.prepare("SELECT data FROM app_state WHERE id=1").get().data,
+  );
+  migratedDb.close();
+  assert.deepEqual(
+    stored.tickets,
+    before.tickets,
+    "legacy ticket history changed on disk",
+  );
+  counts.legacyTicketsOnDisk = stored.tickets.length;
   assert.deepEqual(after.settings, before.settings);
   assert.equal(after.version, before.version);
   assert.equal(after.users.length, before.users.length);
-  assert.equal(after.roles.length, 3);
+  assert.equal(after.roles.length, 5);
   assert.equal(after.menus.length, 20);
   await server.close();
   server = null;
@@ -67,7 +82,7 @@ try {
     settingsPreserved: true,
     versionPreserved: true,
     legacyLoginPreserved: true,
-    ruoyiRolesInitialized: 3,
+    ruoyiRolesInitialized: after.roles.length,
   };
   mkdirSync("test-results", { recursive: true });
   writeFileSync(

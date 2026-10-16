@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { resolve, dirname } from "node:path";
-export async function startServer(databasePath) {
+export async function startServer(databasePath, integrationEnv = {}) {
   const executable = resolve(dirname(databasePath), "harbor-test");
   const build = spawnSync(
     "./scripts/go.sh",
@@ -20,6 +20,11 @@ export async function startServer(databasePath) {
   const child = spawn(executable, [], {
     env: {
       ...process.env,
+      HOST: "127.0.0.1",
+      UDESK_BASE_URL: "",
+      UDESK_ADMIN_EMAIL: "",
+      UDESK_OPEN_API_TOKEN: "",
+      ...integrationEnv,
       DB_PATH: databasePath,
       PORT: String(port),
       DIST_DIR: resolve("frontend/dist"),

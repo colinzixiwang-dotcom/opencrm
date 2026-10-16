@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"harbor/internal/httpapi"
+	"harbor/internal/integrations/udesk"
 	"harbor/internal/store"
 	"log"
 	"net/http"
@@ -14,6 +15,9 @@ import (
 )
 
 func main() {
+	if e := udesk.LoadEnv(".env"); e != nil {
+		log.Fatal("Cannot load backend configuration: ", e)
+	}
 	path := os.Getenv("DB_PATH")
 	if path == "" {
 		path = "data/harbor.sqlite"

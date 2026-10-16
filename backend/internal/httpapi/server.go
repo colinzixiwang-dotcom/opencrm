@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"harbor/internal/domain"
+	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
 	"harbor/internal/support"
+	"harbor/internal/tickets"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -25,13 +27,14 @@ import (
 type M = domain.M
 type Server struct {
 	Store    *store.Store
+	Tickets  *tickets.Service
 	Dist     string
 	mu       sync.Mutex
 	attempts map[string][]time.Time
 }
 
 func New(s *store.Store, dist string) *Server {
-	return &Server{Store: s, Dist: dist, attempts: map[string][]time.Time{}}
+	return &Server{Store: s, Tickets: tickets.New(s.DB, udesk.FromEnv()), Dist: dist, attempts: map[string][]time.Time{}}
 }
 func (s *Server) Router() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
@@ -69,6 +72,7 @@ func (s *Server) Router() *gin.Engine {
 	r.POST("/api/login", s.login)
 	api := r.Group("/api")
 	api.Use(s.auth)
+	s.ticketRoutes(api)
 	api.GET("/bootstrap", s.bootstrap)
 	api.GET("/rmas/:id", func(c *gin.Context) {
 		state, e := s.Store.State()
@@ -243,6 +247,7 @@ func (s *Server) bootstrap(c *gin.Context) {
 	state["permissions"] = actor["permissions"]
 	state["permissionCodes"] = actor["permissionCodes"]
 	state["menus"] = s.visibleMenus(c)
+	state["tickets"] = []M{}
 	state["report"] = domain.Report(state, "", "", "")
 	svc := ruoyi.Service{DB: s.Store.DB}
 	users := []M{}
@@ -306,6 +311,12 @@ func (s *Server) action(c *gin.Context) {
 	if !ok {
 		domain.Fail("An action and payload are required.")
 	}
+	if domain.Str(b["action"]) == "rma.create" && domain.Str(payload["draftId"]) != "" {
+		if e := s.Tickets.ValidateSubmission(c.Request.Context(), s.actor(c), domain.Str(payload["draftId"])); e != nil {
+			s.respond(c, e)
+			return
+		}
+	}
 	key := c.GetHeader("Idempotency-Key")
 	if len(key) > 150 || (key != "" && !regexp.MustCompile(`^[-a-zA-Z0-9]+$`).MatchString(key)) {
 		domain.Fail("Invalid idempotency key.")
@@ -342,6 +353,10 @@ func (s *Server) report(c *gin.Context) {
 }
 func (s *Server) export(c *gin.Context) {
 	col := c.Param("collection")
+	if col == "tickets" {
+		s.exportTickets(c)
+		return
+	}
 	module := map[string]string{"products": "product", "suppliers": "purchase", "warehouses": "warehouse", "purchases": "purchase", "sales": "sales", "shipments": "logistics", "stocks": "warehouse", "movements": "warehouse", "payments": "finance", "expenses": "finance", "campaigns": "advertising", "tickets": "service", "tasks": "tools", "audit": "settings", "rmas": "rma", "rmaTasks": "rmatasks", "supportOrders": "supportorders", "serials": "serials", "benefitHistory": "benefits"}[col]
 	if module == "" {
 		domain.Fail("Unknown export.", 404)

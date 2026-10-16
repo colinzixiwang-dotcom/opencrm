@@ -1,0 +1,150 @@
+package udesk
+
+import (
+	"bufio"
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+)
+
+type M = map[string]any
+type API interface {
+	Get(context.Context, string, url.Values) (M, error)
+}
+type Client struct {
+	Base, Email, Token string
+	HTTP               *http.Client
+	mu                 sync.Mutex
+	next               time.Time
+}
+
+// LoadEnv only supplies missing variables; credentials never reach the frontend.
+func LoadEnv(path string) error {
+	f, e := os.Open(path)
+	if os.IsNotExist(e) {
+		return nil
+	}
+	if e != nil {
+		return e
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "export ")
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		if len(v) >= 2 && ((v[0] == '"' && v[len(v)-1] == '"') || (v[0] == '\'' && v[len(v)-1] == '\'')) {
+			v = v[1 : len(v)-1]
+		}
+		if _, exists := os.LookupEnv(k); !exists {
+			os.Setenv(k, v)
+		}
+	}
+	return scanner.Err()
+}
+func FromEnv() *Client {
+	return &Client{Base: strings.TrimRight(os.Getenv("UDESK_BASE_URL"), "/"), Email: os.Getenv("UDESK_ADMIN_EMAIL"), Token: os.Getenv("UDESK_OPEN_API_TOKEN"), HTTP: &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}
+}
+func (c *Client) Tenant() string   { return c.Base }
+func (c *Client) Configured() bool { return c.Base != "" && c.Email != "" && c.Token != "" }
+func (c *Client) Get(ctx context.Context, path string, params url.Values) (M, error) {
+	if !c.Configured() {
+		return nil, fmt.Errorf("Udesk connection is not configured.")
+	}
+	base, e := url.Parse(c.Base)
+	if e != nil || base.Host == "" || (base.Scheme != "https" && base.Scheme != "http") {
+		return nil, fmt.Errorf("Invalid Udesk base URL.")
+	}
+	for attempt := 0; attempt < 3; attempt++ {
+		c.mu.Lock()
+		wait := time.Until(c.next)
+		if wait < 0 {
+			wait = 0
+		}
+		c.next = time.Now().Add(wait + 1100*time.Millisecond)
+		c.mu.Unlock()
+		timer := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+		nonce := make([]byte, 16)
+		if _, e = rand.Read(nonce); e != nil {
+			return nil, e
+		}
+		stamp := strconv.FormatInt(time.Now().Unix(), 10)
+		n := hex.EncodeToString(nonce)
+		sum := sha256.Sum256([]byte(strings.Join([]string{c.Email, c.Token, stamp, n, "v2"}, "&")))
+		q := url.Values{}
+		for k, v := range params {
+			q[k] = append([]string{}, v...)
+		}
+		q.Set("email", c.Email)
+		q.Set("timestamp", stamp)
+		q.Set("nonce", n)
+		q.Set("sign_version", "v2")
+		q.Set("sign", hex.EncodeToString(sum[:]))
+		endpoint := strings.TrimRight(c.Base, "/")
+		if !strings.HasSuffix(endpoint, "/open_api_v1") {
+			endpoint += "/open_api_v1"
+		}
+		endpoint += "/" + strings.TrimLeft(path, "/") + "?" + q.Encode()
+		req, e := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+		if e != nil {
+			return nil, fmt.Errorf("Invalid Udesk request.")
+		}
+		req.Header.Set("Accept", "application/json")
+		response, e := c.HTTP.Do(req)
+		if e != nil {
+			return nil, fmt.Errorf("Udesk request failed or timed out.")
+		}
+		data, e := io.ReadAll(io.LimitReader(response.Body, 16<<20))
+		response.Body.Close()
+		if (response.StatusCode == 429 || response.StatusCode >= 500) && attempt < 2 {
+			timer := time.NewTimer(time.Duration(attempt+1) * 2 * time.Second)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, ctx.Err()
+			case <-timer.C:
+			}
+			continue
+		}
+		if response.StatusCode != 200 {
+			return nil, fmt.Errorf("Udesk returned HTTP %d.", response.StatusCode)
+		}
+		if e != nil {
+			return nil, fmt.Errorf("Cannot read Udesk response.")
+		}
+		var out M
+		if json.Unmarshal(data, &out) != nil {
+			return nil, fmt.Errorf("Invalid Udesk response.")
+		}
+		if out["code"] != float64(1000) {
+			return nil, fmt.Errorf("Udesk rejected the request (code %v).", out["code"])
+		}
+		return out, nil
+	}
+	return nil, fmt.Errorf("Udesk is temporarily unavailable.")
+}
