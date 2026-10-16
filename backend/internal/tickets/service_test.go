@@ -61,12 +61,15 @@ func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
 	return nil, fmt.Errorf("unexpected endpoint %s", path)
 }
 func fixture(t *testing.T) (*store.Store, *tickets.Service, *fake, M) {
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
 	t.Helper()
 	db, e := store.Open(":memory:")
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { db.Destroy() })
 	var u ruoyi.SysUser
 	db.DB.Where("email=?", "admin@harbor.local").First(&u)
 	a := (ruoyi.Service{DB: db.DB}).Actor(u)

@@ -8,7 +8,8 @@ import (
 
 type M = domain.M
 
-// External records are separate from app_state, and keyed by tenant as well as source ID.
+// Support Access owns external records; the naming strategy places drafts/links
+// in the RMA context and synchronization runs in Integration.
 type Ticket struct {
 	ID            uint   `gorm:"primaryKey"`
 	Tenant        string `gorm:"uniqueIndex:ticket_source"`

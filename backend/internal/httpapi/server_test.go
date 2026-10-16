@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"harbor/internal/domain"
+	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
 	"net/http"
@@ -21,12 +22,15 @@ type suite struct {
 }
 
 func setup(t *testing.T) *suite {
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
 	t.Helper()
-	s, e := store.Open(filepath.Join(t.TempDir(), "test.sqlite"))
+	s, e := store.Open(filepath.Join(t.TempDir(), "test-workspace"))
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { s.Close() })
+	t.Cleanup(func() { s.Destroy() })
 	x := &suite{t: t, s: s, r: New(s, t.TempDir()).Router()}
 	x.admin = x.login("admin@harbor.local", "HarborDemo!2026")
 	return x
@@ -251,7 +255,10 @@ func TestOriginHostAndReportValidation(t *testing.T) {
 	}
 }
 func TestPersistentPermissionsAfterReopen(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "persist.sqlite")
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
+	path := filepath.Join(t.TempDir(), "persist-workspace")
 	s, e := store.Open(path)
 	if e != nil {
 		t.Fatal(e)
@@ -266,7 +273,7 @@ func TestPersistentPermissionsAfterReopen(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer s.Close()
+	defer s.Destroy()
 	x.s = s
 	x.r = New(s, t.TempDir()).Router()
 	c, v, _ := x.req("GET", "/api/bootstrap", token, nil, "")

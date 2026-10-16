@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
+	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
 	"harbor/internal/support"
@@ -67,7 +69,14 @@ func (s *Server) Router() *gin.Engine {
 		c.Next()
 	})
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, M{"ok": true, "version": "3.0.0", "backend": "Go + Gin", "frontend": "React", "permissions": "RuoYi-Go adapted RBAC", "storage": "sqlite"})
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		pool, e := s.Store.DB.DB()
+		if e != nil || pool.PingContext(ctx) != nil {
+			c.JSON(503, M{"ok": false, "storage": "postgresql"})
+			return
+		}
+		c.JSON(200, M{"ok": true, "version": "3.0.0", "backend": "Go + Gin", "frontend": "React", "permissions": "RuoYi-Go adapted RBAC", "storage": "postgresql"})
 	})
 	r.POST("/api/login", s.login)
 	api := r.Group("/api")
@@ -187,8 +196,8 @@ func (s *Server) login(c *gin.Context) {
 		return
 	}
 	token := hex.EncodeToString(tokenBytes)
-	s.Store.DB.Exec("DELETE FROM sessions WHERE expires<=?", time.Now().UnixMilli())
-	if e := s.Store.DB.Exec("INSERT INTO sessions(hash,user_id,expires) VALUES(?,?,?)", store.Digest(token), u.UserID, time.Now().Add(12*time.Hour).UnixMilli()).Error; e != nil {
+	s.Store.DB.Exec(persistence.SQL(s.Store.DB, "DELETE FROM sessions WHERE expires<=?"), time.Now().UnixMilli())
+	if e := s.Store.DB.Exec(persistence.SQL(s.Store.DB, "INSERT INTO sessions(hash,user_id,expires) VALUES(?,?,?)"), store.Digest(token), u.UserID, time.Now().Add(12*time.Hour).UnixMilli()).Error; e != nil {
 		s.respond(c, e)
 		return
 	}
@@ -202,7 +211,7 @@ func (s *Server) auth(c *gin.Context) {
 		domain.Fail("Sign in to continue.", 401)
 	}
 	var session struct{ UserID string }
-	query := s.Store.DB.Raw("SELECT user_id FROM sessions WHERE hash=? AND expires>?", store.Digest(token), time.Now().UnixMilli()).Scan(&session)
+	query := s.Store.DB.Raw(persistence.SQL(s.Store.DB, "SELECT user_id FROM sessions WHERE hash=? AND expires>?"), store.Digest(token), time.Now().UnixMilli()).Scan(&session)
 	if query.Error != nil {
 		s.respond(c, query.Error)
 		return
@@ -259,7 +268,7 @@ func (s *Server) bootstrap(c *gin.Context) {
 			ids := []int64{}
 			s.Store.DB.Model(&ruoyi.UserRole{}).Where("user_id=?", u.UserID).Pluck("role_id", &ids)
 			assigned := []ruoyi.SysRole{}
-			s.Store.DB.Table("sys_role r").Select("r.*").Joins("JOIN sys_user_role ur ON ur.role_id=r.role_id").Where("ur.user_id=?", u.UserID).Order("r.role_sort,r.role_id").Scan(&assigned)
+			s.Store.DB.Table(persistence.SQL(s.Store.DB, "sys_role r")).Select("r.*").Joins(persistence.SQL(s.Store.DB, "JOIN sys_user_role ur ON ur.role_id=r.role_id")).Where("ur.user_id=?", u.UserID).Order("r.role_sort,r.role_id").Scan(&assigned)
 			keys := []string{}
 			for _, r := range assigned {
 				keys = append(keys, r.RoleKey)
@@ -300,7 +309,7 @@ func (s *Server) bootstrap(c *gin.Context) {
 }
 func (s *Server) logout(c *gin.Context) {
 	token, _ := c.Cookie("harbor_session")
-	s.Store.DB.Exec("DELETE FROM sessions WHERE hash=?", store.Digest(token))
+	s.Store.DB.Exec(persistence.SQL(s.Store.DB, "DELETE FROM sessions WHERE hash=?"), store.Digest(token))
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie("harbor_session", "", -1, "/", "", false, true)
 	c.JSON(200, M{"ok": true})

@@ -2,9 +2,9 @@ package tickets
 
 import (
 	"context"
-	"encoding/json"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
+	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
 	"net/url"
 	"strconv"
@@ -59,18 +59,12 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 	}
 	hash := domain.HashPassword("HarborDemo!2026")
 	e = s.DB.Transaction(func(tx *gorm.DB) error {
+		if e := persistence.Lock(tx); e != nil {
+			return e
+		}
 		if e := EnsureRoles(tx); e != nil {
 			return e
 		}
-		var stateRow struct{ Data string }
-		if e := tx.Raw("SELECT data FROM app_state WHERE id=1").Scan(&stateRow).Error; e != nil {
-			return e
-		}
-		state := M{}
-		if e := json.Unmarshal([]byte(stateRow.Data), &state); e != nil {
-			return e
-		}
-		users := domain.Rows(state, "users")
 		seen := []string{}
 		for _, a := range clean {
 			aid := id(a["id"])
@@ -169,24 +163,8 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 				return e
 			}
 			seen = append(seen, aid)
-			local := M{"id": user.UserID, "name": user.UserName, "email": email, "active": enabled, "role": roleKey, "passwordHash": user.Password}
-			found := false
-			for _, u := range users {
-				if id(u["id"]) == user.UserID {
-					for k, v := range local {
-						if k != "role" || isNew {
-							u[k] = v
-						}
-					}
-					found = true
-					break
-				}
-			}
-			if !found {
-				users = append(users, local)
-			}
 			if !enabled {
-				if e := tx.Exec("DELETE FROM sessions WHERE user_id=?", user.UserID).Error; e != nil {
+				if e := tx.Exec(persistence.SQL(tx, "DELETE FROM sessions WHERE user_id=?"), user.UserID).Error; e != nil {
 					return e
 				}
 			}
@@ -207,27 +185,18 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 			if e := tx.Model(&ruoyi.SysUser{}).Where("user_id=?", m.UserID).Update("status", "1").Error; e != nil {
 				return e
 			}
-			tx.Exec("DELETE FROM sessions WHERE user_id=?", m.UserID)
-			for _, u := range users {
-				if id(u["id"]) == m.UserID {
-					u["active"] = false
-				}
-			}
+			tx.Exec(persistence.SQL(tx, "DELETE FROM sessions WHERE user_id=?"), m.UserID)
+
 		}
 		if reset {
 			if e := tx.Model(&ruoyi.SysUser{}).Where("1=1").Update("password", hash).Error; e != nil {
 				return e
 			}
-			for _, u := range users {
-				u["passwordHash"] = hash
-			}
-			if e := tx.Exec("DELETE FROM sessions").Error; e != nil {
+			if e := tx.Exec(persistence.SQL(tx, "DELETE FROM sessions")).Error; e != nil {
 				return e
 			}
 		}
-		state["users"] = users
-		domain.Prepend(state, "audit", M{"id": domain.ID("AUD"), "action": "udesk.accounts.sync", "actor": actor["name"], "at": domain.Now(), "accounts": len(clean), "resetPasswords": reset})
-		if e := tx.Exec("UPDATE app_state SET data=? WHERE id=1", enc(state)).Error; e != nil {
+		if e := persistence.AppendAudit(tx, M{"id": domain.ID("AUD"), "action": "udesk.accounts.sync", "actor": actor["name"], "at": domain.Now(), "accounts": len(clean), "resetPasswords": reset}); e != nil {
 			return e
 		}
 		return nil

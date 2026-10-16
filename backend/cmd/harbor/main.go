@@ -18,10 +18,6 @@ func main() {
 	if e := udesk.LoadEnv(".env"); e != nil {
 		log.Fatal("Cannot load backend configuration: ", e)
 	}
-	path := os.Getenv("DB_PATH")
-	if path == "" {
-		path = "data/harbor.sqlite"
-	}
 	dist := os.Getenv("DIST_DIR")
 	if dist == "" {
 		dist = "frontend/dist"
@@ -30,7 +26,7 @@ func main() {
 	if port == "" {
 		port = "4317"
 	}
-	db, e := store.Open(path)
+	db, e := store.Open(os.Getenv("PG_TEST_NAMESPACE"))
 	if e != nil {
 		log.Fatal(e)
 	}

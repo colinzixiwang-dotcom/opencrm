@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
+	"harbor/internal/persistence"
 	"strings"
 )
 
@@ -51,7 +52,7 @@ func Permission(action string) string {
 func ViewPermission(module string) string { return "erp:" + module + ":view" }
 func (s Service) Roles(userID string) []SysRole {
 	roles := []SysRole{}
-	s.DB.Table("sys_role r").Select("r.*").Joins("JOIN sys_user_role ur ON ur.role_id=r.role_id").Where("ur.user_id=? AND r.status=?", userID, "0").Order("r.role_sort, r.role_id").Scan(&roles)
+	s.DB.Table(persistence.SQL(s.DB, "sys_role r")).Select("r.*").Joins(persistence.SQL(s.DB, "JOIN sys_user_role ur ON ur.role_id=r.role_id")).Where("ur.user_id=? AND r.status=?", userID, "0").Order("r.role_sort, r.role_id").Scan(&roles)
 	return roles
 }
 func (s Service) Menus(userID string) []SysMenu {
@@ -62,9 +63,9 @@ func (s Service) Menus(userID string) []SysMenu {
 			admin = true
 		}
 	}
-	q := s.DB.Table("sys_menu m").Select("DISTINCT m.*").Where("m.status=?", "0")
+	q := s.DB.Table(persistence.SQL(s.DB, "sys_menu m")).Select("DISTINCT m.*").Where("m.status=?", "0")
 	if !admin {
-		q = q.Joins("JOIN sys_role_menu rm ON rm.menu_id=m.menu_id JOIN sys_user_role ur ON ur.role_id=rm.role_id JOIN sys_role r ON r.role_id=ur.role_id").Where("ur.user_id=? AND r.status=?", userID, "0")
+		q = q.Joins(persistence.SQL(s.DB, "JOIN sys_role_menu rm ON rm.menu_id=m.menu_id JOIN sys_user_role ur ON ur.role_id=rm.role_id JOIN sys_role r ON r.role_id=ur.role_id")).Where("ur.user_id=? AND r.status=?", userID, "0")
 	}
 	q.Order("m.order_num,m.menu_id").Scan(&out)
 	return out
@@ -122,9 +123,6 @@ func (s Service) Actor(u SysUser) M {
 	return M{"id": u.UserID, "name": u.UserName, "email": u.Email, "role": key, "roles": keys, "active": u.Status == "0", "permissions": actions, "permissionCodes": codes}
 }
 func (s Service) Init(state M) error {
-	if e := s.DB.AutoMigrate(&SysUser{}, &SysRole{}, &SysMenu{}, &UserRole{}, &RoleMenu{}); e != nil {
-		return e
-	}
 	var count int64
 	s.DB.Model(&SysRole{}).Count(&count)
 	if count > 0 {
@@ -319,7 +317,7 @@ func (s Service) SystemAction(action string, b, actor M) (M, error) {
 		}
 		if hasAdmin && !admin {
 			var admins int64
-			s.DB.Table("sys_user_role ur").Joins("JOIN sys_role r ON r.role_id=ur.role_id JOIN sys_user u ON u.user_id=ur.user_id").Where("r.role_key='admin' AND u.status='0'").Count(&admins)
+			s.DB.Table(persistence.SQL(s.DB, "sys_user_role ur")).Joins(persistence.SQL(s.DB, "JOIN sys_role r ON r.role_id=ur.role_id JOIN sys_user u ON u.user_id=ur.user_id")).Where("r.role_key='admin' AND u.status='0'").Count(&admins)
 			if admins <= 1 {
 				domain.Fail("At least one active administrator is required.", 409)
 			}

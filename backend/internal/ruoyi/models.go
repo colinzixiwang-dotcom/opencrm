@@ -13,8 +13,6 @@ type SysRole struct {
 	Remark   string `json:"remark"`
 }
 
-func (SysRole) TableName() string { return "sys_role" }
-
 type SysMenu struct {
 	MenuID   int64  `gorm:"primaryKey;column:menu_id" json:"menuId"`
 	MenuName string `json:"menuName"`
@@ -29,8 +27,6 @@ type SysMenu struct {
 	Action   string `json:"action,omitempty"`
 }
 
-func (SysMenu) TableName() string { return "sys_menu" }
-
 type SysUser struct {
 	UserID    string `gorm:"primaryKey;column:user_id" json:"userId"`
 	UserName  string `json:"userName"`
@@ -40,18 +36,12 @@ type SysUser struct {
 	Status    string `json:"status"`
 }
 
-func (SysUser) TableName() string { return "sys_user" }
-
 type UserRole struct {
 	UserID string `gorm:"primaryKey;column:user_id"`
 	RoleID int64  `gorm:"primaryKey;column:role_id"`
 }
 
-func (UserRole) TableName() string { return "sys_user_role" }
-
 type RoleMenu struct {
 	RoleID int64 `gorm:"primaryKey;column:role_id"`
 	MenuID int64 `gorm:"primaryKey;column:menu_id"`
 }
-
-func (RoleMenu) TableName() string { return "sys_role_menu" }

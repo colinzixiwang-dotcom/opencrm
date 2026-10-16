@@ -1,9 +1,9 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"harbor/internal/domain"
 	"harbor/internal/ruoyi"
+	"harbor/internal/store"
 	"strings"
 	"testing"
 )
@@ -19,8 +19,7 @@ func prepareRMA(t *testing.T) *suite {
 	return x
 }
 func storeState(x *suite, s M) error {
-	b, _ := json.Marshal(s)
-	return x.s.DB.Exec("UPDATE app_state SET data=? WHERE id=1", string(b)).Error
+	return store.Write(x.s.DB, s)
 }
 func rmaInput() M {
 	return M{"ticketNumber": "PRIVATE-TICKET", "orderNumber": "PRIVATE-ORDER", "platform": "Amazon", "productId": "PRD-1", "rootCauseId": "device_fault", "solutionId": "goodwill", "description": "PRIVATE-DESCRIPTION", "taskInputs": M{"gift": M{"amountCents": 15000}}}
