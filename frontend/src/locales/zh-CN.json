@@ -1138,5 +1138,11 @@
   "View original message": "查看原始消息",
   "Expand quoted history": "展开引用历史",
   "Show signature": "查看签名",
-  "Source channel": "来源渠道"
+  "Source channel": "来源渠道",
+  "Purchase Channel": "购买渠道",
+  "Country / Region": "国家 / 地区",
+  "Primary Category": "一级分类",
+  "Secondary Issue": "二级问题",
+  "Tertiary Symptoms / Keywords": "症状 / 关键词",
+  "Morpho Submission ID": "Morpho 提交编号"
 }

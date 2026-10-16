@@ -15,11 +15,12 @@ import {
   LoadingState,
 } from "./components";
 import { AttachmentList, AttachmentContext } from "./attachments";
-import { messageText } from "./ticket-content";
+import { messageText, messageParts } from "./ticket-content";
 import {
   customValues,
   customDefinition,
   problemPresentation,
+  isInitialSubmission,
 } from "./ticket-presentation";
 import { RMAForm } from "./support";
 
@@ -313,6 +314,52 @@ function Fields({ ticket, metadata, omitted = [] }) {
     </>
   );
 }
+function MessageBody({ text }) {
+  return (
+    <div className="conversation-body">
+      {text
+        .split(/\n\n+/)
+        .filter(Boolean)
+        .map((paragraph, index) => (
+          <p key={index}>{paragraph}</p>
+        ))}
+    </div>
+  );
+}
+function ConversationContent({ reply, ticket }) {
+  const html = reply.content_format === "html";
+  const full = messageText(reply.content, html);
+  const parts = messageParts(reply.content, html);
+  const initial = isInitialSubmission(
+    reply,
+    ticket,
+    full,
+    plain(ticket.content),
+  );
+  if (initial)
+    return (
+      <>
+        <p className="ticket-initial-reference">
+          {tr("Initial submission shown above")}
+        </p>
+        <details className="conversation-quote">
+          <summary>{tr("View original message")}</summary>
+          <MessageBody text={full} />
+        </details>
+      </>
+    );
+  return (
+    <>
+      <MessageBody text={parts.main} />
+      {parts.quote && (
+        <details className="conversation-quote">
+          <summary>{tr("Expand quoted history")}</summary>
+          <MessageBody text={parts.quote} />
+        </details>
+      )}
+    </>
+  );
+}
 function TicketDetail({ id, metadata, onClose, onDraft }) {
   const { can } = useWorkspace();
   const [data, setData] = useState(null),
@@ -504,17 +551,10 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                                 )}
                               </span>
                             </header>
-                            <div className="conversation-body">
-                              {messageText(
-                                r.content,
-                                r.content_format === "html",
-                              )
-                                .split(/\n\n+/)
-                                .filter(Boolean)
-                                .map((paragraph, i) => (
-                                  <p key={i}>{paragraph}</p>
-                                ))}
-                            </div>
+                            <ConversationContent
+                              reply={r}
+                              ticket={data.source}
+                            />
                             {hasValue(r.attachments) && (
                               <Value value={r.attachments} />
                             )}
