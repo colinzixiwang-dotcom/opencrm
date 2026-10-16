@@ -3470,3 +3470,12 @@ td {
 .pagination-divider { color:#c4cdc3; }
 .ticket-thread .pagination { padding:16px 0 0; }
 @media(max-width:600px) { .pagination { padding:14px 12px; gap:12px; } .pagination-context { flex-basis:100%; } .pagination-controls { width:100%; justify-content:space-between; gap:8px; } .pagination-button { padding:6px 8px; font-size:11px; } .pagination-position { gap:5px; font-size:10px; } }
+.ticket-conversation article { padding:20px; background:#fcfdfb; border-color:var(--line); }
+.conversation-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--line); }
+.conversation-author { display:flex; align-items:center; gap:9px; min-width:0; }
+.conversation-avatar { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border-radius:50%; background:#e8f0e2; color:var(--green); font-size:12px; font-weight:600; }
+.conversation-header > span { font-size:10px; color:var(--muted); }
+.conversation-body { text-align:left; font-size:13px; line-height:1.8; overflow-wrap:anywhere; }
+.ticket-conversation .conversation-body p { margin:0 0 12px; white-space:pre-line; line-height:1.8; }
+.ticket-conversation .conversation-body p:last-child { margin-bottom:0; }
+@media(max-width:600px) { .ticket-conversation article { padding:16px; } .conversation-header { align-items:flex-start; } .conversation-header > span { width:100%; padding-left:39px; } }

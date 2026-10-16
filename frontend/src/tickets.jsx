@@ -13,6 +13,7 @@ import {
   Icon,
   Pagination,
 } from "./components";
+import { messageText } from "./ticket-content";
 import { RMAForm } from "./support";
 
 const text = (value) =>
@@ -21,22 +22,7 @@ const text = (value) =>
     : typeof value === "object"
       ? JSON.stringify(value)
       : String(value);
-const plain = (value) => {
-  const doc = new window.DOMParser().parseFromString(
-    String(value || ""),
-    "text/html",
-  );
-  doc
-    .querySelectorAll("script,style,noscript")
-    .forEach((node) => node.remove());
-  doc
-    .querySelectorAll("br")
-    .forEach((node) => node.replaceWith(doc.createTextNode("\n")));
-  doc
-    .querySelectorAll("p,div,li")
-    .forEach((node) => node.append(doc.createTextNode("\n")));
-  return (doc.body.textContent || "").trim();
-};
+const plain = value => messageText(value, true);
 const safeURL = (value) => {
   try {
     const u = new URL(value);
@@ -465,10 +451,8 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                       )}
                       {(replies.replies || []).map((r) => (
                         <article key={r.id}>
-                          <div>
-                            <strong>
-                              {r.author?.nick_name || r.author?.user_type}
-                            </strong>
+                          <header className="conversation-header">
+                            <div className="conversation-author"><span className="conversation-avatar" aria-hidden="true">{(r.author?.nick_name || r.author?.user_type || "U").slice(0,1).toUpperCase()}</span><strong>{r.author?.nick_name || r.author?.user_type}</strong></div>
                             <span>
                               {displayDate(r.created_at)} ·{" "}
                               {tr(
@@ -479,12 +463,8 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                                   : "External reply",
                               )}
                             </span>
-                          </div>
-                          <p>
-                            {r.content_format === "html"
-                              ? plain(r.content)
-                              : r.content}
-                          </p>
+                          </header>
+                          <div className="conversation-body">{messageText(r.content, r.content_format === "html").split(/\n\n+/).filter(Boolean).map((paragraph,i)=><p key={i}>{paragraph}</p>)}</div>
                           {hasValue(r.attachments) && (
                             <Value value={r.attachments} />
                           )}
