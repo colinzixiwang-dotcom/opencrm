@@ -37,49 +37,111 @@ const comparable = (value) =>
   String(value || "")
     .replace(/\s+/g, " ")
     .trim();
-export function problemPresentation(ticket, metadata, original) {
-  const entries = Object.entries(customValues(ticket)).map(([name, value]) => ({
-    name,
-    value,
-    ...customDefinition(name, ticket, metadata),
-  }));
-  const problem = entries.find(
-    (e) =>
-      /^(Customer Question\s*\/\s*Problem Description|Problem Description|问题描述|客户问题)$/i.test(
-        e.label,
-      ) &&
-      typeof e.value === "string" &&
-      e.value.trim(),
+const populated = (value) =>
+  value != null &&
+  (typeof value === "string"
+    ? value.trim() !== "" && !/^[-—–－]+$/.test(value.trim())
+    : Array.isArray(value)
+      ? value.some(populated)
+      : typeof value === "object"
+        ? Object.values(value).some(populated)
+        : true);
+const problemLabel = (label) =>
+  /^(Customer Question\s*\/\s*Problem Description|Problem Description|问题描述|客户问题)$/i.test(
+    label,
   );
-  if (!problem || !comparable(original).includes(comparable(problem.value)))
-    return { text: original, original: "", omitted: [] };
-  // Fold generated submissions only when every piece is represented elsewhere.
-  let residue = comparable(original);
-  for (const e of [...entries].sort(
-    (a, b) => String(b.value).length - String(a.value).length,
-  )) {
-    if (typeof e.value !== "string" || !e.value.trim()) continue;
-    const options = [];
-    const visit = (list) =>
-      (list || []).forEach((option) => {
-        options.push(option);
-        visit(option.subs);
+export function problemPresentation(ticket, metadata, original) {
+  const unchanged = { text: original, original: "", omitted: [], fields: [] };
+  if (
+    String(ticket.platform_name || ticket.platform || "").toLowerCase() !==
+    "api"
+  )
+    return unchanged;
+  if (!metadata) return unchanged;
+  const entries = Object.entries(customValues(ticket))
+    .filter(([, value]) => populated(value))
+    .map(([name, value]) => ({
+      name,
+      value,
+      ...customDefinition(name, ticket, metadata),
+    }));
+  // A legacy API submission may carry known form fields only in its body.
+  // Read explicit field-label lines using Udesk definitions, never prose inference.
+  const definitions = metadata?.fields?.fields || [];
+  const lines = original.split("\n");
+  const remainder = [];
+  for (const line of lines) {
+    const definition = definitions.find(
+      (field) =>
+        line.trim().startsWith(field.field_label + ":") ||
+        line.trim().startsWith(field.field_label + "："),
+    );
+    if (!definition) {
+      remainder.push(line);
+      continue;
+    }
+    const value = line
+      .trim()
+      .slice(definition.field_label.length + 1)
+      .trim();
+    if (!value || problemLabel(definition.field_label)) {
+      remainder.push(line);
+      continue;
+    }
+    if (
+      !entries.some(
+        (entry) =>
+          entry.name === definition.field_name ||
+          entry.label === definition.field_label,
+      )
+    )
+      entries.push({
+        name: definition.field_name,
+        value,
+        label: definition.field_label,
+        field: undefined,
       });
-    visit(e.field?.options);
-    const option = options.find((o) => String(o.value) === String(e.value));
-    const shown = option?.title || e.value;
-    residue = residue.split(comparable(shown)).join("");
-    residue = residue.split(comparable(e.label)).join("");
   }
-  residue = residue
-    .replace(/^Original customer submission\s*:/i, "")
-    .replace(/[\s:;,/|—–-]+/g, "");
-  const covered =
-    /^Original customer submission\s*:/i.test(original) && !residue;
+  const problem = entries.find(
+    (entry) => problemLabel(entry.label) && typeof entry.value === "string",
+  );
+  const fields = entries.filter(
+    (entry) =>
+      !problemLabel(entry.label) && !/submission id/i.test(entry.label),
+  );
+  const order = [
+    "Primary Category",
+    "Secondary Issue",
+    "Tertiary Symptoms / Keywords",
+    "Order Number",
+    "Product Serial Number",
+    "Purchase Channel",
+    "Country / Region",
+  ];
+  fields.sort(
+    (a, b) =>
+      (order.includes(a.label) ? order.indexOf(a.label) : 99) -
+      (order.includes(b.label) ? order.indexOf(b.label) : 99),
+  );
+  const text =
+    problem?.value.trim() ||
+    (fields.length
+      ? remainder
+          .join("\n")
+          .replace(/^\s*Original customer submission\s*:\s*/i, "")
+          .trim()
+      : original);
   return {
-    text: covered ? problem.value.trim() : original,
-    original: covered ? original : "",
-    omitted: [problem.name],
+    text,
+    original:
+      original && (fields.length || comparable(text) !== comparable(original))
+        ? original
+        : "",
+    omitted: [
+      ...fields.map((entry) => entry.name),
+      ...(problem ? [problem.name] : []),
+    ],
+    fields,
   };
 }
 export function isInitialSubmission(reply, ticket, replyText, original) {

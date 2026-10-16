@@ -11,6 +11,7 @@ let app, browser;
 try {
   const ticket = mock.state.tickets[0];
   ticket.user_id = 7;
+  ticket.platform = "API";
   ticket.custom_fields.Problem = "Please cancel the extra order.";
   mock.state.fields.push({
     field_name: "Problem",
@@ -81,7 +82,7 @@ try {
     .getByText("Initial submission shown above", { exact: true })
     .waitFor();
   await page
-    .getByRole("heading", { name: "Order and product", exact: true })
+    .getByRole("heading", { name: "Submission fields", exact: true })
     .waitFor();
   const story = page.locator(".ticket-story");
   assert.equal(
@@ -138,8 +139,49 @@ try {
   // Unrecognized extra content must remain visible rather than disappear in a fold.
   ticket.content += " Delivery instruction: leave at reception.";
   await page.getByRole("button", { name: "刷新工单", exact: true }).click();
+  await story.locator(".ticket-original summary").click();
   await story.getByText(/Delivery instruction: leave at reception/).waitFor();
-  assert.equal(await story.locator("details").count(), 0);
+  assert.equal(
+    await story.locator(".ticket-problem-body .ticket-content").innerText(),
+    "Please cancel the extra order.",
+  );
+  assert.equal(
+    await story
+      .locator(".ticket-submission-fields")
+      .getByText("ORDER-101", { exact: true })
+      .count(),
+    1,
+  );
+  assert.equal(
+    await page
+      .locator(".ticket-sidebar")
+      .getByText("ORDER-101", { exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await story
+      .locator(".ticket-submission-fields")
+      .getByText("0", { exact: true })
+      .count(),
+    1,
+  );
+  assert.equal(
+    await story
+      .locator(".ticket-submission-fields")
+      .getByText("No", { exact: true })
+      .count(),
+    1,
+  );
+  ticket.platform = "邮件";
+  await page.getByRole("button", { name: "刷新工单", exact: true }).click();
+  await page
+    .locator(".ticket-kicker")
+    .getByText("邮件", { exact: true })
+    .waitFor();
+  await story.getByText(/Delivery instruction: leave at reception/).waitFor();
+  assert.equal(await story.locator(".ticket-submission-fields").count(), 0);
+  assert.equal(await story.locator(".ticket-original").count(), 0);
   assert.deepEqual(errors, []);
   console.log(
     "PASS structured submission coverage, initial message identity/time checks, expandable HTML/text quotes, trailing new text, bilingual/mobile layout and unknown content preservation",

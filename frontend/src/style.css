@@ -3969,3 +3969,44 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+.ticket-submission h3,
+.ticket-problem-body h3 {
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ticket-submission-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 28px;
+  margin: 0;
+}
+.ticket-submission-fields > div {
+  min-width: 0;
+}
+.ticket-submission-fields .ticket-field-wide {
+  grid-column: 1 / -1;
+}
+.ticket-submission-fields dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ticket-submission-fields dd {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.ticket-submission + .ticket-problem-body {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 600px) {
+  .ticket-submission-fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

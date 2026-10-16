@@ -49,7 +49,7 @@ test("mail text normalization collapses empty lines without losing paragraphs or
   assert.equal(normalizeMessage(0), "0");
 });
 
-test("ticket presentation folds only fully represented submissions and preserves unknown content", async () => {
+test("API presentation separates source fields and description while retaining the original", async () => {
   const { problemPresentation, customValues, isInitialSubmission } =
     await import("../frontend/src/ticket-presentation.js");
   const metadata = {
@@ -61,6 +61,7 @@ test("ticket presentation folds only fully represented submissions and preserves
     },
   };
   const ticket = {
+    platform: "API",
     custom_fields: { problem: "My device stopped.", order: "ORDER-9" },
     custom_fields_v2: { extra: false },
     user_id: 7,
@@ -82,7 +83,23 @@ test("ticket presentation folds only fully represented submissions and preserves
       metadata,
       original + " Extra shipping instruction",
     ).text,
-    original + " Extra shipping instruction",
+    "My device stopped.",
+  );
+  assert.ok(
+    problemPresentation(
+      ticket,
+      metadata,
+      original + " Extra shipping instruction",
+    ).original.includes("Extra shipping instruction"),
+  );
+  assert.deepEqual(
+    problemPresentation({ ...ticket, platform: "邮件" }, metadata, original),
+    { text: original, original: "", omitted: [], fields: [] },
+  );
+  assert.ok(
+    problemPresentation(ticket, metadata, original).fields.some(
+      (field) => field.name === "extra" && field.value === false,
+    ),
   );
   assert.equal(customValues(ticket).extra, false);
   const reply = {
@@ -144,6 +161,7 @@ test("structured descriptions match mail HTML whitespace and select labels witho
     },
   };
   const ticket = {
+    platform: "API",
     custom_fields: { p: "First line.\r\nSecond line.", c: "0" },
   };
   const original =
@@ -154,6 +172,48 @@ test("structured descriptions match mail HTML whitespace and select labels witho
   );
   assert.equal(
     problemPresentation(ticket, metadata, original + " 0").original,
-    "",
+    original + " 0",
   );
+});
+
+test("legacy API fields use explicit Udesk labels while email prose remains intact", async () => {
+  const { problemPresentation } =
+    await import("../frontend/src/ticket-presentation.js");
+  const metadata = {
+    fields: { fields: [{ field_name: "order", field_label: "Order Number" }] },
+  };
+  const text =
+    "Original customer submission:\nOrder Number: 1486\nPlease cancel my order.\nCall only after 6pm.";
+  const result = problemPresentation({ platform: "API" }, metadata, text);
+  assert.equal(result.fields[0].value, "1486");
+  assert.equal(result.text, "Please cancel my order.\nCall only after 6pm.");
+  assert.equal(result.original, text);
+  assert.equal(
+    problemPresentation({ platform: "邮件" }, metadata, text).text,
+    text,
+  );
+});
+
+test("API body fallback cannot duplicate a populated field with an alternative Udesk definition", async () => {
+  const { problemPresentation } =
+    await import("../frontend/src/ticket-presentation.js");
+  const metadata = {
+    fields: {
+      fields: [
+        { field_name: "old", field_label: "Secondary Issue" },
+        { field_name: "current", field_label: "Secondary Issue" },
+        { field_name: "p", field_label: "Problem Description" },
+      ],
+    },
+  };
+  const result = problemPresentation(
+    {
+      platform: "API",
+      custom_fields: { current: "Refund", p: "Please refund." },
+    },
+    metadata,
+    "Original customer submission:\nSecondary Issue: Refund\nPlease refund.",
+  );
+  assert.equal(result.fields.length, 1);
+  assert.equal(result.fields[0].name, "current");
 });

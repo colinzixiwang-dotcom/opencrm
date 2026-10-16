@@ -314,6 +314,48 @@ function Fields({ ticket, metadata, omitted = [] }) {
     </>
   );
 }
+function ProblemDetails({ problem }) {
+  return (
+    <section className="ticket-story">
+      <PanelHeading title="Problem details" />
+      {problem.fields.length > 0 && (
+        <div className="ticket-submission">
+          <h3>{tr("Submission fields")}</h3>
+          <dl className="ticket-submission-fields">
+            {problem.fields.map((entry) => (
+              <div
+                key={entry.name}
+                className={
+                  typeof entry.value === "object" ||
+                  String(entry.value).length > 100
+                    ? "ticket-field-wide"
+                    : undefined
+                }
+              >
+                <dt>{tr(entry.label)}</dt>
+                <dd>
+                  <Value field={entry.field} value={entry.value} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+      {hasValue(problem.text) && (
+        <div className="ticket-problem-body">
+          {problem.fields.length > 0 && <h3>{tr("Problem description")}</h3>}
+          <div className="ticket-content">{problem.text}</div>
+        </div>
+      )}
+      {problem.original && (
+        <details className="ticket-original">
+          <summary>{tr("View original submission")}</summary>
+          <div className="ticket-content">{problem.original}</div>
+        </details>
+      )}
+    </section>
+  );
+}
 function MessageBody({ text }) {
   return (
     <div className="conversation-body">
@@ -490,17 +532,8 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
             </header>
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
-                {hasValue(plain(data.source.content)) && (
-                  <section className="ticket-story">
-                    <PanelHeading title="Problem details" />
-                    <div className="ticket-content">{problem.text}</div>
-                    {problem.original && (
-                      <details className="ticket-original">
-                        <summary>{tr("View original submission")}</summary>
-                        <div className="ticket-content">{problem.original}</div>
-                      </details>
-                    )}
-                  </section>
+                {(hasValue(problem.text) || problem.fields.length > 0) && (
+                  <ProblemDetails problem={problem} />
                 )}
                 {data.rmaIds?.length > 0 && (
                   <p className="ticket-rma-links">
