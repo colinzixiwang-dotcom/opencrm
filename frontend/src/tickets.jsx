@@ -16,6 +16,11 @@ import {
 } from "./components";
 import { AttachmentList, AttachmentContext } from "./attachments";
 import { messageText } from "./ticket-content";
+import {
+  customValues,
+  customDefinition,
+  problemPresentation,
+} from "./ticket-presentation";
 import { RMAForm } from "./support";
 
 const text = (value) =>
@@ -153,7 +158,7 @@ const friendly = (key) =>
     .replace(/_/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/^./, (c) => c.toUpperCase());
-function Fields({ ticket, metadata }) {
+function Fields({ ticket, metadata, omitted = [] }) {
   if (!metadata)
     return (
       <LoadingState
@@ -162,128 +167,149 @@ function Fields({ ticket, metadata }) {
         rows={3}
       />
     );
-  const fields = metadata?.fields?.fields || [];
-  const template = (metadata?.templates?.templates || []).find(
-    (t) => String(t.id) === String(ticket.template_id),
-  );
-  const standard = Object.entries(ticket)
-    .sort(([a], [b]) => {
-      const order = [
-        "user_name",
-        "user_email",
-        "user_cellphone",
+  const custom = Object.entries(customValues(ticket))
+    .filter(([name, value]) => !omitted.includes(name) && hasValue(value))
+    .map(([name, value]) => ({
+      name,
+      value,
+      ...customDefinition(name, ticket, metadata),
+    }));
+  const groups = [
+    {
+      title: "Customer information",
+      keys: ["user_name", "user_email", "user_cellphone", "customer_telephone"],
+    },
+    {
+      title: "Handling information",
+      keys: [
         "assignee_name",
         "user_group_name",
-        "status",
         "priority",
-        "platform",
         "created_at",
         "updated_at",
-      ];
-      return (
-        (order.includes(a) ? order.indexOf(a) : 99) -
-        (order.includes(b) ? order.indexOf(b) : 99)
-      );
-    })
-    .filter(
-      ([key, value]) =>
-        ![
-          "custom_fields",
-          "custom_fields_v2",
-          "content",
-          "subject",
-          "status_en",
-        ].includes(key) && hasValue(value),
-    );
-  const technical = standard.filter(
+        "tags",
+      ],
+      match: /^(受理客服|客服组|优先级)$/i,
+    },
+    {
+      title: "Order and product",
+      keys: [],
+      match:
+        /order|serial|product|purchase|country|region|订单|序列号|产品|购买|国家|地区|^sn$/i,
+    },
+    {
+      title: "Issue classification",
+      keys: ["ticket_category_name"],
+      match:
+        /category|secondary issue|tertiary|symptom|keyword|分类|次级|关键词|症状/i,
+    },
+  ];
+  const used = new Set([
+    "id",
+    "subject",
+    "content",
+    "status",
+    "status_en",
+    "platform",
+    "field_num",
+    "custom_fields",
+    "custom_fields_v2",
+    "attachments",
+  ]);
+  const usedCustom = new Set();
+  const render = (key, value, label, field) => (
+    <div
+      key={key}
+      className={
+        typeof value === "object" || String(value).length > 100
+          ? "ticket-field-wide"
+          : undefined
+      }
+    >
+      <dt>{tr(label)}</dt>
+      <dd>
+        <Value
+          field={field}
+          value={/(_at|_deadline)$/.test(key) ? displayDate(value) : value}
+        />
+      </dd>
+    </div>
+  );
+  const sections = groups.map((group) => {
+    group.keys.forEach((key) => used.add(key));
+    const entries = group.keys
+      .filter((key) => hasValue(ticket[key]))
+      .map((key) => render(key, ticket[key], labels[key] || friendly(key)));
+    for (const entry of custom)
+      if (
+        !usedCustom.has(entry.name) &&
+        group.match?.test(entry.label) &&
+        !/submission id/i.test(entry.label)
+      ) {
+        usedCustom.add(entry.name);
+        entries.push(render(entry.name, entry.value, entry.label, entry.field));
+      }
+    return entries.length ? (
+      <section className="ticket-field-section" key={group.title}>
+        <PanelHeading title={group.title} />
+        <dl className="ticket-fields">{entries}</dl>
+      </section>
+    ) : null;
+  });
+  const otherCustom = custom.filter(
+    (e) => !usedCustom.has(e.name) && !/submission id/i.test(e.label),
+  );
+  const remaining = Object.entries(ticket).filter(
+    ([key, value]) => !used.has(key) && hasValue(value),
+  );
+  const technical = remaining.filter(
     ([key]) =>
-      key === "id" ||
       key.endsWith("_id") ||
       [
         "content_type",
         "has_reminder",
         "reminder_count",
-        "creator_id",
         "updator_id",
-      ].includes(key),
+        "assignee_avatar",
+        "url",
+      ].includes(key) ||
+      /count$/.test(key),
   );
-  const business = standard.filter((entry) => !technical.includes(entry));
-  const renderField = ([key, value]) => (
-    <div key={key}>
-      <dt>{tr(labels[key] || friendly(key))}</dt>
-      <dd>
-        <Value
-          value={
-            key === "template_id"
-              ? template?.name || template?.title || value
-              : /(_at|_deadline)$/.test(key)
-                ? displayDate(value)
-                : value
-          }
-        />
-      </dd>
-    </div>
-  );
-  const customMap = (value) => {
-    if (typeof value === "string") {
-      try {
-        value = JSON.parse(value);
-      } catch {
-        return {};
-      }
-    }
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? value
-      : {};
-  };
-  const custom = Object.entries({
-    ...customMap(ticket.custom_fields_v2),
-    ...customMap(ticket.custom_fields),
-  }).filter(([, value]) => hasValue(value));
+  const other = remaining.filter((entry) => !technical.includes(entry));
+  const extras = [
+    ...other.map(([key, value]) =>
+      render(key, value, labels[key] || friendly(key)),
+    ),
+    ...otherCustom.map((e) => render(e.name, e.value, e.label, e.field)),
+  ];
+  const system = [
+    ...technical.map(([key, value]) =>
+      render(key, value, labels[key] || friendly(key)),
+    ),
+    render("id", ticket.id, labels.id),
+    ...custom
+      .filter((e) => /submission id/i.test(e.label))
+      .map((e) => render(e.name, e.value, e.label, e.field)),
+  ];
   return (
     <>
-      <section className="ticket-field-section">
-        <PanelHeading title="Ticket fields" />
-        <dl className="ticket-fields">{business.map(renderField)}</dl>
-        {technical.length > 0 && (
-          <details className="ticket-technical">
-            <summary>{tr("More ticket information")}</summary>
-            <dl className="ticket-fields">{technical.map(renderField)}</dl>
-          </details>
-        )}
-      </section>
-      {custom.length > 0 && (
-        <section className="ticket-field-section">
-          <PanelHeading title="Custom fields" />
-          <dl className="ticket-fields">
-            {custom.map(([name, value]) => {
-              const field = fields.find((f) => f.field_name === name),
-                definition = template?.custom_fields?.find(
-                  (f) => f.field_name === name,
-                );
-              return (
-                <div
-                  key={name}
-                  className={
-                    typeof value === "object" || String(value).length > 100
-                      ? "ticket-field-wide"
-                      : undefined
-                  }
-                >
-                  <dt>
-                    {field?.field_label ||
-                      definition?.field_title ||
-                      friendly(name)}
-                  </dt>
-                  <dd>
-                    <Value field={field} value={value} />
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
+      {sections}
+      {hasValue(ticket.attachments) && (
+        <section className="ticket-field-section ticket-files">
+          <PanelHeading title="Ticket attachments" />
+          <AttachmentList value={ticket.attachments} />
         </section>
       )}
+      {extras.length > 0 && (
+        <details className="ticket-field-section ticket-field-disclosure">
+          <summary>{tr("Other fields")}</summary>
+          <dl className="ticket-fields">{extras}</dl>
+        </details>
+      )}
+      <details className="ticket-field-section ticket-field-disclosure">
+        <summary>{tr("System information")}</summary>
+        <dl className="ticket-fields">{system}</dl>
+      </details>
     </>
   );
 }
@@ -325,6 +351,9 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
       });
     return () => controller.abort();
   }, [id, data, replyPage]);
+  const problem = data
+    ? problemPresentation(data.source, metadata, plain(data.source.content))
+    : null;
   const create = async () => {
     setBusy(true);
     setError("");
@@ -411,26 +440,19 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                 <span>{data.source.platform}</span>
               </div>
               <h2>{data.source.subject}</h2>
-              <div className="ticket-detail-meta">
-                {[
-                  data.source.user_name,
-                  data.source.assignee_name,
-                  data.source.updated_at && displayDate(data.source.updated_at),
-                ]
-                  .filter(hasValue)
-                  .map((v, i) => (
-                    <span key={i}>{v}</span>
-                  ))}
-              </div>
             </header>
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
                 {hasValue(plain(data.source.content)) && (
                   <section className="ticket-story">
-                    <PanelHeading title="Content" />
-                    <div className="ticket-content">
-                      {plain(data.source.content)}
-                    </div>
+                    <PanelHeading title="Problem details" />
+                    <div className="ticket-content">{problem.text}</div>
+                    {problem.original && (
+                      <details className="ticket-original">
+                        <summary>{tr("View original submission")}</summary>
+                        <div className="ticket-content">{problem.original}</div>
+                      </details>
+                    )}
                   </section>
                 )}
                 {data.rmaIds?.length > 0 && (
@@ -524,7 +546,11 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                 </section>
               </div>
               <aside className="ticket-sidebar">
-                <Fields ticket={data.source} metadata={metadata} />
+                <Fields
+                  ticket={data.source}
+                  metadata={metadata}
+                  omitted={problem.omitted}
+                />
                 <p className="ticket-sync-stamp">
                   {tr("Fetched from Udesk")}
                   <br />

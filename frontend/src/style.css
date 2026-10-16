@@ -3919,3 +3919,53 @@ td {
 .pdf-preview .pagination {
   padding: 14px 0 0;
 }
+
+/* Ticket reading layout: one problem, a message timeline, grouped facts. */
+.ticket-detail-layout {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+.ticket-field-disclosure > summary {
+  padding: 18px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ticket-field-disclosure[open] > summary {
+  color: var(--ink);
+}
+.ticket-original,
+.conversation-quote {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.ticket-original > summary,
+.conversation-quote > summary {
+  cursor: pointer;
+  color: var(--green, #285d4b);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ticket-original .ticket-content,
+.conversation-quote .conversation-body {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ticket-files > .attachment-list {
+  padding: 0 20px;
+}
+.ticket-initial-reference {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+.ticket-sidebar .ticket-field-section {
+  padding-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .ticket-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}

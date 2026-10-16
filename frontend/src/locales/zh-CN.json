@@ -1124,5 +1124,19 @@
   "Loading…": "正在加载…",
   "Loading attachment…": "正在加载附件…",
   "PDF pagination": "PDF 分页",
-  "PDF page {page}": "PDF 第 {page} 页"
+  "PDF page {page}": "PDF 第 {page} 页",
+  "Problem details": "问题详情",
+  "View original submission": "查看原始提交",
+  "Customer information": "客户信息",
+  "Handling information": "处理信息",
+  "Order and product": "订单与产品",
+  "Issue classification": "问题分类",
+  "Other fields": "其他字段",
+  "System information": "系统信息",
+  "Ticket attachments": "工单附件",
+  "Initial submission shown above": "首次提交已在问题详情中展示",
+  "View original message": "查看原始消息",
+  "Expand quoted history": "展开引用历史",
+  "Show signature": "查看签名",
+  "Source channel": "来源渠道"
 }
