@@ -36,7 +36,7 @@ func (f *fake) Get(_ context.Context, path string, q url.Values) (M, error) {
 		return nil, fmt.Errorf("not found")
 	}
 	if path == "tickets" || path == "tickets/tickets_in_filter" {
-		return domain.Clone(M{"contents": f.tickets, "meta": M{"total_pages": 1}}), nil
+		return domain.Clone(M{"contents": f.tickets, "meta": M{"total_pages": 1, "total_count": len(f.tickets)}}), nil
 	}
 	if v, ok := f.data[path]; ok {
 		return domain.Clone(v), nil
@@ -296,5 +296,23 @@ func TestUdeskLinkUsesInternalID(t *testing.T) {
 	}
 	if result["udeskUrl"] != "https://ticketmorpho.udeskglobal.com/entry/ticket/show/20713607" {
 		t.Fatalf("wrong ticket URL: %v", result["udeskUrl"])
+	}
+}
+
+func TestTotalPagesRespectScope(t *testing.T) {
+	db, service, _, admin := fixture(t)
+	result, err := service.List(context.Background(), admin, "", "", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["totalPages"] != 2 {
+		t.Fatalf("administrator total = %v", result["totalPages"])
+	}
+	result, err = service.List(context.Background(), actor(t, db, "one@example.com"), "", "", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["totalPages"] != nil {
+		t.Fatal("source global count leaked to scoped actor")
 	}
 }

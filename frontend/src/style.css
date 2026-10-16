@@ -3457,3 +3457,16 @@ td {
 .ticket-fields > .ticket-field-wide {
   grid-column: 1 / -1;
 }
+/* A single pagination pattern for local records and source conversations. */
+.pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; border-top:1px solid var(--line); }
+.pagination-context { color:var(--muted); font-size:11px; }
+.pagination-controls { display:flex; align-items:center; gap:14px; margin-left:auto; }
+.pagination-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:34px; padding:6px 12px; border:1px solid var(--line); border-radius:7px; background:white; color:var(--green); font:500 12px var(--body); cursor:pointer; }
+.pagination-button > span { font-size:19px; line-height:1; }
+.pagination-button:hover:not(:disabled) { background:#f2f7ed; border-color:#a8beac; }
+.pagination-button:disabled { opacity:.42; cursor:default; background:#fafbf9; }
+.pagination-position { display:flex; align-items:center; gap:8px; font-size:11px; white-space:nowrap; color:var(--muted); }
+.pagination-position strong { font-weight:600; color:var(--green); }
+.pagination-divider { color:#c4cdc3; }
+.ticket-thread .pagination { padding:16px 0 0; }
+@media(max-width:600px) { .pagination { padding:14px 12px; gap:12px; } .pagination-context { flex-basis:100%; } .pagination-controls { width:100%; justify-content:space-between; gap:8px; } .pagination-button { padding:6px 8px; font-size:11px; } .pagination-position { gap:5px; font-size:10px; } }

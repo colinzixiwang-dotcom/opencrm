@@ -413,6 +413,17 @@ export function FilterControl({
 export function SortControl(props) {
   return <FilterControl {...props} label={props.label || "Sort records"} />;
 }
+export function Pagination({ page, totalPages, onPrevious, onNext, hasNext, disabled = false, context, label = "Pagination" }) {
+  const total = totalPages == null ? null : Math.max(1, totalPages);
+  return <nav className="pagination" aria-label={tr(label)}>
+    {context && <span className="pagination-context">{context}</span>}
+    <div className="pagination-controls">
+      <button type="button" className="pagination-button" aria-label={tr("Previous")} disabled={disabled || page <= 1} onClick={onPrevious}><span aria-hidden="true">‹</span>{tr("Previous")}</button>
+      <span className="pagination-position" aria-live="polite"><strong>{tr("Page {page}", {page})}</strong><span className="pagination-divider">/</span><span>{total == null ? tr("Total pages pending") : tr("{total} pages total", {total})}</span></span>
+      <button type="button" className="pagination-button" aria-label={tr("Next")} disabled={disabled || !(hasNext ?? (total != null && page < total))} onClick={onNext}>{tr("Next")}<span aria-hidden="true">›</span></button>
+    </div>
+  </nav>;
+}
 export function Table({
   columns,
   rows,
@@ -424,6 +435,7 @@ export function Table({
   limit,
 }) {
   const { state } = useWorkspace();
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState(initialQuery),
     [status, setStatus] = useState("all"),
     [sort, setSort] = useState({ key: "", dir: 1 });
@@ -452,6 +464,10 @@ export function Table({
       );
     return limit ? out.slice(0, limit) : out;
   }, [rows, status, query, sort, limit, state.products]);
+  const pageSize = limit || 20;
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visible = list.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   return (
     <>
       {search && (
@@ -462,7 +478,7 @@ export function Table({
                 <FilterControl
                   id="status-filter"
                   value={status}
-                  onChange={setStatus}
+                  onChange={v => {setStatus(v);setPage(1);}}
                   options={[
                     { value: "all", label: "All statuses" },
                     ...statuses.map((s) => ({ value: s, label: title(s) })),
@@ -534,7 +550,7 @@ export function Table({
           </thead>
           <tbody>
             {list.length ? (
-              list.map((r, i) => (
+              visible.map((r, i) => (
                 <tr key={r[idKey] ?? i} data-row-id={r[idKey]}>
                   {columns.map((c, j) => (
                     <td key={j}>{c.render(r)}</td>
@@ -559,15 +575,7 @@ export function Table({
           </tbody>
         </table>
       </div>
-      <div className="table-footer">
-        <span>
-          {list.length}
-          {tr(" record")}
-          {list.length === 1 ? "" : "s"}{" "}
-          {query ? tr("matching your search") : ""}
-        </span>
-        <span>{tr("All records shown · USD")}</span>
-      </div>
+      <Pagination page={currentPage} totalPages={totalPages} onPrevious={()=>setPage(currentPage-1)} onNext={()=>setPage(currentPage+1)} context={tr("{count} records", {count:list.length})} />
     </>
   );
 }

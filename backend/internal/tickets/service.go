@@ -254,6 +254,7 @@ func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size
 	at := domain.Now()
 	next := ""
 	exhausted := false
+	var totalPages any
 	run := Run{ID: domain.ID("SYNC"), UserID: domain.Str(actor["id"]), Kind: "tickets", Status: "running", CreatedAt: at}
 	if e := s.DB.Create(&run).Error; e != nil {
 		return nil, e
@@ -272,6 +273,13 @@ func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size
 		}
 		source := rows(v["contents"])
 		pages := int(domain.N(obj(v["meta"])["total_pages"]))
+		// Only an administrator's source count equals their authorized count.
+		if admin(actor) {
+			if count, exists := obj(v["meta"])["total_count"]; exists {
+				n := int(domain.N(count))
+				totalPages = max(1, (n+size-1)/size)
+			}
+		}
 		for i := offset; i < len(source); i++ {
 			t := sourceTicket(source[i])
 			if !s.canRead(actor, t) {
@@ -308,7 +316,7 @@ func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size
 	if e := s.DB.Model(&run).Updates(map[string]any{"status": "completed", "count": len(items), "completed_at": domain.Now()}).Error; e != nil {
 		return nil, e
 	}
-	return M{"items": items, "nextCursor": next, "fetchedAt": at, "filterId": filter, "scanLimited": !exhausted, "runId": run.ID}, nil
+	return M{"items": items, "nextCursor": next, "fetchedAt": at, "filterId": filter, "scanLimited": !exhausted, "runId": run.ID, "totalPages": totalPages}, nil
 }
 func (s *Service) detail(ctx context.Context, actor M, key string, number bool) (M, string, error) {
 	if e := s.readPermission(actor); e != nil {

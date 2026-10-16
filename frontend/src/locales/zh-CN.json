@@ -1104,5 +1104,12 @@
   "Updated by": "更新人",
   "Has reminder": "有提醒",
   "No conversation yet.": "暂无沟通记录。",
-  "More ticket information": "更多工单信息"
+  "More ticket information": "更多工单信息",
+  "Pagination": "分页",
+  "Ticket pagination": "工单分页",
+  "Conversation pagination": "沟通记录分页",
+  "Page {page}": "第 {page} 页",
+  "{total} pages total": "共 {total} 页",
+  "Total pages pending": "总页数待确认",
+  "{count} records": "共 {count} 条记录"
 }

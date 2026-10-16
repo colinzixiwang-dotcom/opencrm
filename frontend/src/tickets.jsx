@@ -11,6 +11,7 @@ import {
   FilterControl,
   SortControl,
   Icon,
+  Pagination,
 } from "./components";
 import { RMAForm } from "./support";
 
@@ -490,23 +491,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                         </article>
                       ))}
                     </div>
-                    <div className="ticket-toolbar">
-                      <Button
-                        disabled={replyPage === 1}
-                        onClick={() => setReplyPage((n) => n - 1)}
-                      >
-                        Previous
-                      </Button>
-                      <span>
-                        {tr("Page")} {replyPage}
-                      </span>
-                      <Button
-                        disabled={replyPage >= (replies.meta?.total_pages || 1)}
-                        onClick={() => setReplyPage((n) => n + 1)}
-                      >
-                        Next
-                      </Button>
-                    </div>
+                    <Pagination label="Conversation pagination" page={replyPage} totalPages={replies.meta?.total_pages || 1} onPrevious={()=>setReplyPage(n=>n-1)} onNext={()=>setReplyPage(n=>n+1)} />
                   </>
                 ) : (
                   <p>{tr("Loading conversation…")}</p>
@@ -879,32 +864,10 @@ export function TicketCenter() {
                   )}
                 </p>
               )}
-              <div className="ticket-toolbar ticket-pagination">
-                <span className="ticket-page-sync">
-                  {tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}
-                </span>
-                <Button
-                  disabled={!history.length}
-                  onClick={() => {
-                    setCursor(history.at(-1));
-                    setHistory(history.slice(0, -1));
-                  }}
-                >
-                  Previous
-                </Button>
-                <span>
-                  {tr("Page")} {history.length + 1}
-                </span>
-                <Button
-                  disabled={!data.nextCursor}
-                  onClick={() => {
-                    setHistory([...history, cursor]);
-                    setCursor(data.nextCursor);
-                  }}
-                >
-                  Next
-                </Button>
-              </div>
+              <Pagination label="Ticket pagination" page={history.length+1} totalPages={data.totalPages ?? (!data.nextCursor ? history.length+1 : null)} hasNext={!!data.nextCursor} disabled={busy}
+                context={<>{tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}</>}
+                onPrevious={()=>{setCursor(history.at(-1));setHistory(history.slice(0,-1));}}
+                onNext={()=>{setHistory([...history,cursor]);setCursor(data.nextCursor);}} />
             </>
           )}
         </Panel>
