@@ -22,6 +22,7 @@ import {
   problemPresentation,
   isInitialSubmission,
 } from "./ticket-presentation";
+import { MailContent } from "./mail-content";
 import { RMAForm } from "./support";
 
 const text = (value) =>
@@ -314,7 +315,7 @@ function Fields({ ticket, metadata, omitted = [] }) {
     </>
   );
 }
-function ProblemDetails({ problem }) {
+function ProblemDetails({ problem, ticket }) {
   return (
     <section className="ticket-story">
       <PanelHeading title="Problem details" />
@@ -344,7 +345,14 @@ function ProblemDetails({ problem }) {
       {hasValue(problem.text) && (
         <div className="ticket-problem-body">
           {problem.fields.length > 0 && <h3>{tr("Problem description")}</h3>}
-          <div className="ticket-content">{problem.text}</div>
+          {String(ticket.platform_name || ticket.platform).toLowerCase() ===
+          "api" ? (
+            <div className="ticket-content">{problem.text}</div>
+          ) : /<\/?[a-z][^>]*>/i.test(String(ticket.content || "")) ? (
+            <MailContent html={ticket.content} />
+          ) : (
+            <MessageBody text={problem.text} />
+          )}
         </div>
       )}
       {problem.original && (
@@ -386,10 +394,15 @@ function ConversationContent({ reply, ticket }) {
         </p>
         <details className="conversation-quote">
           <summary>{tr("View original message")}</summary>
-          <MessageBody text={full} />
+          {html ? (
+            <MailContent html={reply.content} />
+          ) : (
+            <MessageBody text={full} />
+          )}
         </details>
       </>
     );
+  if (html) return <MailContent html={reply.content} />;
   return (
     <>
       <MessageBody text={parts.main} />
@@ -533,7 +546,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
                 {(hasValue(problem.text) || problem.fields.length > 0) && (
-                  <ProblemDetails problem={problem} />
+                  <ProblemDetails problem={problem} ticket={data.source} />
                 )}
                 {data.rmaIds?.length > 0 && (
                   <p className="ticket-rma-links">

@@ -130,3 +130,5 @@ A reply identical to the initial body is collapsed only when its author is ident
 ## Conversation chronology (2026-10-16)
 
 Conversation pages read oldest to newest. Udesk supplies newest-first source pages; the backend reads source metadata, maps display page `p` to source page `total_pages - p + 1`, and reverses the selected page. This preserves chronology across pagination, including the partial oldest source page. Raw reply caches retain source page numbers/order. Attachment resolution accepts the display page and uses the same mapping, preserving authorization and previews. No reply body, initial submission or field rendering is changed.
+
+HTML mail now renders through an allowlisted DOM-to-React renderer. Tables retain rows, empty cells and row/column spans, with horizontal scrolling inside the body on small screens. Source scripts, event handlers, inline styles, remote images and unsafe links are excluded. Trailing Gmail/Yahoo/blockquote history is collapsed; new text after a quote keeps it visible. Plain-text messages retain their line breaks. This applies to both the original email and HTML conversation entries.

@@ -182,6 +182,50 @@ try {
   await story.getByText(/Delivery instruction: leave at reception/).waitFor();
   assert.equal(await story.locator(".ticket-submission-fields").count(), 0);
   assert.equal(await story.locator(".ticket-original").count(), 0);
+  ticket.content =
+    '<p>Current offer</p><table><tr><th>Site</th><th>Price</th></tr><tr><td></td><td>$50</td></tr><tr><td colspan="2">Terms</td></tr></table><pre>  line one\n    line two</pre><script>window.mailExecuted=true</script><a href="javascript:alert(1)">Unsafe link</a><blockquote><p>Previous email</p><table><tr><td>Old quote</td></tr></table><blockquote>Older mail</blockquote></blockquote>';
+  await page.getByRole("button", { name: "刷新工单", exact: true }).click();
+  await story.getByText("Current offer", { exact: true }).waitFor();
+  assert.equal(await story.locator("table").count(), 2);
+  assert.equal(
+    await story
+      .locator("table")
+      .first()
+      .locator("tr")
+      .nth(1)
+      .locator("td")
+      .count(),
+    2,
+  );
+  assert.equal(await story.locator("td[colspan='2']").count(), 1);
+  assert.equal(
+    await story.locator("pre").textContent(),
+    "  line one\n    line two",
+  );
+  assert.equal(
+    await story.locator(".conversation-quote").getAttribute("open"),
+    null,
+  );
+  assert.equal(
+    await story.getByText("Previous email", { exact: true }).isVisible(),
+    false,
+  );
+  assert.equal(await story.locator("a[href^='javascript:'],script").count(), 0);
+  assert.equal(await page.evaluate(() => window.mailExecuted), undefined);
+  await story.locator(".conversation-quote summary").click();
+  assert.equal(
+    await story.getByText("Previous email", { exact: true }).isVisible(),
+    true,
+  );
+  await page.screenshot({
+    path: "test-results/mail-tables-mobile.png",
+    fullPage: true,
+  });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   assert.deepEqual(errors, []);
   console.log(
     "PASS structured submission coverage, initial message identity/time checks, expandable HTML/text quotes, trailing new text, bilingual/mobile layout and unknown content preservation",

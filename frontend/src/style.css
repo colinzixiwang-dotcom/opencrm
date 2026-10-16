@@ -4010,3 +4010,52 @@ td {
     gap: 16px;
   }
 }
+
+.mail-content {
+  overflow-wrap: anywhere;
+  line-height: 1.85;
+  text-align: left;
+  font-size: 13px;
+}
+.mail-content p {
+  margin: 0 0 14px;
+}
+.mail-content div:empty {
+  display: none;
+}
+.mail-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.mail-content table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.mail-content td,
+.mail-content th {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+  white-space: normal;
+}
+.mail-content tr:first-child {
+  background: #f7f8f5;
+}
+.mail-content blockquote {
+  margin: 12px 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+}
+.mail-content pre {
+  white-space: pre-wrap;
+}
+.mail-content .mail-quoted {
+  padding-top: 14px;
+}
