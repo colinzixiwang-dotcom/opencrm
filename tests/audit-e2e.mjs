@@ -80,12 +80,12 @@ try {
  let current=(await data()).supportConfig.platforms.find(x=>x.id==='audit_platforms');await post('rmaconfig.save',{entity:'platforms',record:{...current,name:'Newer administrator value'}});await dialog().getByLabel('Name',{exact:true}).fill('Stale edit');await dialog().getByRole('button',{name:'Save configuration',exact:true}).click();await dialog().getByText(/Support configuration changed/).waitFor();assert.equal(disk().supportConfig.platforms.find(x=>x.id==='audit_platforms').name,'Newer administrator value');await close();
  pass('stale configuration edits are rejected without overwriting current database values');
  await page.reload();const links=await page.locator('a.nav-item').evaluateAll(xs=>xs.map(x=>x.getAttribute('href').slice(1)));
- assert.equal(links.length,20);
+ assert.equal(links.length,13);
  for(const id of links){await nav(id);assert.equal(await page.getByText('Workspace could not be displayed',{exact:true}).count(),0);}
  for(const bad of ['constructor','__proto__']){await page.goto(app.base+'/#'+bad);await page.getByText('Access restricted',{exact:true}).waitFor();}
  for(const collection of ['rmas','rmaTasks','supportOrders','serials','benefitHistory']){const r=await page.request.get(app.base+'/api/export/'+collection);assert.equal(r.status(),200);assert.ok((await r.body()).length>0);}
  const before=disk();await app.close();app=await startServer(path);await page.goto(app.base);await page.locator('.page-heading').waitFor();const after=await data();assert.deepEqual(after.rmas,before.rmas);assert.deepEqual(after.rmaTasks,before.rmaTasks);assert.deepEqual(after.benefitHistory,before.benefitHistory);assert.deepEqual(errors,[]);
- pass('all 20 pages, unsupported routes, support CSV exports and authenticated server restart pass without JavaScript errors');
+ pass('all 13 active pages, unsupported routes, support CSV exports and authenticated server restart pass without JavaScript errors');
  await page.screenshot({path:'test-results/audit-final.png',fullPage:true});
  writeFileSync('test-results/audit-report.json',JSON.stringify({passed:true,checks,errors},null,2));console.log(checks.length+' audit checkpoints passed.');
 }catch(e){await page.screenshot({path:'test-results/audit-failure.png',fullPage:true});writeFileSync('test-results/audit-report.json',JSON.stringify({passed:false,checks,errors,error:e.stack},null,2));console.error(e);process.exitCode=1;}finally{await browser.close();await app.close();rmSync(temp,{recursive:true,force:true});}

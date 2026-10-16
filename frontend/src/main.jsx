@@ -237,6 +237,7 @@ function App() {
       .sort((a, b) => a.orderNum - b.orderNum),
     navigation = menus
       .map((m) => [m.url, m.url === "service" ? "Ticket center" : m.menuName])
+      .filter(([p]) => !disabledModules.has(p))
       .filter(([p]) => Object.hasOwn(views, p)),
     View = Object.hasOwn(views, page) ? views[page] : null,
     allowed = permitted(page);

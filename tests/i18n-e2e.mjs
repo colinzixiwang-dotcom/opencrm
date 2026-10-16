@@ -29,7 +29,7 @@ try {
   const ids = await page
     .locator("a.nav-item")
     .evaluateAll((xs) => xs.map((x) => x.getAttribute("href")));
-  assert.equal(ids.length, 20);
+  assert.equal(ids.length, 13);
   for (const href of ids) {
     await page.locator('a.nav-item[href="' + href + '"]').click();
     await page.locator("#main-content h1").waitFor();
@@ -94,18 +94,7 @@ try {
   });
   await post("sale.transition", { id: order.id, status: "confirmed" });
   await post("sale.transition", { id: order.id, status: "shipped" });
-  await page.reload();
-  await page.locator('a[href="#sales"]').click();
-  await page
-    .locator('tr[data-row-id="' + order.id + '"]')
-    .getByRole("button", { name: "退货", exact: true })
-    .click();
-  let returnDialog = page.getByRole("dialog");
-  await returnDialog.locator('input[data-product="PRD-1"]').fill("1");
-  await returnDialog
-    .getByRole("button", { name: "保存记录", exact: true })
-    .click();
-  await returnDialog.waitFor({ state: "detached" });
+  await post("sale.return", { id: order.id, lines: [{productId: "PRD-1", qty: 1}] });
   s = await (await page.request.get(app.base + "/api/bootstrap")).json();
   assert.equal(s.sales.find((o) => o.id === order.id).lines[0].returned, 1);
   await page.locator('a[href="#rma"]').click();
@@ -159,7 +148,7 @@ try {
   });
   assert.deepEqual(errors, []);
   console.log(
-    "PASS bilingual login, all 20 pages, modal switching without data loss, canonical payloads, Chinese sales-return execution, translated warranty errors, persisted preference and Chinese mobile layout",
+    "PASS bilingual login, all 13 active pages, modal switching without data loss, canonical payloads, canonical sales-return API execution, translated warranty errors, persisted preference and Chinese mobile layout",
   );
 } finally {
   await browser.close();
