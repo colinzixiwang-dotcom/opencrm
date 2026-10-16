@@ -117,3 +117,11 @@ Preview bytes use `GET /api/tickets/:id/attachment?ref={origin+path}&replyPage={
 `LoadingState` supplies shared skeleton layouts for workspace startup, lists, ticket details, fields, conversations and image previews, with reduced-motion support. A failed conversation read shows an error/retry state instead of an endless loader.
 
 PDF previews use a lazily loaded PDF.js worker and canvas renderer with evaluation disabled, rather than an embedded browser PDF plugin. PDF page navigation reuses `Pagination`; responsive canvas sizing fits desktop and phone widths.
+
+## Reading without repeated source content (2026-10-16)
+
+The detail header owns ticket number, subject, status and source channel. The sidebar groups populated fields into customer, handling, order/product and issue classification. Unknown populated fields (including zero/false values) remain in Other fields; identifiers/counters and submission IDs remain in System information. Source custom field titles are retained, with known labels translated through the existing locale dictionary. Initial attachments have a dedicated sidebar section, and reply attachments stay with their messages.
+
+Problem details prefer the structured problem description only for generated `Original customer submission:` bodies whose entire normalized text is represented by populated custom values and labels. Nested select options are resolved to their titles during coverage checks. Unknown leftover content keeps the whole original body visible. A repeated description field is omitted from the sidebar when its text is already present in the main problem. The original submission is always accessible when folded.
+
+A reply identical to the initial body is collapsed only when its author is identified as the same customer and its timestamp is within 60 seconds of creation. Internal notes, unknown identities/timestamps and later identical messages remain visible. The article retains author/date and attachments, plus an expandable original body. Trailing HTML quotes and recognizable text mail headers are expandable; new text after an HTML quote prevents folding. Ambiguous quotations/signatures remain visible. Source records, permission checks, source pagination/order, draft payloads and snapshots are not rewritten.

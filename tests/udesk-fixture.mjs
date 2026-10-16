@@ -259,6 +259,14 @@ export async function startUdeskMock() {
           },
         ];
     }
+    if (/tickets\/\d+\/replies/.test(p) && state.replyOverride) {
+      data.replies = state.replyOverride;
+      data.meta = {
+        current_page: 1,
+        total_pages: 1,
+        total_count: data.replies.length,
+      };
+    }
     res.end(JSON.stringify(data));
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

@@ -96,16 +96,19 @@ try {
   await page.locator("tbody tr .ticket-subject").first().click();
   assert.ok(page.url().endsWith("#service?ticket=101"));
   await page
-    .getByRole("heading", { name: "Custom fields", exact: true })
+    .getByRole("heading", { name: "Order and product", exact: true })
     .waitFor();
+  const extras = page
+    .locator("details.ticket-field-disclosure")
+    .filter({ has: page.locator("summary", { hasText: "Other fields" }) });
+  await extras.locator("summary").click();
+  assert.equal(await extras.locator(".ticket-fields > div").count(), 4);
   assert.equal(
     await page
-      .locator(".ticket-field-section")
-      .last()
-      .locator(".ticket-fields")
-      .locator(":scope > div")
+      .locator(".ticket-detail-header")
+      .getByText("Agent One", { exact: true })
       .count(),
-    6,
+    0,
   );
   assert.equal(await page.locator(".ticket-fields dt small").count(), 0);
   assert.equal(
@@ -115,6 +118,7 @@ try {
   assert.equal(await page.getByText("Custom 3", { exact: true }).count(), 0);
   await page.reload();
   await page.locator(".ticket-fields").first().waitFor();
+  await extras.locator("summary").click();
   await page
     .locator(".ticket-fields dd")
     .getByText("No", { exact: true })
@@ -288,7 +292,7 @@ try {
   });
   await page.getByLabel("Language", { exact: true }).selectOption("zh-CN");
   await page
-    .getByRole("heading", { name: "自定义字段", exact: true })
+    .getByRole("heading", { name: "订单与产品", exact: true })
     .waitFor();
   await page.screenshot({
     path: "test-results/ticket-detail-zh.png",

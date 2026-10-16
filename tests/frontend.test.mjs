@@ -48,3 +48,112 @@ test("mail text normalization collapses empty lines without losing paragraphs or
   );
   assert.equal(normalizeMessage(0), "0");
 });
+
+test("ticket presentation folds only fully represented submissions and preserves unknown content", async () => {
+  const { problemPresentation, customValues, isInitialSubmission } =
+    await import("../frontend/src/ticket-presentation.js");
+  const metadata = {
+    fields: {
+      fields: [
+        { field_name: "problem", field_label: "Problem Description" },
+        { field_name: "order", field_label: "Order Number" },
+      ],
+    },
+  };
+  const ticket = {
+    custom_fields: { problem: "My device stopped.", order: "ORDER-9" },
+    custom_fields_v2: { extra: false },
+    user_id: 7,
+    created_at: "2026-10-01T10:00:00Z",
+  };
+  const original =
+    "Original customer submission: Order Number: ORDER-9 Problem Description: My device stopped.";
+  assert.equal(
+    problemPresentation(ticket, metadata, original).text,
+    "My device stopped.",
+  );
+  assert.equal(
+    problemPresentation(ticket, metadata, original).original,
+    original,
+  );
+  assert.equal(
+    problemPresentation(
+      ticket,
+      metadata,
+      original + " Extra shipping instruction",
+    ).text,
+    original + " Extra shipping instruction",
+  );
+  assert.equal(customValues(ticket).extra, false);
+  const reply = {
+    author: { id: 7, user_type: "customer" },
+    created_at: "2026-10-01T10:00:30Z",
+  };
+  assert.equal(isInitialSubmission(reply, ticket, original, original), true);
+  assert.equal(
+    isInitialSubmission(
+      { ...reply, function_type: "internal" },
+      ticket,
+      original,
+      original,
+    ),
+    false,
+  );
+  assert.equal(
+    isInitialSubmission(
+      { ...reply, author: { id: 8 } },
+      ticket,
+      original,
+      original,
+    ),
+    false,
+  );
+  assert.equal(
+    isInitialSubmission(
+      { ...reply, created_at: "2026-10-02T10:00:30Z" },
+      ticket,
+      original,
+      original,
+    ),
+    false,
+  );
+  assert.equal(
+    isInitialSubmission(
+      { ...reply, created_at: null },
+      ticket,
+      original,
+      original,
+    ),
+    false,
+  );
+});
+
+test("structured descriptions match mail HTML whitespace and select labels without erasing unknown digits", async () => {
+  const { problemPresentation } =
+    await import("../frontend/src/ticket-presentation.js");
+  const metadata = {
+    fields: {
+      fields: [
+        { field_name: "p", field_label: "Problem Description" },
+        {
+          field_name: "c",
+          field_label: "Primary Category",
+          options: [{ value: "0", title: "Order" }],
+        },
+      ],
+    },
+  };
+  const ticket = {
+    custom_fields: { p: "First line.\r\nSecond line.", c: "0" },
+  };
+  const original =
+    "Original customer submission:\nPrimary Category: Order\nFirst line.\n\nSecond line.";
+  assert.equal(
+    problemPresentation(ticket, metadata, original).text,
+    ticket.custom_fields.p,
+  );
+  assert.equal(
+    problemPresentation(ticket, metadata, original + " 0").original,
+    "",
+  );
+});

@@ -108,3 +108,10 @@ Screenshots are local ignored artifacts in `test-results/`: `tickets-before.png`
 - Live tenant checks confirmed the ticket list shows 36 pages and #717 image preview decodes through the authorized CRM endpoint. Inspected desktop/mobile previews, pagination, conversation and loading screenshots. Mobile document width remains within 390px.
 - Checks: `npm run check`, `npm test`, `npm run vet`, `npm run test:udesk`, `npm run test:e2e`, `npm run test:rma`, `npm run test:i18n`.
 - Screenshots: `test-results/ticket-pagination-refined.png`, `ticket-loading-refined.png`, `ticket-attachment-live.png`, `ticket-attachment-preview.png`, `ticket-pdf-preview.png`, `ticket-attachment-mobile-refined.png`, `ticket-conversation-mobile-refined.png` and refreshed bilingual detail screenshots. Live screenshots contain tenant/customer data.
+
+## Ticket content presentation — 2026-10-16
+
+- Unit coverage: generated submission coverage, whitespace differences, selected option titles, unknown leftover text/digits, retained false values, initial-message identity/time and internal-note exclusions.
+- `npm run test:ticket-presentation`: structured problem/field grouping, expandable original, initial duplicate presentation, later identical messages, HTML/text quote folding, new text after quotes, unknown submission content, bilingual labels and 390px layout.
+- Existing Udesk suite updated for grouped fields while retaining attachment previews, zero/false values, source access controls, drafts, pagination and outage checks.
+- Live #717 verified on `192.168.1.61`: problem description rendered once, generated original expandable, quote history expandable, grouped sidebar, no mobile horizontal overflow. Screenshots: `test-results/ticket-reading-live-zh.png`, `ticket-reading-live-mobile.png`; isolated examples: `ticket-reading-en.png`, `ticket-reading-zh.png`, `ticket-reading-mobile.png`.
