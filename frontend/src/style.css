@@ -3387,3 +3387,70 @@ td {
 .ticket-detail + .panel {
   margin-top: 18px;
 }
+@media (max-width: 700px) {
+  .ticket-table {
+    padding: 12px;
+    background: var(--paper);
+  }
+  .ticket-table table,
+  .ticket-table tbody {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+  .ticket-table thead {
+    display: none;
+  }
+  .ticket-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin: 0 0 12px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: white;
+  }
+  .ticket-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  .ticket-table td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    font-size: 11px;
+  }
+  .ticket-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 400;
+    margin-bottom: 5px;
+  }
+  .ticket-table td:first-child {
+    grid-column: 1 / -1;
+  }
+  .ticket-table td:first-child::before,
+  .ticket-table td:nth-child(2)::before {
+    display: none;
+  }
+  .ticket-table td:nth-child(2) {
+    grid-column: 1 / -1;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ticket-table .ticket-subject {
+    font-size: 14px;
+    -webkit-line-clamp: 3;
+  }
+  .ticket-table .cell-sub {
+    font-size: 11px;
+  }
+  .list-controls > .search-field {
+    flex-basis: 100%;
+  }
+}
+.ticket-table td {
+  white-space: normal;
+}

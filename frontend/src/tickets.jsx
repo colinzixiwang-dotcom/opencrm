@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, useWorkspace } from "./context";
-import { tr } from "./i18n";
+import { tr, intlLocale } from "./i18n";
 import {
   Heading,
   Panel,
@@ -48,7 +48,7 @@ const displayDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleString(undefined, {
+    : date.toLocaleString(intlLocale(), {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -797,7 +797,7 @@ export function TicketCenter() {
                               setSelected(String(t.id));
                           }}
                         >
-                          <td>
+                          <td data-label={tr("Ticket")}>
                             <button
                               className="text-button"
                               onClick={() => setSelected(String(t.id))}
@@ -805,7 +805,7 @@ export function TicketCenter() {
                               {t.field_num}
                             </button>
                           </td>
-                          <td>
+                          <td data-label={tr("Subject / customer")}>
                             <a
                               className="ticket-subject"
                               href={
@@ -818,21 +818,26 @@ export function TicketCenter() {
                               {t.user_name || t.user_email}
                             </small>
                           </td>
-                          <td>
+                          <td data-label={tr("Assignee / group")}>
                             {t.assignee_name || "—"}
                             <small className="cell-sub">
                               {t.user_group_name}
                             </small>
                           </td>
-                          <td>
+                          <td data-label={tr("Status")}>
                             <span className="ticket-status">{t.status}</span>
                           </td>
-                          <td>{t.priority}</td>
-                          <td>{t.platform}</td>
-                          <td className="ticket-date">
+                          <td data-label={tr("Priority")}>{t.priority}</td>
+                          <td data-label={tr("Channel")}>{t.platform}</td>
+                          <td
+                            className="ticket-date"
+                            data-label={tr("Updated")}
+                          >
                             {displayDate(t.updated_at)}
                           </td>
-                          <td>{item.rmaIds.join(", ") || "—"}</td>
+                          <td data-label={tr("Linked RMAs")}>
+                            {item.rmaIds.join(", ") || "—"}
+                          </td>
                         </tr>
                       );
                     })}
