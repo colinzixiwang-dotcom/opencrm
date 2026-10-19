@@ -22,6 +22,7 @@ import {
   problemPresentation,
   isInitialSubmission,
 } from "./ticket-presentation";
+import { syncTimestamp } from "./ticket-ui";
 import { MailContent } from "./mail-content";
 import { RMAForm } from "./support";
 
@@ -650,8 +651,32 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     </AttachmentContext.Provider>
   );
 }
+function TicketHelp({ label, children, className = "" }) {
+  return <details className={"ticket-help " + className}>
+    <summary aria-label={tr(label)} title={tr(label)}><span aria-hidden="true">i</span></summary>
+    <div className="ticket-help-content">{children}</div>
+  </details>;
+}
+function TicketSyncStatus({ data, lastSync, error, zone }) {
+  const stamp = syncTimestamp(lastSync, intlLocale(), zone);
+  const warning = !!(data?.stale || data?.syncError || error);
+  const label = warning ? "Sync interrupted" : stamp ? "Synced" : "Initializing";
+  return <details className={"ticket-sync-status ticket-help" + (warning ? " is-warning" : "")}>
+    <summary aria-label={tr("Synchronization details")}>
+      <span className="ticket-sync-dot" aria-hidden="true" />
+      <span>{tr(label)}</span>
+      {stamp && <><span aria-hidden="true">·</span><span>{tr("Updated")} {stamp.short}</span></>}
+    </summary>
+    <div className="ticket-help-content">
+      <strong>{tr("Automatic sync every minute")}</strong>
+      <span>{tr("Last successful sync")}: {stamp ? stamp.full : tr("Not yet synchronized")}</span>
+      <span>{tr("Time zone")}: {zone}</span>
+    </div>
+  </details>;
+}
 export function TicketCenter() {
-  const { can } = useWorkspace();
+  const { can, state } = useWorkspace();
+  const zone = state.settings.timezone || "Asia/Shanghai";
   const [metadata, setMetadata] = useState(null),
     [data, setData] = useState(null),
     [error, setError] = useState(""),
@@ -776,15 +801,7 @@ export function TicketCenter() {
   };
   return (
     <>
-      <Heading />
-      <p className="muted ticket-sync-summary" role="status">
-        {tr("Automatic sync every minute")} · {tr("Last successful sync")}: {lastSync ? displayDate(lastSync) : tr("Not yet synchronized")}
-      </p>
-      <p className="muted">
-        {tr(
-          "Udesk is the source of truth. Edit tickets in Udesk; create RMAs here.",
-        )}
-      </p>
+      <Heading subtitle="View Udesk tickets and create linked RMAs." />
       {error && (
         <div className="ticket-sync-error" role="alert">
           <strong>{tr("Ticket list unavailable")}</strong>
@@ -807,16 +824,15 @@ export function TicketCenter() {
           onDraft={setDraft}
         />
       ) : (
-        <Panel>
+        <Panel className="ticket-queue">
           <div className="ticket-queue-heading">
-            <div>
-              <span className="eyebrow">UDESK</span>
+            <div className="ticket-queue-title">
               <h2>{tr("Ticket queue")}</h2>
+              {data && !data.initializing && !data.stale && <span className="ticket-result-count">
+                {query ? tr("Found") + " " : ""}{data.totalCount} {tr("tickets")}
+              </span>}
             </div>
-            <span className="ticket-live-label">
-              <span />
-              {tr("Read only")}
-            </span>
+            <TicketSyncStatus data={data} lastSync={lastSync} error={error} zone={zone} />
           </div>
           <ListToolbar
             actions={
@@ -829,13 +845,13 @@ export function TicketCenter() {
                 }
               >
                 <Icon name="download" />
-                {tr("Export authorized page")}
+                {tr("Export page")}
               </a>
             }
           >
             <SearchControl
               label="Search ticket content"
-              placeholder="Ticket number, title, description or custom fields…"
+              placeholder="Search tickets…"
               value={query}
               onChange={(value) => {
                 setQuery(value);
@@ -843,6 +859,7 @@ export function TicketCenter() {
                 setHistory([]);
               }}
             />
+            <TicketHelp label="Search help"><p>{tr("Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.")}</p></TicketHelp>
             <FilterControl
               label="Udesk filter"
               value={filter}
@@ -854,13 +871,14 @@ export function TicketCenter() {
                 setQuery("");
               }}
               options={[
-                { value: "", label: "All authorized tickets" },
+                { value: "", label: "All tickets" },
                 ...(metadata?.filters || []).map((f) => ({
                   value: f.id,
                   label: f.name,
                 })),
               ]}
             />
+            <TicketHelp label="About Udesk filters"><p>{tr("Filters are maintained in Udesk. Personal filters use the integration account; your CRM access scope is always applied.")}</p></TicketHelp>
             <SortControl
               label="Sort all authorized tickets"
               value={sort}
@@ -872,9 +890,9 @@ export function TicketCenter() {
               options={[
                 {
                   value: "replied_at:desc",
-                  label: "Last reply · newest first",
+                  label: "Last reply: newest first",
                 },
-                { value: "replied_at:asc", label: "Last reply · oldest first" },
+                { value: "replied_at:asc", label: "Last reply: oldest first" },
                 { value: "updated_at:desc", label: "Updated · newest first" },
                 { value: "updated_at:asc", label: "Updated · oldest first" },
                 { value: "created_at:desc", label: "Created · newest first" },
@@ -891,16 +909,6 @@ export function TicketCenter() {
             />
           </ListToolbar>
           <div className="ticket-queue-subbar">
-            <span>
-              {tr(
-                "Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.",
-              )}{" "}
-              {data && !data.initializing && !data.stale && (
-                <strong>
-                  {tr("Total")}: {data.totalCount}
-                </strong>
-              )}
-            </span>
             <form onSubmit={lookup}>
               <SearchControl
                 label="Find ticket by number"
@@ -914,14 +922,6 @@ export function TicketCenter() {
               </button>
             </form>
           </div>
-          <details className="ticket-filter-note">
-            <summary>{tr("About Udesk filters")}</summary>
-            <p>
-              {tr(
-                "Filters are maintained in Udesk. Personal filters use the integration account; your CRM access scope is always applied.",
-              )}
-            </p>
-          </details>
           {busy && (
             <LoadingState label="Loading tickets…" rows={5} />
           )}
@@ -1036,11 +1036,6 @@ export function TicketCenter() {
                 }
                 hasNext={!!data.nextCursor}
                 disabled={busy}
-                context={
-                  <>
-                    {tr("Last successful sync")}: {displayDate(data.fetchedAt)}
-                  </>
-                }
                 onPrevious={() => {
                   setCursor(history.at(-1));
                   setHistory(history.slice(0, -1));

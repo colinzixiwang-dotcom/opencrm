@@ -150,7 +150,7 @@ export const Export = ({ collection }) => (
     {tr("Export")}
   </a>
 );
-export function Heading({ children, page: override }) {
+export function Heading({ children, page: override, subtitle }) {
   const { page } = useWorkspace();
   const p = override || page;
   return (
@@ -164,7 +164,7 @@ export function Heading({ children, page: override }) {
               tr(nav.find((x) => x[0] === p)?.[1] || p)}
         </div>
         <h1>{tr(info[p]?.[0])}</h1>
-        <p>{tr(info[p]?.[1])}</p>
+        <p>{tr(subtitle ?? info[p]?.[1])}</p>
       </div>
       <div className="heading-actions">{children}</div>
     </div>

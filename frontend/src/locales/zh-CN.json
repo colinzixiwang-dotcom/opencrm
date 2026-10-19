@@ -1166,5 +1166,19 @@
   "Background sync failed": "后台同步失败",
   "The last complete result is retained. Automatic synchronization will retry.": "保留最近一次完整同步结果，后台将自动重试。",
   "Ticket data is older than 15 minutes. Scoped lists are paused until synchronization recovers.": "工单数据超过 15 分钟未更新；客服与主管列表暂停展示，等待同步恢复。",
-  "No matching authorized tickets.": "没有符合条件且有权查看的工单。"
+  "No matching authorized tickets.": "没有符合条件且有权查看的工单。",
+  "View Udesk tickets and create linked RMAs.": "查看 Udesk 工单，并创建关联 RMA。",
+  "Synced": "已同步",
+  "Sync interrupted": "同步中断",
+  "Initializing": "初始化中",
+  "Synchronization details": "同步详情",
+  "Time zone": "时区",
+  "Found": "找到",
+  "tickets": "张",
+  "Export page": "导出本页",
+  "Search tickets…": "搜索工单…",
+  "All tickets": "全部工单",
+  "Search help": "搜索说明",
+  "Last reply: newest first": "最后回复：最新优先",
+  "Last reply: oldest first": "最后回复：最早优先"
 }
