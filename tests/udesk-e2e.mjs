@@ -53,17 +53,17 @@ try {
     await page
       .getByLabel("Sort all authorized tickets", { exact: true })
       .inputValue(),
-    "replied_at:desc",
+    "repliedAt:desc",
   );
   const sortedResponse = page.waitForResponse(
     (r) =>
       new URL(r.url()).pathname === "/api/tickets" &&
-      new URL(r.url()).searchParams.get("sort") === "field_num:desc",
+      new URL(r.url()).searchParams.get("sort") === "number:desc",
   );
   await page
     .getByLabel("Sort all authorized tickets", { exact: true })
-    .selectOption("field_num:desc");
-  assert.equal((await (await sortedResponse).json()).sort, "field_num:desc");
+    .selectOption("number:desc");
+  assert.equal((await (await sortedResponse).json()).sort, "number:desc");
   await page.locator("tbody tr .text-button").first().waitFor();
   assert.equal(
     await page.locator("tbody tr .text-button").first().innerText(),
@@ -98,7 +98,7 @@ try {
     await listGate;
     await route.continue();
   });
-  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("created_at:desc");
+  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("createdAt:desc");
   await page
     .getByRole("status", { name: "Loading tickets…", exact: true })
     .waitFor();
@@ -109,7 +109,7 @@ try {
   const before = mock.state.requests.filter((p) => p === "tickets").length;
   assert.equal(await page.getByRole("button", { name: "Refresh", exact: true }).count(), 0);
   const queried = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets");
-  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("field_num:desc");
+  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("number:desc");
   await queried;
   await page.locator("tbody tr").first().waitFor();
   assert.equal(mock.state.requests.filter((p) => p === "tickets").length, before);
@@ -410,7 +410,8 @@ try {
   assert.equal(listDuringOutage.status(), 200);
   assert.equal((await listDuringOutage.json()).totalCount, 3);
   const deniedDetail = await page.request.get(app.base + "/api/tickets/101");
-  assert.equal(deniedDetail.status(), 502);
+  assert.equal(deniedDetail.status(), 503);
+  assert.equal((await deniedDetail.json()).code,"source_unavailable");
   assert.deepEqual(errors, []);
   console.log(
     "PASS Udesk background index, PG queries, source filters, all custom fields, safe content, read-only conversation, persistent RMA draft, bilingual/mobile display, account mapping, row authorization and live authorization during outage",

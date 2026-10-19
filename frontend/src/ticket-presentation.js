@@ -1,37 +1,11 @@
-// Source records remain intact; these helpers only select their presentation.
+// Presentation consumes the CRM support contract, never provider DTOs.
 export function customValues(ticket) {
-  const object = (value) => {
-    if (typeof value === "string") {
-      try {
-        value = JSON.parse(value);
-      } catch {
-        return {};
-      }
-    }
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? value
-      : {};
-  };
-  return {
-    ...object(ticket.custom_fields_v2),
-    ...object(ticket.custom_fields),
-  };
+  return ticket.customValues || {};
 }
 export function customDefinition(name, ticket, metadata) {
-  const template = (metadata?.templates?.templates || []).find(
-    (t) => String(t.id) === String(ticket.template_id),
-  );
-  const field = (metadata?.fields?.fields || []).find(
-    (f) => f.field_name === name,
-  );
-  return {
-    field,
-    label:
-      field?.field_label ||
-      template?.custom_fields?.find((f) => f.field_name === name)
-        ?.field_title ||
-      name,
-  };
+  const template = (metadata?.templates || []).find(t => String(t.id) === String(ticket.templateId));
+  const field = (metadata?.fields || []).find(f => f.key === name);
+  return { field, label: field?.label || template?.fields?.find(f => f.key === name)?.label || name };
 }
 const comparable = (value) =>
   String(value || "")
@@ -53,7 +27,7 @@ const problemLabel = (label) =>
 export function problemPresentation(ticket, metadata, original) {
   const unchanged = { text: original, original: "", omitted: [], fields: [] };
   if (
-    String(ticket.platform_name || ticket.platform || "").toLowerCase() !==
+    String(ticket.channelCode || ticket.channel || "").toLowerCase() !==
     "api"
   )
     return unchanged;
@@ -67,14 +41,14 @@ export function problemPresentation(ticket, metadata, original) {
     }));
   // A legacy API submission may carry known form fields only in its body.
   // Read explicit field-label lines using Udesk definitions, never prose inference.
-  const definitions = metadata?.fields?.fields || [];
+  const definitions = metadata?.fields || [];
   const lines = original.split("\n");
   const remainder = [];
   for (const line of lines) {
     const definition = definitions.find(
       (field) =>
-        line.trim().startsWith(field.field_label + ":") ||
-        line.trim().startsWith(field.field_label + "："),
+        line.trim().startsWith(field.label + ":") ||
+        line.trim().startsWith(field.label + "："),
     );
     if (!definition) {
       remainder.push(line);
@@ -82,23 +56,23 @@ export function problemPresentation(ticket, metadata, original) {
     }
     const value = line
       .trim()
-      .slice(definition.field_label.length + 1)
+      .slice(definition.label.length + 1)
       .trim();
-    if (!value || problemLabel(definition.field_label)) {
+    if (!value || problemLabel(definition.label)) {
       remainder.push(line);
       continue;
     }
     if (
       !entries.some(
         (entry) =>
-          entry.name === definition.field_name ||
-          entry.label === definition.field_label,
+          entry.name === definition.key ||
+          entry.label === definition.label,
       )
     )
       entries.push({
-        name: definition.field_name,
+        name: definition.key,
         value,
-        label: definition.field_label,
+        label: definition.label,
         field: undefined,
       });
   }
@@ -147,17 +121,17 @@ export function problemPresentation(ticket, metadata, original) {
 export function isInitialSubmission(reply, ticket, replyText, original) {
   if (!comparable(original) || comparable(replyText) !== comparable(original))
     return false;
-  if (["internal", "internat"].includes(reply.function_type)) return false;
+  if (reply.kind === "internal") return false;
   const author = reply.author || {};
-  const kind = String(author.user_type || "").toLowerCase();
+  const kind = String(author.kind || "").toLowerCase();
   const customer =
     ["customer", "user", "end_user"].includes(kind) &&
-    (author.id != null && ticket.user_id != null
-      ? String(author.id) === String(ticket.user_id)
+    (author.id != null && ticket.customerId != null
+      ? String(author.id) === String(ticket.customerId)
       : (author.email &&
-          ticket.user_email &&
-          author.email.toLowerCase() === ticket.user_email.toLowerCase()) ||
-        (author.nick_name && author.nick_name === ticket.user_name));
-  const delta = Date.parse(reply.created_at) - Date.parse(ticket.created_at);
+          ticket.customerEmail &&
+          author.email.toLowerCase() === ticket.customerEmail.toLowerCase()) ||
+        (author.name && author.name === ticket.customerName));
+  const delta = Date.parse(reply.createdAt) - Date.parse(ticket.createdAt);
   return customer && Number.isFinite(delta) && delta >= 0 && delta <= 60000;
 }

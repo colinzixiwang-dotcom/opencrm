@@ -26,6 +26,8 @@ import { syncTimestamp, ticketNumberQuery, ticketListIssue } from "./ticket-ui";
 import { MailContent } from "./mail-content";
 import { RMAForm } from "./support";
 
+// The UI consumes the stable CRM contract. v1 remains only for older clients.
+const crmApi = (path, options = {}) => api(path, {...options, headers: {...options.headers, Accept: "application/vnd.morpho.support.v2+json"}});
 const text = (value) =>
   value == null
     ? "—"
@@ -48,9 +50,9 @@ const displayDate = (value, timeZone) => {
       });
 };
 function conversationRole(reply) {
-  if (["internat", "internal"].includes(reply.function_type)) return "Internal note";
-  if (reply.author?.user_type === "customer") return "Customer";
-  if (reply.author?.user_type === "agent") return "Support agent";
+  if (reply.kind === "internal") return "Internal note";
+  if (reply.author?.kind === "customer") return "Customer";
+  if (reply.author?.kind === "agent") return "Support agent";
   return "External reply";
 }
 function Value({ value, field }) {
@@ -61,7 +63,7 @@ function Value({ value, field }) {
   const visit = (list) =>
     (list || []).forEach((o) => {
       options.push(o);
-      visit(o.subs);
+      visit(o.children);
     });
   visit(field?.options);
   if (options.length) {
@@ -69,7 +71,7 @@ function Value({ value, field }) {
     return values
       .map(
         (v) =>
-          options.find((o) => String(o.value) === String(v))?.title ?? text(v),
+          options.find((o) => String(o.value) === String(v))?.label ?? text(v),
       )
       .join(" / ");
   }
@@ -77,83 +79,12 @@ function Value({ value, field }) {
     Array.isArray(value) &&
     value.some(
       (v) =>
-        v && typeof v === "object" && (v.url || v.file_url || v.download_url),
+        v && typeof v === "object" && v.reference,
     )
   )
     return <AttachmentList value={value} />;
   return <span>{text(value)}</span>;
 }
-const labels = {
-  agent_emails_count: "Agent email count",
-  agent_replied_at: "Agent last replied",
-  agent_summary: "Agent summary",
-  assignee_avatar: "Agent avatar",
-  call_result: "Call result",
-  call_type: "Call type",
-  content_type: "Content format",
-  conversation_id: "Conversation ID",
-  creator_id: "Created by",
-  customer_emails_count: "Customer email count",
-  customer_owner_group_id: "Customer owner group ID",
-  customer_owner_group_name: "Customer owner group",
-  customer_owner_id: "Customer owner ID",
-  customer_owner_name: "Customer owner",
-  customer_replied_at: "Customer last replied",
-  customer_telephone: "Customer telephone",
-  email_reply_status: "Email reply status",
-  emails_count: "Email count",
-  first_replied_at: "First replied",
-  followers: "Followers",
-  im_sub_session_id: "Chat session ID",
-  is_associated: "Associated ticket",
-  knowledge_catalog: "Knowledge category",
-  knowledge_question: "Knowledge question",
-  last_closed_operator_name: "Last closed by",
-  organization_id: "Organization ID",
-  participate_handling_robots: "Participating bots",
-  reminder_count: "Reminder count",
-  replied_by: "Last replied by",
-  resolved_at: "Resolved at",
-  robot_summary: "Bot summary",
-  satisfaction: "Satisfaction",
-  solving_at: "Processing started",
-  source: "Source",
-  survey_vote_desc: "Survey feedback",
-  survey_vote_tags: "Survey tags",
-  ticket_category: "Ticket category",
-  ticket_category_name: "Ticket category name",
-  timers: "Timers",
-  unexecuted_alarm_count: "Pending reminders",
-  updator_id: "Updated by",
-  has_reminder: "Has reminder",
-
-  id: "Udesk ticket ID",
-  assignee_id: "Agent ID",
-  user_id: "Customer ID",
-  user_group_id: "Agent group ID",
-  url: "Ticket link",
-  solved_at: "Solved at",
-  closed_at: "Closed at",
-  replied_at: "Last reply",
-  field_num: "Ticket number",
-  subject: "Subject",
-  content: "Content",
-  user_name: "Customer",
-  user_email: "Email address",
-  user_cellphone: "Phone",
-  assignee_name: "Assignee",
-  user_group_name: "Agent group",
-  template_id: "Template",
-  status: "Status",
-  status_en: "English status",
-  priority: "Priority",
-  platform: "Channel",
-  tags: "Tags",
-  created_at: "Created",
-  updated_at: "Updated",
-  solved_deadline: "Due date",
-  attachments: "Attachments",
-};
 const hasValue = (value) =>
   value != null &&
   (typeof value === "string"
@@ -163,165 +94,43 @@ const hasValue = (value) =>
       : typeof value === "object"
         ? Object.values(value).some(hasValue)
         : true);
-const friendly = (key) =>
-  key
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/^./, (c) => c.toUpperCase());
 function Fields({ ticket, metadata, omitted = [] }) {
-  if (!metadata)
-    return (
-      <LoadingState
-        label="Loading Udesk field definitions…"
-        variant="compact"
-        rows={3}
-      />
-    );
+  if (!metadata) return <LoadingState label="Loading Udesk field definitions…" variant="compact" rows={3} />;
   const custom = Object.entries(customValues(ticket))
-    .filter(([name, value]) => !omitted.includes(name) && hasValue(value))
-    .map(([name, value]) => ({
-      name,
-      value,
-      ...customDefinition(name, ticket, metadata),
-    }));
+    .filter(([name,value]) => !omitted.includes(name) && hasValue(value))
+    .map(([name,value]) => ({name,value,...customDefinition(name,ticket,metadata)}));
   const groups = [
-    {
-      title: "Customer information",
-      keys: ["user_name", "user_email", "user_cellphone", "customer_telephone"],
-    },
-    {
-      title: "Handling information",
-      keys: [
-        "assignee_name",
-        "user_group_name",
-        "priority",
-        "created_at",
-        "updated_at",
-        "tags",
-      ],
-      match: /^(受理客服|客服组|优先级)$/i,
-    },
-    {
-      title: "Order and product",
-      keys: [],
-      match:
-        /order|serial|product|purchase|country|region|订单|序列号|产品|购买|国家|地区|^sn$/i,
-    },
-    {
-      title: "Issue classification",
-      keys: ["ticket_category_name"],
-      match:
-        /category|secondary issue|tertiary|symptom|keyword|分类|次级|关键词|症状/i,
-    },
+    {title:"Customer information"},
+    {title:"Handling information",match:/^(受理客服|客服组|优先级)$/i},
+    {title:"Order and product",match:/order|serial|product|purchase|country|region|订单|序列号|产品|购买|国家|地区|^sn$/i},
+    {title:"Issue classification",match:/category|secondary issue|tertiary|symptom|keyword|分类|次级|关键词|症状/i},
+    {title:"Other fields"},
+    {title:"System information"},
   ];
-  const used = new Set([
-    "id",
-    "subject",
-    "content",
-    "status",
-    "status_en",
-    "platform",
-    "field_num",
-    "custom_fields",
-    "custom_fields_v2",
-    "attachments",
-  ]);
-  const usedCustom = new Set();
-  const render = (key, value, label, field) => (
-    <div
-      key={key}
-      className={
-        typeof value === "object" || String(value).length > 100
-          ? "ticket-field-wide"
-          : undefined
-      }
-    >
-      <dt>{tr(label)}</dt>
-      <dd>
-        <Value
-          field={field}
-          value={/(_at|_deadline)$/.test(key) ? displayDate(value) : value}
-        />
-      </dd>
-    </div>
-  );
-  const sections = groups.map((group) => {
-    group.keys.forEach((key) => used.add(key));
-    const entries = group.keys
-      .filter((key) => hasValue(ticket[key]))
-      .map((key) => render(key, ticket[key], labels[key] || friendly(key)));
-    for (const entry of custom)
-      if (
-        !usedCustom.has(entry.name) &&
-        group.match?.test(entry.label) &&
-        !/submission id/i.test(entry.label)
-      ) {
-        usedCustom.add(entry.name);
-        entries.push(render(entry.name, entry.value, entry.label, entry.field));
-      }
-    return entries.length ? (
-      <section className="ticket-field-section" key={group.title}>
-        <PanelHeading title={group.title} />
-        <dl className="ticket-fields">{entries}</dl>
-      </section>
-    ) : null;
-  });
-  const otherCustom = custom.filter(
-    (e) => !usedCustom.has(e.name) && !/submission id/i.test(e.label),
-  );
-  const remaining = Object.entries(ticket).filter(
-    ([key, value]) => !used.has(key) && hasValue(value),
-  );
-  const technical = remaining.filter(
-    ([key]) =>
-      key.endsWith("_id") ||
-      [
-        "content_type",
-        "has_reminder",
-        "reminder_count",
-        "updator_id",
-        "assignee_avatar",
-        "url",
-      ].includes(key) ||
-      /count$/.test(key),
-  );
-  const other = remaining.filter((entry) => !technical.includes(entry));
-  const extras = [
-    ...other.map(([key, value]) =>
-      render(key, value, labels[key] || friendly(key)),
-    ),
-    ...otherCustom.map((e) => render(e.name, e.value, e.label, e.field)),
-  ];
-  const system = [
-    ...technical.map(([key, value]) =>
-      render(key, value, labels[key] || friendly(key)),
-    ),
-    render("id", ticket.id, labels.id),
-    ...custom
-      .filter((e) => /submission id/i.test(e.label))
-      .map((e) => render(e.name, e.value, e.label, e.field)),
-  ];
-  return (
-    <>
-      {sections}
-      {hasValue(ticket.attachments) && (
-        <section className="ticket-field-section ticket-files">
-          <PanelHeading title="Ticket attachments" />
-          <AttachmentList value={ticket.attachments} />
-        </section>
-      )}
-      {extras.length > 0 && (
-        <details className="ticket-field-section ticket-field-disclosure">
-          <summary>{tr("Other fields")}</summary>
-          <dl className="ticket-fields">{extras}</dl>
-        </details>
-      )}
-      <details className="ticket-field-section ticket-field-disclosure">
-        <summary>{tr("System information")}</summary>
-        <dl className="ticket-fields">{system}</dl>
-      </details>
-    </>
-  );
+  const entries = new Map(groups.map(g => [g.title, []]));
+  for (const field of ticket.fields || []) {
+    if (hasValue(field.value)) (entries.get(field.section) || entries.get("Other fields")).push(field);
+  }
+  for (const entry of custom) {
+    const section = /submission id/i.test(entry.label) ? "System information" : groups.find(g => g.match?.test(entry.label))?.title || "Other fields";
+    entries.get(section).push({key:entry.name,label:entry.label,value:entry.value,options:entry.field?.options,kind:entry.field?.kind});
+  }
+  const render = field => <div key={field.key} className={typeof field.value === "object" || String(field.value).length > 100 ? "ticket-field-wide" : undefined}>
+    <dt>{tr(field.label)}</dt><dd><Value field={field} value={field.kind === "datetime" ? displayDate(field.value) : field.value} /></dd>
+  </div>;
+  const section = group => {
+    const values = entries.get(group.title);
+    if (!values.length && group.title !== "System information") return null;
+    const content = <dl className="ticket-fields">{values.map(render)}</dl>;
+    return group.title === "Other fields" || group.title === "System information"
+      ? <details className="ticket-field-section ticket-field-disclosure" key={group.title}><summary>{tr(group.title)}</summary>{content}</details>
+      : <section className="ticket-field-section" key={group.title}><PanelHeading title={group.title} />{content}</section>;
+  };
+  return <>
+    {groups.slice(0,4).map(section)}
+    {hasValue(ticket.attachments) && <section className="ticket-field-section ticket-files"><PanelHeading title="Ticket attachments" /><AttachmentList value={ticket.attachments} /></section>}
+    {groups.slice(4).map(section)}
+  </>;
 }
 function ProblemDetails({ problem, ticket }) {
   return (
@@ -353,7 +162,7 @@ function ProblemDetails({ problem, ticket }) {
       {hasValue(problem.text) && (
         <div className="ticket-problem-body">
           {problem.fields.length > 0 && <h3>{tr("Problem description")}</h3>}
-          {String(ticket.platform_name || ticket.platform).toLowerCase() ===
+          {String(ticket.channelCode || ticket.channel).toLowerCase() ===
           "api" ? (
             <div className="ticket-content">{problem.text}</div>
           ) : /<\/?[a-z][^>]*>/i.test(String(ticket.content || "")) ? (
@@ -385,7 +194,7 @@ function MessageBody({ text }) {
   );
 }
 function ConversationContent({ reply, ticket }) {
-  const html = reply.content_format === "html";
+  const html = reply.contentFormat === "html";
   const full = messageText(reply.content, html);
   const parts = messageParts(reply.content, html);
   const initial = isInitialSubmission(
@@ -437,7 +246,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     setError("");
     setBusy(true);
     setData(null);
-    api(`/api/tickets/${encodeURIComponent(id)}`, { signal: controller.signal })
+    crmApi(`/api/tickets/${encodeURIComponent(id)}`, { signal: controller.signal })
       .then(setData)
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
@@ -452,7 +261,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     const controller = new window.AbortController();
     setReplies(null);
     setReplyError("");
-    api(`/api/tickets/${encodeURIComponent(id)}/replies?page=${replyPage}`, {
+    crmApi(`/api/tickets/${encodeURIComponent(id)}/replies?page=${replyPage}`, {
       signal: controller.signal,
     })
       .then(setReplies)
@@ -462,27 +271,27 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     return () => controller.abort();
   }, [id, data, replyPage]);
   const problem = data
-    ? problemPresentation(data.source, metadata, plain(data.source.content))
+    ? problemPresentation(data.ticket, metadata, plain(data.ticket.content))
     : null;
   const create = async () => {
     setBusy(true);
     setError("");
     try {
-      const t = data.source,
+      const t = data.ticket,
         payload = {
-          ticketNumber: t.field_num,
+          ticketNumber: t.number,
           description: plain(t.content).slice(0, 4000),
         };
-      const fields = metadata?.fields?.fields || [];
+      const fields = metadata?.fields || [];
       for (const [label, key] of [
         ["Order Number", "orderNumber"],
         ["Product Serial Number", "sn"],
       ]) {
-        const field = fields.find((f) => f.field_label === label);
-        const value = field && t.custom_fields?.[field.field_name];
+        const field = fields.find((f) => f.label === label);
+        const value = field && t.customValues?.[field.key];
         if (typeof value === "string") payload[key] = value;
       }
-      const draft = await api(`/api/tickets/${encodeURIComponent(id)}/drafts`, {
+      const draft = await crmApi(`/api/tickets/${encodeURIComponent(id)}/drafts`, {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -509,7 +318,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
               className="btn secondary"
               target="_blank"
               rel="noreferrer"
-              href={data.udeskUrl}
+              href={data.sourceUrl}
             >
               {tr("Open in Udesk")}
             </a>
@@ -544,17 +353,17 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
             <header className="ticket-detail-header">
               <div className="ticket-kicker">
                 <span>
-                  {tr("Ticket")} {data.source.field_num}
+                  {tr("Ticket")} {data.ticket.number}
                 </span>
-                <span className="ticket-status">{data.source.status}</span>
-                <span>{data.source.platform}</span>
+                <span className="ticket-status">{data.ticket.status}</span>
+                <span>{data.ticket.channel}</span>
               </div>
-              <h2>{data.source.subject}</h2>
+              <h2>{data.ticket.subject}</h2>
             </header>
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
                 {(hasValue(problem.text) || problem.fields.length > 0) && (
-                  <ProblemDetails problem={problem} ticket={data.source} />
+                  <ProblemDetails problem={problem} ticket={data.ticket} />
                 )}
                 {data.rmaIds?.length > 0 && (
                   <p className="ticket-rma-links">
@@ -566,17 +375,17 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                     title="Conversation"
                     subtitle="Times shown in Beijing (UTC+8)"
                   >
-                    {replies && <span className="conversation-count">{tr("{count} messages", {count: replies.meta?.total_count ?? (replies.replies || []).length})}</span>}
+                    {replies && <span className="conversation-count">{tr("{count} messages", {count: replies.totalCount ?? (replies.messages || []).length})}</span>}
                   </PanelHeading>
                   {replies ? (
                     <>
                       <div className="ticket-conversation">
-                        {!replies.replies?.length && (
+                        {!replies.messages?.length && (
                           <p className="ticket-empty-conversation">
                             {tr("No conversation yet.")}
                           </p>
                         )}
-                        {(replies.replies || []).map((r) => (
+                        {(replies.messages || []).map((r) => (
                           <article key={r.id} className={conversationRole(r) === "Customer" ? "is-customer" : conversationRole(r) === "Internal note" ? "is-internal" : ""}>
                             <header className="conversation-header">
                               <div className="conversation-author">
@@ -585,23 +394,23 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                                   aria-hidden="true"
                                 >
                                   {(
-                                    r.author?.nick_name ||
-                                    r.author?.user_type ||
+                                    r.author?.name ||
+                                    r.author?.kind ||
                                     "U"
                                   )
                                     .slice(0, 1)
                                     .toUpperCase()}
                                 </span>
                                 <strong>
-                                  {r.author?.nick_name || tr(r.author?.user_type === "agent" ? "Support agent" : r.author?.user_type === "customer" ? "Customer" : "Unknown author")}
+                                  {r.author?.name || tr(r.author?.kind === "agent" ? "Support agent" : r.author?.kind === "customer" ? "Customer" : "Unknown author")}
                                 </strong>
                                 <span className="conversation-role">{tr(conversationRole(r))}</span>
                               </div>
-                              <time dateTime={r.created_at}>{displayDate(r.created_at, "Asia/Shanghai")}</time>
+                              <time dateTime={r.createdAt}>{displayDate(r.createdAt, "Asia/Shanghai")}</time>
                             </header>
                             <ConversationContent
                               reply={r}
-                              ticket={data.source}
+                              ticket={data.ticket}
                             />
                             {hasValue(r.attachments) && (
                               <Value value={r.attachments} />
@@ -609,10 +418,10 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                           </article>
                         ))}
                       </div>
-                      {(replies.meta?.total_pages || 1) > 1 && <Pagination
+                      {(replies.totalPages || 1) > 1 && <Pagination
                         label="Conversation pagination"
                         page={replyPage}
-                        totalPages={replies.meta?.total_pages || 1}
+                        totalPages={replies.totalPages || 1}
                         onPrevious={() => setReplyPage((n) => n - 1)}
                         onNext={() => setReplyPage((n) => n + 1)}
                       />}
@@ -635,7 +444,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
               </div>
               <aside className="ticket-sidebar">
                 <Fields
-                  ticket={data.source}
+                  ticket={data.ticket}
                   metadata={metadata}
                   omitted={problem.omitted}
                 />
@@ -707,7 +516,7 @@ export function TicketCenter() {
       new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
     ),
     [query, setQuery] = useState(""),
-    [sort, setSort] = useState("replied_at:desc"),
+    [sort, setSort] = useState("repliedAt:desc"),
     [lookupBusy, setLookupBusy] = useState(false),
     [lookupError, setLookupError] = useState(null),
     [draft, setDraft] = useState(null),
@@ -740,11 +549,11 @@ export function TicketCenter() {
   const latest = useRef(0);
   useEffect(() => {
     const controller = new window.AbortController();
-    api("/api/tickets/metadata", { signal: controller.signal })
+    crmApi("/api/tickets/metadata", { signal: controller.signal })
       .then((value) => {
         // The first background cycle can expose a partial metadata snapshot.
         // Wait for definitions before presenting raw keys as field labels.
-        setMetadata(Array.isArray(value.fields?.fields) ? value : null);
+        setMetadata(Array.isArray(value.fields) ? value : null);
         setMetadataError(null);
       })
       .catch((e) => {
@@ -754,7 +563,7 @@ export function TicketCenter() {
   }, [refresh]);
   const loadDrafts = useCallback(() => {
     if (can("rma.create"))
-      api("/api/intake-drafts")
+      crmApi("/api/intake-drafts")
         .then((v) => setDrafts(v.items))
         .catch(() => {});
   }, [can]);
@@ -765,7 +574,7 @@ export function TicketCenter() {
     if (selected) return;
     const controller = new window.AbortController();
     const version = ++latest.current;
-    const params = new URLSearchParams({ filterId: filter, cursor, sort, q: query });
+    const params = new URLSearchParams({ contract: "2", filterId: filter, cursor, sort, q: query });
     const signature = params.toString();
     if (lastRequest.current !== signature) {
       setBusy(true);
@@ -773,7 +582,7 @@ export function TicketCenter() {
     }
     lastRequest.current = signature;
     const timer = setTimeout(() => {
-      api("/api/tickets?" + params, { signal: controller.signal })
+      crmApi("/api/tickets?" + params, { signal: controller.signal })
         .then((v) => {
           if (version === latest.current) {
             setData(v);
@@ -815,11 +624,11 @@ export function TicketCenter() {
     setLookupBusy(true);
     setLookupError(null);
     try {
-      const v = await api(
+      const v = await crmApi(
         "/api/tickets/lookup?" + new URLSearchParams({ number: "#" + number }),
         { signal: controller.signal },
       );
-      if (!controller.signal.aborted) setSelected(String(v.source.id));
+      if (!controller.signal.aborted) setSelected(String(v.ticket.id));
     } catch (e) {
       if (e.name !== "AbortError") setLookupError(e);
     } finally {
@@ -829,7 +638,7 @@ export function TicketCenter() {
   const resume = async (id) => {
     setDraftError(null);
     try {
-      setDraft(await api(`/api/intake-drafts/${encodeURIComponent(id)}`));
+      setDraft(await crmApi(`/api/intake-drafts/${encodeURIComponent(id)}`));
     } catch (e) {
       setDraftError(e);
     }
@@ -866,7 +675,7 @@ export function TicketCenter() {
                 download
                 href={
                   "/api/export/tickets?" +
-                  new URLSearchParams({ filterId: filter, cursor, sort, q: query })
+                  new URLSearchParams({ contract: "2", filterId: filter, cursor, sort, q: query })
                 }
               >
                 <Icon name="download" />
@@ -923,21 +732,21 @@ export function TicketCenter() {
               }}
               options={[
                 {
-                  value: "replied_at:desc",
+                  value: "repliedAt:desc",
                   label: "Last reply: newest first",
                 },
-                { value: "replied_at:asc", label: "Last reply: oldest first" },
-                { value: "updated_at:desc", label: "Updated · newest first" },
-                { value: "updated_at:asc", label: "Updated · oldest first" },
-                { value: "created_at:desc", label: "Created · newest first" },
-                { value: "created_at:asc", label: "Created · oldest first" },
+                { value: "repliedAt:asc", label: "Last reply: oldest first" },
+                { value: "updatedAt:desc", label: "Updated · newest first" },
+                { value: "updatedAt:asc", label: "Updated · oldest first" },
+                { value: "createdAt:desc", label: "Created · newest first" },
+                { value: "createdAt:asc", label: "Created · oldest first" },
                 {
-                  value: "field_num:desc",
+                  value: "number:desc",
                   label: "Ticket number · descending",
                 },
-                { value: "field_num:asc", label: "Ticket number · ascending" },
+                { value: "number:asc", label: "Ticket number · ascending" },
                 { value: "subject:asc", label: "Subject · A–Z" },
-                { value: "assignee_name:asc", label: "Assignee · A–Z" },
+                { value: "assigneeName:asc", label: "Assignee · A–Z" },
                 { value: "status:asc", label: "Status · A–Z" },
               ]}
             />
@@ -985,7 +794,7 @@ export function TicketCenter() {
                   </thead>
                   <tbody>
                     {items.map((item) => {
-                      const t = item.source;
+                      const t = item.ticket;
                       return (
                         <tr
                           key={t.id}
@@ -999,7 +808,7 @@ export function TicketCenter() {
                               className="text-button"
                               onClick={() => setSelected(String(t.id))}
                             >
-                              {t.field_num}
+                              {t.number}
                             </button>
                           </td>
                           <td data-label={tr("Subject / customer")}>
@@ -1012,25 +821,25 @@ export function TicketCenter() {
                               {t.subject}
                             </a>
                             <small className="cell-sub">
-                              {t.user_name || t.user_email}
+                              {t.customerName || t.customerEmail}
                             </small>
                           </td>
                           <td data-label={tr("Assignee / group")}>
-                            {t.assignee_name || "—"}
+                            {t.assigneeName || "—"}
                             <small className="cell-sub">
-                              {t.user_group_name}
+                              {t.groupName}
                             </small>
                           </td>
                           <td data-label={tr("Status")}>
                             <span className="ticket-status">{t.status}</span>
                           </td>
                           <td data-label={tr("Priority")}>{t.priority}</td>
-                          <td data-label={tr("Channel")}>{t.platform}</td>
+                          <td data-label={tr("Channel")}>{t.channel}</td>
                           <td
                             className="ticket-date"
                             data-label={tr("Last reply")}
                           >
-                            {displayDate(t.replied_at)}
+                            {displayDate(t.repliedAt)}
                           </td>
                           <td data-label={tr("Linked RMAs")}>
                             {item.rmaIds.join(", ") || "—"}
@@ -1096,7 +905,7 @@ export function UdeskAccounts() {
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const isAdmin = state.currentUser.roles.includes("admin");
-  const load = () => api("/api/integrations/udesk/accounts").then(setData);
+  const load = () => crmApi("/api/integrations/udesk/accounts").then(setData);
   useEffect(() => {
     if (isAdmin) load().catch((e) => setError(e.message));
   }, [isAdmin]);
@@ -1105,7 +914,7 @@ export function UdeskAccounts() {
     setError("");
     setMessage("");
     try {
-      const v = await api("/api/integrations/udesk/accounts/sync", {
+      const v = await crmApi("/api/integrations/udesk/accounts/sync", {
         method: "POST",
         body: JSON.stringify({ resetPasswords: false }),
       });

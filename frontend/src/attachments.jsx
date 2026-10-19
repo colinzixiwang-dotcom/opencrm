@@ -13,43 +13,8 @@ import { tr, intlLocale } from "./i18n";
 const PDFPreview = lazy(() => import("./pdf-preview"));
 export const AttachmentContext = createContext(null);
 function attachment(file, index) {
-  const raw =
-    typeof file === "string"
-      ? file
-      : file?.url || file?.file_url || file?.download_url;
-  try {
-    const url = new URL(raw);
-    if (!["https:", "http:"].includes(url.protocol)) return null;
-    const original =
-      typeof file === "object" ? file.name || file.file_name : "";
-    const name = (
-      original ||
-      decodeURIComponent(url.pathname).split("/").pop() ||
-      tr("Attachment")
-    )
-      .split("/")
-      .pop();
-    const ext = (
-      name.match(/\.([a-z0-9]+)$/i)?.[1] ||
-      url.pathname.match(/\.([a-z0-9]+)$/i)?.[1] ||
-      ""
-    ).toLowerCase();
-    const mime = file?.content_type || file?.mime_type || "";
-    const kind =
-      ext === "eml" || mime === "message/rfc822" ? "email" :
-      /^(png|jpe?g|gif|webp|avif|bmp)$/.test(ext) || mime.startsWith("image/")
-        ? "image"
-        : ext === "pdf" || mime === "application/pdf"
-          ? "pdf"
-          : /^(mp4|webm|mov)$/.test(ext)
-            ? "video"
-            : /^(mp3|wav|ogg|m4a)$/.test(ext)
-              ? "audio"
-              : "file";
-    return { url: url.href, name, kind, index, size: Number(file?.file_size || file?.size) || 0 };
-  } catch {
-    return null;
-  }
+  if (!file?.reference) return null;
+  return {...file, index};
 }
 function Preview({ file, onClose, navigation, onPrevious, onNext }) {
   const ref = useRef(null);
@@ -148,7 +113,7 @@ function Preview({ file, onClose, navigation, onPrevious, onNext }) {
         {navigation || <span>{tr("Source attachment from Udesk")}</span>}
         <a
           className="btn secondary"
-          href={file.kind === "email" ? file.url : file.originalURL || file.url}
+          href={file.url}
           download={file.kind === "email" ? file.name : undefined}
           target="_blank"
           rel="noreferrer"
@@ -168,13 +133,11 @@ export function AttachmentList({ value }) {
     .filter(Boolean)
     .map((file) => {
       if (!scope) return file;
-      const url = new URL(file.url),
-        params = new URLSearchParams({ ref: url.origin + url.pathname });
+      const params = new URLSearchParams({ ref: file.reference });
       if (file.kind === "email") params.set("download", "1");
       if (scope.replyPage) params.set("replyPage", String(scope.replyPage));
       return {
         ...file,
-        originalURL: file.url,
         url:
           `/api/tickets/${encodeURIComponent(scope.ticketId)}/attachment?` +
           params,

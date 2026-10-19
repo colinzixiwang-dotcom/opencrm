@@ -53,19 +53,17 @@ test("API presentation separates source fields and description while retaining t
   const { problemPresentation, customValues, isInitialSubmission } =
     await import("../frontend/src/ticket-presentation.js");
   const metadata = {
-    fields: {
-      fields: [
-        { field_name: "problem", field_label: "Problem Description" },
-        { field_name: "order", field_label: "Order Number" },
+    fields: [
+        { key: "problem", label: "Problem Description" },
+        { key: "order", label: "Order Number" },
       ],
-    },
   };
   const ticket = {
-    platform: "API",
-    custom_fields: { problem: "My device stopped.", order: "ORDER-9" },
-    custom_fields_v2: { extra: false },
-    user_id: 7,
-    created_at: "2026-10-01T10:00:00Z",
+    channel: "API",
+    customValues: { problem: "My device stopped.", order: "ORDER-9", extra: false },
+
+    customerId: 7,
+    createdAt: "2026-10-01T10:00:00Z",
   };
   const original =
     "Original customer submission: Order Number: ORDER-9 Problem Description: My device stopped.";
@@ -93,7 +91,7 @@ test("API presentation separates source fields and description while retaining t
     ).original.includes("Extra shipping instruction"),
   );
   assert.deepEqual(
-    problemPresentation({ ...ticket, platform: "邮件" }, metadata, original),
+    problemPresentation({ ...ticket, channel: "邮件" }, metadata, original),
     { text: original, original: "", omitted: [], fields: [] },
   );
   assert.ok(
@@ -103,13 +101,13 @@ test("API presentation separates source fields and description while retaining t
   );
   assert.equal(customValues(ticket).extra, false);
   const reply = {
-    author: { id: 7, user_type: "customer" },
-    created_at: "2026-10-01T10:00:30Z",
+    author: { id: 7, kind: "customer" },
+    createdAt: "2026-10-01T10:00:30Z",
   };
   assert.equal(isInitialSubmission(reply, ticket, original, original), true);
   assert.equal(
     isInitialSubmission(
-      { ...reply, function_type: "internal" },
+      { ...reply, kind: "internal" },
       ticket,
       original,
       original,
@@ -127,7 +125,7 @@ test("API presentation separates source fields and description while retaining t
   );
   assert.equal(
     isInitialSubmission(
-      { ...reply, created_at: "2026-10-02T10:00:30Z" },
+      { ...reply, createdAt: "2026-10-02T10:00:30Z" },
       ticket,
       original,
       original,
@@ -136,7 +134,7 @@ test("API presentation separates source fields and description while retaining t
   );
   assert.equal(
     isInitialSubmission(
-      { ...reply, created_at: null },
+      { ...reply, createdAt: null },
       ticket,
       original,
       original,
@@ -149,26 +147,24 @@ test("structured descriptions match mail HTML whitespace and select labels witho
   const { problemPresentation } =
     await import("../frontend/src/ticket-presentation.js");
   const metadata = {
-    fields: {
-      fields: [
-        { field_name: "p", field_label: "Problem Description" },
+    fields: [
+        { key: "p", label: "Problem Description" },
         {
-          field_name: "c",
-          field_label: "Primary Category",
-          options: [{ value: "0", title: "Order" }],
+          key: "c",
+          label: "Primary Category",
+          options: [{ value: "0", label: "Order" }],
         },
       ],
-    },
   };
   const ticket = {
-    platform: "API",
-    custom_fields: { p: "First line.\r\nSecond line.", c: "0" },
+    channel: "API",
+    customValues: { p: "First line.\r\nSecond line.", c: "0" },
   };
   const original =
     "Original customer submission:\nPrimary Category: Order\nFirst line.\n\nSecond line.";
   assert.equal(
     problemPresentation(ticket, metadata, original).text,
-    ticket.custom_fields.p,
+    ticket.customValues.p,
   );
   assert.equal(
     problemPresentation(ticket, metadata, original + " 0").original,
@@ -180,16 +176,16 @@ test("legacy API fields use explicit Udesk labels while email prose remains inta
   const { problemPresentation } =
     await import("../frontend/src/ticket-presentation.js");
   const metadata = {
-    fields: { fields: [{ field_name: "order", field_label: "Order Number" }] },
+    fields: [{ key: "order", label: "Order Number" }],
   };
   const text =
     "Original customer submission:\nOrder Number: 1486\nPlease cancel my order.\nCall only after 6pm.";
-  const result = problemPresentation({ platform: "API" }, metadata, text);
+  const result = problemPresentation({ channel: "API" }, metadata, text);
   assert.equal(result.fields[0].value, "1486");
   assert.equal(result.text, "Please cancel my order.\nCall only after 6pm.");
   assert.equal(result.original, text);
   assert.equal(
-    problemPresentation({ platform: "邮件" }, metadata, text).text,
+    problemPresentation({ channel: "邮件" }, metadata, text).text,
     text,
   );
 });
@@ -198,18 +194,16 @@ test("API body fallback cannot duplicate a populated field with an alternative U
   const { problemPresentation } =
     await import("../frontend/src/ticket-presentation.js");
   const metadata = {
-    fields: {
-      fields: [
-        { field_name: "old", field_label: "Secondary Issue" },
-        { field_name: "current", field_label: "Secondary Issue" },
-        { field_name: "p", field_label: "Problem Description" },
+    fields: [
+        { key: "old", label: "Secondary Issue" },
+        { key: "current", label: "Secondary Issue" },
+        { key: "p", label: "Problem Description" },
       ],
-    },
   };
   const result = problemPresentation(
     {
-      platform: "API",
-      custom_fields: { current: "Refund", p: "Please refund." },
+      channel: "API",
+      customValues: { current: "Refund", p: "Please refund." },
     },
     metadata,
     "Original customer submission:\nSecondary Issue: Refund\nPlease refund.",
