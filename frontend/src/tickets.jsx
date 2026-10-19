@@ -681,15 +681,16 @@ export function TicketCenter() {
     addEventListener("hashchange", change);
     return () => removeEventListener("hashchange", change);
   }, []);
-  const items = (data?.items || []).filter(
-    (item) =>
-      !query ||
-      JSON.stringify(item.source).toLowerCase().includes(query.toLowerCase()),
-  );
+  const items = data?.items || [];
+  const lastRequest = useRef("");
+  useEffect(() => {
+    const timer = window.setInterval(() => setRefresh((v) => v + 1), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
   const latest = useRef(0);
   useEffect(() => {
     const controller = new window.AbortController();
-    api("/api/tickets/metadata?refresh=true", { signal: controller.signal })
+    api("/api/tickets/metadata", { signal: controller.signal })
       .then(setMetadata)
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
@@ -709,29 +710,39 @@ export function TicketCenter() {
     if (selected) return;
     const controller = new window.AbortController();
     const version = ++latest.current;
-    setBusy(true);
-    setError("");
-    setData(null);
-    const params = new URLSearchParams({ filterId: filter, cursor, sort });
-    api("/api/tickets?" + params, { signal: controller.signal })
-      .then((v) => {
-        if (version === latest.current) {
-          setData(v);
-          setLastSync(v.fetchedAt);
-        }
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError" && version === latest.current) {
-          setError(e.message);
-          if (e.lastSyncAt) setLastSync(e.lastSyncAt);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted && version === latest.current)
-          setBusy(false);
-      });
-    return () => controller.abort();
-  }, [filter, cursor, sort, refresh, selected]);
+    const params = new URLSearchParams({ filterId: filter, cursor, sort, q: query });
+    const signature = params.toString();
+    if (lastRequest.current !== signature) {
+      setBusy(true);
+      setData(null);
+    }
+    lastRequest.current = signature;
+    const timer = setTimeout(() => {
+      api("/api/tickets?" + params, { signal: controller.signal })
+        .then((v) => {
+          if (version === latest.current) {
+            setData(v);
+            setError("");
+            setLastSync(v.fetchedAt);
+          }
+        })
+        .catch((e) => {
+          if (e.name !== "AbortError" && version === latest.current) {
+            setError(e.message);
+            setData(null);
+            if (e.lastSyncAt) setLastSync(e.lastSyncAt);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted && version === latest.current)
+            setBusy(false);
+        });
+    }, query ? 300 : 0);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [filter, cursor, sort, query, refresh, selected]);
   useEffect(() => {
     const update = () => {
       setSelected(null);
@@ -765,17 +776,10 @@ export function TicketCenter() {
   };
   return (
     <>
-      <Heading>
-        <Button
-          disabled={busy}
-          onClick={() => {
-            setSelected(null);
-            setRefresh((v) => v + 1);
-          }}
-        >
-          Refresh
-        </Button>
-      </Heading>
+      <Heading />
+      <p className="muted ticket-sync-summary" role="status">
+        {tr("Automatic sync every minute")} · {tr("Last successful sync")}: {lastSync ? displayDate(lastSync) : tr("Not yet synchronized")}
+      </p>
       <p className="muted">
         {tr(
           "Udesk is the source of truth. Edit tickets in Udesk; create RMAs here.",
@@ -783,7 +787,7 @@ export function TicketCenter() {
       </p>
       {error && (
         <div className="ticket-sync-error" role="alert">
-          <strong>{tr("Udesk refresh failed")}</strong>
+          <strong>{tr("Ticket list unavailable")}</strong>
           <p>{tr(error)}</p>
           <p>
             {tr("Last successful sync")}:{" "}
@@ -821,7 +825,7 @@ export function TicketCenter() {
                 download
                 href={
                   "/api/export/tickets?" +
-                  new URLSearchParams({ filterId: filter, cursor, sort })
+                  new URLSearchParams({ filterId: filter, cursor, sort, q: query })
                 }
               >
                 <Icon name="download" />
@@ -830,10 +834,14 @@ export function TicketCenter() {
             }
           >
             <SearchControl
-              label="Search current page"
-              placeholder="Search current page…"
+              label="Search ticket content"
+              placeholder="Ticket number, title, description or custom fields…"
               value={query}
-              onChange={setQuery}
+              onChange={(value) => {
+                setQuery(value);
+                setCursor("");
+                setHistory([]);
+              }}
             />
             <FilterControl
               label="Udesk filter"
@@ -885,11 +893,11 @@ export function TicketCenter() {
           <div className="ticket-queue-subbar">
             <span>
               {tr(
-                "Sorting applies to all authorized results. Search applies to this page.",
+                "Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.",
               )}{" "}
               {data && (
                 <strong>
-                  {items.length} / {data.items.length}
+                  {tr("Total")}: {data.totalCount}
                 </strong>
               )}
             </span>
@@ -915,9 +923,23 @@ export function TicketCenter() {
             </p>
           </details>
           {busy && (
-            <LoadingState label="Fetching tickets from Udesk…" rows={5} />
+            <LoadingState label="Loading tickets…" rows={5} />
           )}
-          {!busy && data && (
+          {!busy && data?.initializing && (
+            <LoadingState label="Ticket data is initializing" rows={3} />
+          )}
+          {!busy && data?.syncError && (
+            <div className="ticket-sync-error" role="alert">
+              <strong>{tr("Background sync failed")}</strong>
+              <p>{tr("The last complete result is retained. Automatic synchronization will retry.")}</p>
+            </div>
+          )}
+          {!busy && data?.stale && (
+            <div className="ticket-sync-error" role="alert">
+              {tr("Ticket data is older than 15 minutes. Scoped lists are paused until synchronization recovers.")}
+            </div>
+          )}
+          {!busy && data && !data.initializing && (
             <>
               <div className="table-scroll ticket-table">
                 <table>
@@ -996,7 +1018,7 @@ export function TicketCenter() {
                 </table>
               </div>
               {!items.length && (
-                <p>{tr("No authorized tickets on this source page.")}</p>
+                <p>{tr("No matching authorized tickets.")}</p>
               )}
               {data.scanLimited && (
                 <p className="muted">
@@ -1007,7 +1029,7 @@ export function TicketCenter() {
               )}
               <Pagination
                 label="Ticket pagination"
-                page={history.length + 1}
+                page={data.currentPage || history.length + 1}
                 totalPages={
                   data.totalPages ??
                   (!data.nextCursor ? history.length + 1 : null)
@@ -1016,7 +1038,7 @@ export function TicketCenter() {
                 disabled={busy}
                 context={
                   <>
-                    {tr("Fetched from Udesk")}: {displayDate(data.fetchedAt)}
+                    {tr("Last successful sync")}: {displayDate(data.fetchedAt)}
                   </>
                 }
                 onPrevious={() => {

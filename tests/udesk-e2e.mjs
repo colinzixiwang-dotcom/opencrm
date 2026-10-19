@@ -61,10 +61,15 @@ try {
     "#104",
   );
   await page
-    .getByLabel("Search current page", { exact: true })
+    .getByLabel("Search ticket content", { exact: true })
     .fill("OTHER-AGENT-PRIVATE");
+  await page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets" && new URL(r.url()).searchParams.get("q") === "OTHER-AGENT-PRIVATE");
+  await page.locator("tbody tr").first().waitFor();
   assert.equal(await page.locator("tbody tr").count(), 1);
-  await page.getByLabel("Search current page", { exact: true }).fill("");
+  const cleared = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets" && !new URL(r.url()).searchParams.get("q"));
+  await page.getByLabel("Search ticket content", { exact: true }).fill("");
+  await cleared;
+  await page.locator("tbody tr").first().waitFor();
   await page.screenshot({
     path: "test-results/ticket-queue-en.png",
     fullPage: true,
@@ -84,22 +89,21 @@ try {
     await listGate;
     await route.continue();
   });
-  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("created_at:desc");
   await page
-    .getByRole("status", { name: "Fetching tickets from Udesk…", exact: true })
+    .getByRole("status", { name: "Loading tickets…", exact: true })
     .waitFor();
   await page.screenshot({ path: "test-results/ticket-loading-refined.png" });
   releaseList();
   await page.locator("tbody tr").first().waitFor();
   await page.unroute("**/api/tickets?*");
   const before = mock.state.requests.filter((p) => p === "tickets").length;
-  const refreshed = page.waitForResponse(
-    (r) => new URL(r.url()).pathname === "/api/tickets",
-  );
-  await page.getByRole("button", { name: "Refresh", exact: true }).click();
-  await refreshed;
+  assert.equal(await page.getByRole("button", { name: "Refresh", exact: true }).count(), 0);
+  const queried = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets");
+  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("field_num:desc");
+  await queried;
   await page.locator("tbody tr").first().waitFor();
-  assert.ok(mock.state.requests.filter((p) => p === "tickets").length > before);
+  assert.equal(mock.state.requests.filter((p) => p === "tickets").length, before);
   const filtered = page.waitForResponse((r) => r.url().includes("filterId=11"));
   await page.getByLabel("Udesk filter", { exact: true }).selectOption("11");
   await filtered;
@@ -369,17 +373,20 @@ try {
   console.log(
     "PASS imported account login and authorization on list/detail/replies/export/lookup/drafts",
   );
-  // An upstream outage must be visible, not a cache presented as current.
+  // Source outage does not turn PG pagination into a failed source request;
+  // details continue to require live authorization.
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("button", { name: "返回工单列表", exact: true }).click();
   await page.locator("tbody tr").first().waitFor();
   mock.state.fail = true;
-  await page.getByRole("button", { name: "刷新", exact: true }).click();
-  await page.getByText("Udesk 刷新失败", { exact: true }).waitFor();
-  assert.equal(await page.locator("tbody tr").count(), 0);
+  const listDuringOutage = await page.request.get(app.base + "/api/tickets");
+  assert.equal(listDuringOutage.status(), 200);
+  assert.equal((await listDuringOutage.json()).totalCount, 4);
+  const deniedDetail = await page.request.get(app.base + "/api/tickets/101");
+  assert.equal(deniedDetail.status(), 502);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS Udesk live refresh, source filters, all custom fields, safe content, read-only conversation, persistent RMA draft, bilingual/mobile display, account mapping, row authorization and visible outage",
+    "PASS Udesk background index, PG queries, source filters, all custom fields, safe content, read-only conversation, persistent RMA draft, bilingual/mobile display, account mapping, row authorization and live authorization during outage",
   );
 } finally {
   await browser?.close();

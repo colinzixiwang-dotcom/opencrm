@@ -1155,5 +1155,16 @@
   "PostgreSQL · persistent": "PostgreSQL · 持久化",
   "Workspace storage": "工作区存储",
   "Business records and permissions are saved in PostgreSQL.": "业务记录和权限保存在 PostgreSQL 中。",
-  "Business snapshot excludes authentication data. Back up PostgreSQL for complete recovery.": "业务快照不包含认证数据。完整恢复请备份 PostgreSQL。"
+  "Business snapshot excludes authentication data. Back up PostgreSQL for complete recovery.": "业务快照不包含认证数据。完整恢复请备份 PostgreSQL。",
+  "Automatic sync every minute": "每分钟自动同步",
+  "Ticket list unavailable": "工单列表暂不可用",
+  "Search ticket content": "搜索工单内容",
+  "Ticket number, title, description or custom fields…": "搜索工单号、标题、问题描述或自定义字段…",
+  "Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.": "搜索当前权限范围内的工单标题、问题描述及自定义字段，不包含沟通记录。",
+  "Loading tickets…": "正在加载工单…",
+  "Ticket data is initializing": "工单数据初始化中",
+  "Background sync failed": "后台同步失败",
+  "The last complete result is retained. Automatic synchronization will retry.": "保留最近一次完整同步结果，后台将自动重试。",
+  "Ticket data is older than 15 minutes. Scoped lists are paused until synchronization recovers.": "工单数据超过 15 分钟未更新；客服与主管列表暂停展示，等待同步恢复。",
+  "No matching authorized tickets.": "没有符合条件且有权查看的工单。"
 }
