@@ -22,7 +22,7 @@ import {
   problemPresentation,
   isInitialSubmission,
 } from "./ticket-presentation";
-import { syncTimestamp, ticketNumberQuery } from "./ticket-ui";
+import { syncTimestamp, ticketNumberQuery, ticketListIssue } from "./ticket-ui";
 import { MailContent } from "./mail-content";
 import { RMAForm } from "./support";
 
@@ -674,12 +674,29 @@ function TicketSyncStatus({ data, lastSync, error, zone }) {
     </div>
   </details>;
 }
+function TicketQueueState({ title, description, children }) {
+  return <div className="ticket-queue-state" role="status">
+    <span className="ticket-state-icon" aria-hidden="true"><Icon name="service" /></span>
+    <h3>{tr(title)}</h3>
+    <p>{tr(description)}</p>
+    {children}
+  </div>;
+}
+const queueIssues = {
+  filter: ["This filter is unavailable", "Choose another filter or view all tickets."],
+  mapping: ["Link your Udesk account", "Your Udesk account is not linked. Contact an administrator."],
+  permission: ["Ticket access is unavailable", "Contact an administrator to check your access."],
+  session: ["Your session has expired", "Sign in again to view tickets."],
+  unavailable: ["Unable to load tickets", "Please try again later. The list will recover automatically."],
+};
 export function TicketCenter() {
   const { can, state } = useWorkspace();
   const zone = state.settings.timezone || "Asia/Shanghai";
   const [metadata, setMetadata] = useState(null),
     [data, setData] = useState(null),
-    [error, setError] = useState(""),
+    [error, setError] = useState(null),
+    [metadataError, setMetadataError] = useState(null),
+    [draftError, setDraftError] = useState(null),
     [busy, setBusy] = useState(false),
     [filter, setFilter] = useState(""),
     [cursor, setCursor] = useState(""),
@@ -709,6 +726,9 @@ export function TicketCenter() {
   }, []);
   const items = data?.items || [];
   const number = ticketNumberQuery(query);
+  const issue = ticketListIssue(error || (!data && metadataError));
+  const hasFilters = !!(query || filter);
+  const clearFilters = () => { setQuery(""); setFilter(""); setCursor(""); setHistory([]); setLookupError(null); lookupRequest.current?.abort(); setLookupBusy(false); };
   const lookupRequest = useRef(null);
   useEffect(() => () => lookupRequest.current?.abort(), []);
   const lastRequest = useRef("");
@@ -720,9 +740,9 @@ export function TicketCenter() {
   useEffect(() => {
     const controller = new window.AbortController();
     api("/api/tickets/metadata", { signal: controller.signal })
-      .then(setMetadata)
+      .then((value) => { setMetadata(value); setMetadataError(null); })
       .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (e.name !== "AbortError") setMetadataError(e);
       });
     return () => controller.abort();
   }, [refresh]);
@@ -751,13 +771,13 @@ export function TicketCenter() {
         .then((v) => {
           if (version === latest.current) {
             setData(v);
-            setError("");
+            setError(null);
             setLastSync(v.fetchedAt);
           }
         })
         .catch((e) => {
           if (e.name !== "AbortError" && version === latest.current) {
-            setError(e.message);
+            setError(e);
             setData(null);
             if (e.lastSyncAt) setLastSync(e.lastSyncAt);
           }
@@ -801,26 +821,16 @@ export function TicketCenter() {
     }
   };
   const resume = async (id) => {
-    setError("");
+    setDraftError(null);
     try {
       setDraft(await api(`/api/intake-drafts/${encodeURIComponent(id)}`));
     } catch (e) {
-      setError(e.message);
+      setDraftError(e);
     }
   };
   return (
     <>
       <Heading subtitle="View Udesk tickets and create linked RMAs." />
-      {error && (
-        <div className="ticket-sync-error" role="alert">
-          <strong>{tr("Ticket list unavailable")}</strong>
-          <p>{tr(error)}</p>
-          <p>
-            {tr("Last successful sync")}:{" "}
-            {lastSync || tr("Not yet synchronized")}
-          </p>
-        </div>
-      )}
       {selected ? (
         <TicketDetail
           key={selected}
@@ -841,11 +851,11 @@ export function TicketCenter() {
                 {query ? tr("Found") + " " : ""}{data.totalCount} {tr("tickets")}
               </span>}
             </div>
-            <TicketSyncStatus data={data} lastSync={lastSync} error={error} zone={zone} />
+            <TicketSyncStatus data={data} lastSync={lastSync} error={error || metadataError} zone={zone} />
           </div>
           <ListToolbar
             actions={
-              <a
+              data && items.length > 0 && !issue ? <a
                 className="btn secondary"
                 download
                 href={
@@ -855,7 +865,7 @@ export function TicketCenter() {
               >
                 <Icon name="download" />
                 {tr("Export page")}
-              </a>
+              </a> : <button className="btn secondary" disabled><Icon name="download" />{tr("Export page")}</button>
             }
           >
             <form className="ticket-search" onSubmit={lookup}>
@@ -929,24 +939,25 @@ export function TicketCenter() {
           {lookupError && <div className="ticket-inline-notice" role="alert">
             {tr(lookupError.status === 404 ? "Ticket not found or not available to your account." : lookupError.status === 403 ? "Your Udesk account is not linked. Contact an administrator." : "Unable to look up this ticket. Please try again later.")}
           </div>}
-          {busy && (
-            <LoadingState label="Loading tickets…" rows={5} />
-          )}
-          {!busy && data?.initializing && (
-            <LoadingState label="Ticket data is initializing" rows={3} />
-          )}
-          {!busy && data?.syncError && (
-            <div className="ticket-sync-error" role="alert">
-              <strong>{tr("Background sync failed")}</strong>
-              <p>{tr("The last complete result is retained. Automatic synchronization will retry.")}</p>
-            </div>
-          )}
-          {!busy && data?.stale && (
-            <div className="ticket-sync-error" role="alert">
-              {tr("Ticket data is older than 15 minutes. Scoped lists are paused until synchronization recovers.")}
-            </div>
-          )}
-          {!busy && data && !data.initializing && (
+          {busy && <LoadingState label="Loading tickets…" rows={5} />}
+          {!busy && issue && <TicketQueueState title={queueIssues[issue][0]} description={queueIssues[issue][1]}>
+            {issue === "filter" && <button className="btn secondary" onClick={clearFilters}>{tr("View all tickets")}</button>}
+          </TicketQueueState>}
+          {!busy && !issue && data?.initializing && !data.syncError && <LoadingState label="Ticket data is initializing" rows={3} />}
+          {!busy && !issue && data?.initializing && data.syncError && <TicketQueueState title="Ticket initialization is paused" description="Automatic synchronization will retry. No complete ticket list is available yet." />}
+          {!busy && !issue && data?.syncError && !data.initializing && !data.stale && <div className="ticket-inline-notice" role="status">
+            {tr("Synchronization is temporarily interrupted. Showing previously synced data; automatic retries will continue.")}
+          </div>}
+          {!busy && !issue && data?.stale && <div className="ticket-inline-notice" role="status">
+            {items.length > 0 ? tr("Synchronization is delayed. You are viewing older data.") : tr("Ticket data is out of date. The list is paused to protect access permissions.")}
+          </div>}
+          {!busy && !issue && data && !data.initializing && items.length === 0 && <TicketQueueState
+            title={data.stale ? "Waiting for synchronization" : hasFilters ? "No matching tickets" : "No tickets to show"}
+            description={data.stale ? "The list will return automatically when synchronization recovers." : hasFilters ? "Try another keyword or adjust your filters." : "New tickets will appear here after synchronization."}
+          >
+            {!data.stale && hasFilters && <button className="btn secondary" onClick={clearFilters}>{tr("Clear filters")}</button>}
+          </TicketQueueState>}
+          {!busy && !issue && data && !data.initializing && items.length > 0 && (
             <>
               <div className="table-scroll ticket-table">
                 <table>
@@ -1024,16 +1035,6 @@ export function TicketCenter() {
                   </tbody>
                 </table>
               </div>
-              {!items.length && (
-                <p>{tr("No matching authorized tickets.")}</p>
-              )}
-              {data.scanLimited && (
-                <p className="muted">
-                  {tr(
-                    "More source pages remain. Continue to find additional authorized tickets.",
-                  )}
-                </p>
-              )}
               <Pagination
                 label="Ticket pagination"
                 page={data.currentPage || history.length + 1}
@@ -1059,6 +1060,7 @@ export function TicketCenter() {
       {can("rma.create") && drafts.length > 0 && (
         <Panel>
           <PanelHeading title="Your RMA drafts" />
+          {draftError && <div className="ticket-inline-notice" role="alert">{tr("Unable to open this draft. It may no longer be available to your account.")}</div>}
           <div className="ticket-toolbar">
             {drafts.map(({ draft: d }) => (
               <Button key={d.id} onClick={() => resume(d.id)}>

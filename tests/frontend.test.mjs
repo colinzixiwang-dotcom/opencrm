@@ -218,7 +218,7 @@ test("API body fallback cannot duplicate a populated field with an alternative U
   assert.equal(result.fields[0].name, "current");
 });
 
-import { syncTimestamp, ticketNumberQuery } from "../frontend/src/ticket-ui.js";
+import { syncTimestamp, ticketNumberQuery, ticketListIssue } from "../frontend/src/ticket-ui.js";
 test("sync times use workspace day boundaries and do not expose malformed source dates", () => {
   const now = new Date("2026-10-19T01:00:00Z");
   const stamp = syncTimestamp("2026-10-18T23:23:00Z", "zh-CN", "Asia/Shanghai", now);
@@ -234,4 +234,13 @@ test("only a complete ticket number offers an explicit live lookup", () => {
   assert.equal(ticketNumberQuery("717"), "717");
   for (const query of ["Order 717", "#717 extra", "-1", "", "9".repeat(21)])
     assert.equal(ticketNumberQuery(query), null);
+});
+
+test("queue failures use safe recovery messages for permissions and source failures", () => {
+  assert.equal(ticketListIssue(null), null);
+  assert.equal(ticketListIssue({status:401}), "session");
+  assert.equal(ticketListIssue({status:403,message:"This Udesk filter is not available to your account."}), "filter");
+  assert.equal(ticketListIssue({status:403,message:"Your account is not mapped to an active Udesk agent."}), "mapping");
+  assert.equal(ticketListIssue({status:403,message:"private detail"}), "permission");
+  assert.equal(ticketListIssue({status:502,message:"2026-10-19T00:00:00Z source failed"}), "unavailable");
 });

@@ -16,3 +16,15 @@ export function ticketNumberQuery(value) {
   const match = value.trim().match(/^#?(\d{1,20})$/);
   return match ? match[1] : null;
 }
+
+// Match known API failures; never render raw server errors as customer-facing copy.
+export function ticketListIssue(error) {
+  if (!error) return null;
+  if (error.status === 401) return "session";
+  if (error.status === 403) {
+    if (error.message === "This Udesk filter is not available to your account.") return "filter";
+    if (error.message === "Your account is not mapped to an active Udesk agent.") return "mapping";
+    return "permission";
+  }
+  return "unavailable";
+}

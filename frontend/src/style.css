@@ -4111,3 +4111,11 @@ td {
 @media (max-width: 700px) {
  .ticket-help-content { position: fixed; top: auto; bottom: 24px; left: 16px; right: 16px; width: auto; max-width: none; }
 }
+
+.ticket-queue-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 260px; padding: 36px 24px 44px; text-align: center; }
+.ticket-state-icon { display: grid; place-items: center; height: 44px; width: 44px; margin-bottom: 16px; border: 1px solid #e5ebe1; border-radius: 12px; background: #f5f8f2; color: #8ea088; }
+.ticket-state-icon .icon { width: 21px; height: 21px; }
+.ticket-queue-state h3 { font-size: 15px; font-weight: 600; margin: 0; color: var(--ink); }
+.ticket-queue-state p { color: var(--muted); font-size: 12px; line-height: 1.8; max-width: 400px; margin: 9px 0 0; }
+.ticket-queue-state .btn { margin-top: 20px; font-size: 12px; }
+.ticket-queue .pagination { border-top: 1px solid var(--line); }

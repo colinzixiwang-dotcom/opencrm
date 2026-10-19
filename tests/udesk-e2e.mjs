@@ -37,7 +37,7 @@ try {
   }));
   await page.locator('a.nav-item[href="#service"]').click();
   await page.getByRole("status", { name: "Ticket data is initializing", exact: true }).waitFor();
-  assert.equal(await page.locator(".ticket-queue-subbar strong").count(), 0);
+  assert.equal(await page.locator(".ticket-result-count").count(), 0);
   await page.screenshot({ path: "test-results/ticket-index-initializing.png" });
   await page.unroute("**/api/tickets?*");
   await page.locator('a.nav-item[href="#home"]').click();
