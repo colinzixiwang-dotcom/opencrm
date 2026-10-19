@@ -71,8 +71,8 @@ try {
   );
   await page
     .getByLabel("Search ticket content", { exact: true })
-    .fill("OTHER-AGENT-PRIVATE");
-  await page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets" && new URL(r.url()).searchParams.get("q") === "OTHER-AGENT-PRIVATE");
+    .fill("Second own ticket");
+  await page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets" && new URL(r.url()).searchParams.get("q") === "Second own ticket");
   await page.locator("tbody tr").first().waitFor();
   assert.equal(await page.locator("tbody tr").count(), 1);
   const cleared = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets" && !new URL(r.url()).searchParams.get("q"));
@@ -339,7 +339,7 @@ try {
     ),
     true,
   );
-  // Verify the imported agent has only their own rows on every HTTP entry point.
+  // All agents share Morpho rows; non-Morpho tickets stay excluded on every path.
   const agent = await browser.newContext();
   const ap = await agent.newPage();
   await ap.goto(app.base);
@@ -390,7 +390,7 @@ try {
   mock.state.fail = true;
   const listDuringOutage = await page.request.get(app.base + "/api/tickets");
   assert.equal(listDuringOutage.status(), 200);
-  assert.equal((await listDuringOutage.json()).totalCount, 4);
+  assert.equal((await listDuringOutage.json()).totalCount, 3);
   const deniedDetail = await page.request.get(app.base + "/api/tickets/101");
   assert.equal(deniedDetail.status(), 502);
   assert.deepEqual(errors, []);

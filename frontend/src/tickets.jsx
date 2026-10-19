@@ -835,7 +835,7 @@ export function TicketCenter() {
   };
   return (
     <>
-      <Heading subtitle="View Udesk tickets and create linked RMAs." />
+      <Heading subtitle="View Morpho tickets and create linked RMAs." />
       {selected ? (
         <TicketDetail
           key={selected}
@@ -904,14 +904,14 @@ export function TicketCenter() {
                 setQuery("");
               }}
               options={[
-                { value: "", label: "All tickets" },
+                { value: "", label: "All Morpho tickets" },
                 ...(metadata?.filters || []).map((f) => ({
                   value: f.id,
                   label: f.name,
                 })),
               ]}
             />
-            <TicketHelp label="About Udesk filters"><p>{tr("Filters are maintained in Udesk. Personal filters use the integration account; your CRM access scope is always applied.")}</p></TicketHelp>
+            <TicketHelp label="About Udesk filters"><p>{tr("Filters use the Udesk integration account. Results always stay within the configured Morpho groups.")}</p></TicketHelp>
             <SortControl
               label="Sort all authorized tickets"
               value={sort}
@@ -1117,34 +1117,18 @@ export function UdeskAccounts() {
       setBusy(false);
     }
   };
-  const save = async (mapping, scope, groups) => {
-    setBusy(true);
-    setError("");
-    try {
-      await api("/api/integrations/udesk/accounts/configure", {
-        method: "POST",
-        body: JSON.stringify({ agentId: mapping.agentId, scope, groups }),
-      });
-      await load();
-      await reload();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
   if (!isAdmin)
     return <p>{tr("Only administrators can manage Udesk mappings.")}</p>;
   return (
     <Panel>
-      <PanelHeading title="Udesk accounts & access">
+      <PanelHeading title="Udesk accounts & mapping">
         <Button disabled={busy} onClick={sync}>
           Synchronize accounts
         </Button>
       </PanelHeading>
       <p className="muted">
         {tr(
-          "Source account status is synchronized. Group access requires explicit authorization.",
+          "Source accounts provide identity mapping. All active CRM users share the configured Morpho ticket scope.",
         )}
       </p>
       {error && <p className="form-error">{tr(error)}</p>}
@@ -1159,8 +1143,7 @@ export function UdeskAccounts() {
                   "Udesk agent ID",
                   "Source role",
                   "Status",
-                  "Access scope",
-                  "Authorized groups",
+                  "Agent groups",
                 ].map((label) => (
                   <th key={label}>{tr(label)}</th>
                 ))}
@@ -1176,44 +1159,7 @@ export function UdeskAccounts() {
                   <td>{m.agentId}</td>
                   <td>{m.sourceRole}</td>
                   <td>{tr(m.enabled ? "Active" : "Disabled")}</td>
-                  <td>
-                    <select
-                      disabled={busy}
-                      value={m.scope}
-                      onChange={(e) =>
-                        save(m, e.target.value, JSON.parse(m.groups || "[]"))
-                      }
-                    >
-                      <option value="own">{tr("Own tickets")}</option>
-                      <option value="group">{tr("Authorized groups")}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <div className="ticket-group-options">
-                      {(data.groups || []).map((g) => (
-                        <label key={g.id}>
-                          <input
-                            type="checkbox"
-                            disabled={busy || m.scope !== "group"}
-                            checked={JSON.parse(m.groups || "[]").includes(
-                              String(g.id),
-                            )}
-                            onChange={(e) => {
-                              const current = JSON.parse(m.groups || "[]");
-                              save(
-                                m,
-                                m.scope,
-                                e.target.checked
-                                  ? [...current, String(g.id)]
-                                  : current.filter((id) => id !== String(g.id)),
-                              );
-                            }}
-                          />
-                          {g.name}
-                        </label>
-                      ))}
-                    </div>
-                  </td>
+                  <td>{JSON.parse(m.sourceGroups || "[]").map((id) => (data.groups || []).find((g) => String(g.id) === String(id))?.name || id).join(" / ") || "—"}</td>
                 </tr>
               ))}
             </tbody>

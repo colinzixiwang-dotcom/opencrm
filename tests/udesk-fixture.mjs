@@ -12,7 +12,7 @@ export async function startUdeskMock() {
     user_email: "private@example.com",
     assignee_id: 11,
     assignee_name: "Agent One",
-    user_group_id: 7,
+    user_group_id: 5042,
     user_group_name: "Support",
     template_id: 1,
     priority: "高",
@@ -48,7 +48,7 @@ export async function startUdeskMock() {
       field_num: "#102",
       subject: "OTHER-AGENT-PRIVATE",
       assignee_id: 22,
-      user_group_id: 8,
+      user_group_id: 5060,
     },
     {
       ...own,
@@ -82,6 +82,12 @@ export async function startUdeskMock() {
   ];
   const state = {
     tickets,
+    groups: [
+      {id:5060,name:"Email-售前组-Colorbox"}, {id:5044,name:"客诉升级组"},
+      {id:5043,name:"技术组"}, {id:5042,name:"Email-售后组-Morpho"},
+      {id:5041,name:"Email-售前组-Morpho"}, {id:4974,name:"运营组"},
+      {id:4918,name:"morpho--Email组"},
+    ],
     fields,
     requests: [],
     fail: false,
@@ -162,7 +168,7 @@ export async function startUdeskMock() {
           nick_name: "Agent One",
           role_name: "agent",
           disable_status: "enable",
-          user_group_ids: [7],
+          user_group_ids: [5042],
         },
         {
           id: 22,
@@ -170,7 +176,7 @@ export async function startUdeskMock() {
           nick_name: "Agent Two",
           role_name: "custom unknown",
           disable_status: "enable",
-          user_group_ids: [8],
+          user_group_ids: [5060],
         },
         {
           id: 33,
@@ -182,10 +188,7 @@ export async function startUdeskMock() {
         },
       ];
     else if (p === "user_groups")
-      data.user_groups = [
-        { id: 7, name: "Support" },
-        { id: 8, name: "Other team" },
-      ];
+      data.user_groups = state.groups;
     else if (p === "agent_roles") data.agent_roles = [{ id: 1, name: "agent" }];
     else if (p === "custom_fields") data.fields = fields;
     else if (p === "tickets/status")

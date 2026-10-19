@@ -15,15 +15,14 @@ import (
 const MaxListAge = 15 * time.Minute
 
 func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, size int, order, search string) (result M, err error) {
-	// Resolve current mapping exactly once, before querying or counting any rows.
-	var mapping Mapping
-	if !admin(actor) {
-		mapping, err = s.mapping(actor)
-		if err != nil {
-			return nil, err
-		}
+
+	if err = s.readPermission(actor); err != nil {
+		return nil, err
 	}
-	if err = s.validateFilterScope(filter, actor, mapping); err != nil {
+	if _, err = s.scope(ctx); err != nil {
+		return nil, err
+	}
+	if err = s.validateFilter(actor, filter); err != nil {
 		return nil, err
 	}
 	if size < 1 || size > 100 {
@@ -65,23 +64,21 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 			at = state.LastSuccess.UTC().Format(time.RFC3339Nano)
 		}
 		result = M{"items": []M{}, "nextCursor": "", "fetchedAt": at, "filterId": filter, "sort": order, "query": search, "scanLimited": false, "totalPages": 1, "totalCount": 0, "initializing": !initialized, "stale": stale, "syncError": state.Error, "syncIntervalSeconds": 60, "searchIncludesReplies": false}
-		if !initialized || (stale && !admin(actor)) {
+		if !initialized || (stale) {
 			return nil
 		}
+
+		policy, e := scopeFrom(tx, s.Tenant)
+		if e != nil {
+			return e
+		}
+		result["scopeRevision"] = policy.Revision
+		result["product"] = MorphoScope
 		members := persistence.Table(tx, "filter_members")
 		base := func() *gorm.DB {
 			q := tx.Model(&Ticket{}).Where("tenant=?", s.Tenant).Where("external_id IN (SELECT ticket_id FROM "+members+" WHERE tenant=? AND scope=? AND generation=?)", s.Tenant, filter, state.Generation)
-			if !admin(actor) {
-				var groups []string
-				if mapping.Scope == "group" {
-					json.Unmarshal([]byte(mapping.Groups), &groups)
-				}
-				if len(groups) > 0 {
-					q = q.Where("(assignee=? OR group_id IN ?)", mapping.AgentID, groups)
-				} else {
-					q = q.Where("assignee=?", mapping.AgentID)
-				}
-			}
+			q = policy.apply(q)
+
 			if search != "" {
 				escaped := strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(search)
 				q = q.Where("search_text ILIKE ?", "%"+escaped+"%")
@@ -121,43 +118,4 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return
-}
-
-func (s *Service) validateFilterScope(filter string, actor M, mapping Mapping) error {
-	if filter == "" {
-		return nil
-	}
-	data, _ := s.metadata("filters")
-	for _, f := range rows(data["filters"]) {
-		if id(f["id"]) != filter {
-			continue
-		}
-		if active, ok := f["active"].(bool); ok && !active {
-			break
-		}
-		if admin(actor) {
-			return nil
-		}
-		permission := strings.ToLower(id(f["permission"]))
-		if permission == "all" || permission == "" {
-			return nil
-		}
-		if (permission == "agent" || permission == "user") && id(f["permission_id"]) == mapping.AgentID {
-			return nil
-		}
-		if permission == "agent_group" || permission == "usergroup" {
-			var groups []string
-			raw := mapping.SourceGroups
-			if mapping.Scope == "group" {
-				raw = mapping.Groups
-			}
-			json.Unmarshal([]byte(raw), &groups)
-			for _, g := range groups {
-				if g != "" && g == id(f["permission_id"]) {
-					return nil
-				}
-			}
-		}
-	}
-	return fail("This Udesk filter is not available to your account.", 403)
 }

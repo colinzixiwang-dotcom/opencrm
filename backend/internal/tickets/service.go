@@ -52,62 +52,28 @@ func (s *Service) mapping(actor M) (Mapping, error) {
 	}
 	return m, nil
 }
+
+// Everyone shares the configured product scope; personal agent mappings are
+// directory information, not an authorization prerequisite.
 func (s *Service) canRead(actor, ticket M) bool {
-	if admin(actor) {
-		return true
-	}
-	m, e := s.mapping(actor)
-	if e != nil {
+	if s.readPermission(actor) != nil {
 		return false
 	}
-	if id(ticket["assignee_id"]) == m.AgentID {
-		return true
-	}
-	if m.Scope == "group" {
-		var groups []string
-		json.Unmarshal([]byte(m.Groups), &groups)
-		for _, g := range groups {
-			if g != "" && g == id(ticket["user_group_id"]) {
-				return true
-			}
-		}
-	}
-	return false
+	p, e := s.scope(context.Background())
+	return e == nil && p.matches(ticket)
 }
 func (s *Service) readPermission(actor M) error {
-	if admin(actor) {
-		return nil
+	if domain.Str(actor["id"]) == "" || actor["active"] == false {
+		return fail("An active CRM account is required.", 403)
 	}
-	_, e := s.mapping(actor)
-	return e
+	return nil
 }
 func (s *Service) allowedFilter(actor, f M) bool {
-	if admin(actor) {
-		return true
-	}
-	m, e := s.mapping(actor)
-	if e != nil {
+	if s.readPermission(actor) != nil {
 		return false
 	}
-	switch strings.ToLower(id(f["permission"])) {
-	case "all", "":
-		return true
-	case "agent", "user":
-		return id(f["permission_id"]) == m.AgentID
-	case "agent_group", "usergroup":
-		var groups []string
-		sourceGroups := m.SourceGroups
-		if m.Scope == "group" {
-			sourceGroups = m.Groups
-		}
-		json.Unmarshal([]byte(sourceGroups), &groups)
-		for _, g := range groups {
-			if g == id(f["permission_id"]) {
-				return true
-			}
-		}
-	}
-	return false
+	active, ok := f["active"].(bool)
+	return !ok || active
 }
 func (s *Service) metadata(kind string) (M, string) {
 	var m Metadata
@@ -304,8 +270,12 @@ func (s *Service) detail(ctx context.Context, actor M, key string, number bool) 
 		return nil, "", e
 	}
 	t := obj(v["ticket"])
-	if !s.canRead(actor, t) {
-		return nil, "", fail("Ticket not found or outside your authorized scope.", 404)
+	p, scopeError := s.scope(ctx)
+	if scopeError != nil {
+		return nil, "", scopeError
+	}
+	if !p.matches(t) {
+		return nil, "", fail("Ticket not found or outside the configured Morpho groups.", 404)
 	}
 	at := domain.Now()
 	if e = s.persist(t, at); e != nil {

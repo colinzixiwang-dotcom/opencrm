@@ -1239,5 +1239,14 @@
   "Ticket group configuration changed. Reload before saving.": "配置已被其他管理员修改，请重新加载后再保存。",
   "A valid configuration revision is required.": "请提供有效的配置版本。",
   "Unknown Udesk group. Update the group directory first.": "存在未知的 Udesk 组，请先更新客服组列表。",
-  "Choose valid ticket groups and an unassigned-ticket setting.": "请选择有效的客服组和未分组工单设置。"
+  "Choose valid ticket groups and an unassigned-ticket setting.": "请选择有效的客服组和未分组工单设置。",
+  "View Morpho tickets and create linked RMAs.": "查看 Morpho 工单，并创建关联 RMA。",
+  "All Morpho tickets": "全部 Morpho 工单",
+  "Filters use the Udesk integration account. Results always stay within the configured Morpho groups.": "筛选器使用 Udesk 集成账号的数据，结果始终限定在配置的 Morpho 客服组内。",
+  "Udesk accounts & mapping": "Udesk 账号与身份映射",
+  "Agent groups": "所属客服组",
+  "Source accounts provide identity mapping. All active CRM users share the configured Morpho ticket scope.": "源账号用于身份映射。所有启用的 CRM 用户均可访问配置范围内的 Morpho 工单。",
+  "Ticket not found or outside the configured Morpho groups.": "工单不存在，或不属于已配置的 Morpho 客服组。",
+  "Individual ticket scopes have been replaced by shared Morpho group membership.": "个人工单范围设置已被共享的 Morpho 售后组归属配置取代。",
+  "Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.": "所有启用的 CRM 用户共享工单中心访问和 RMA 创建权限，其他能力由角色权限控制。"
 }

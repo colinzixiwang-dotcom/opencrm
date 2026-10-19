@@ -144,7 +144,7 @@ func TestCustomRoleUnionAndImmediateRevocation(t *testing.T) {
 	u := x.user("catalog")
 	token := x.login("qa@example.com", "SecurePass!2026")
 	_, v, _ := x.req("GET", "/api/bootstrap", token, nil, "")
-	if len(domain.Rows(v, "menus")) != 1 || len(domain.Rows(v, "sales")) != 0 || len(domain.Rows(v, "audit")) != 0 || len(domain.Rows(v, "users")) != 0 {
+	if len(domain.Rows(v, "menus")) != 3 || len(domain.Rows(v, "sales")) != 0 || len(domain.Rows(v, "audit")) != 0 || len(domain.Rows(v, "users")) != 0 {
 		t.Fatal("module data not redacted")
 	}
 	for _, path := range []string{"/api/report", "/api/export/sales", "/api/backup"} {
@@ -178,7 +178,7 @@ func TestMenuVisibilityAndDisabledPermission(t *testing.T) {
 	id := x.menus("erp:product:view")[0]
 	x.action(x.admin, "menu.save", M{"menuId": id, "menuName": "Catalog QA", "orderNum": 20, "status": "0", "visible": "1"}, 200)
 	_, v, _ := x.req("GET", "/api/bootstrap", token, nil, "")
-	if len(domain.Rows(v, "menus")) != 0 {
+	if len(domain.Rows(v, "menus")) != 2 {
 		t.Fatal("hidden menu visible")
 	}
 	c, _, _ := x.req("GET", "/api/export/products", token, nil, "")

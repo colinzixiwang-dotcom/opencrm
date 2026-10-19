@@ -33,7 +33,7 @@ export function Settings() {
     ["audit", "Audit trail"],
     ["integrations", "Integrations"],
     ...(s.currentUser.roles.includes("admin")
-      ? [["ticket-center", "Ticket center"], ["udesk", "Udesk accounts & access"]]
+      ? [["ticket-center", "Ticket center"], ["udesk", "Udesk accounts & mapping"]]
       : []),
   ];
   return (
@@ -56,6 +56,7 @@ export function Settings() {
         {tab === "audit" && <Export collection="audit" />}
       </Heading>
       <Tabs value={tab} onChange={setTab} items={tabs} />
+      {(tab === "roles" || tab === "users") && <Note icon="users">{tr("Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.")}</Note>}
       {tab === "warranty" ? (
         <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
       ) : tab === "ticket-center" ? (

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"harbor/internal/domain"
+	"harbor/internal/ruoyi"
 	"harbor/internal/tickets"
 	"net/url"
 	"strings"
@@ -12,17 +13,21 @@ import (
 type ticketAPI struct{}
 
 func (ticketAPI) Get(_ context.Context, path string, q url.Values) (map[string]any, error) {
-	own := M{"id": 1, "field_num": "#1", "subject": "MY-TICKET", "assignee_id": 11}
-	foreign := M{"id": 2, "field_num": "#2", "subject": "FOREIGN-TICKET", "assignee_id": 22}
+	own := M{"id": 1, "field_num": "#1", "subject": "MY-TICKET", "assignee_id": 11, "user_group_id": 5042}
+	shared := M{"id": 3, "field_num": "#3", "subject": "OTHER-MORPHO", "assignee_id": 33, "user_group_id": 5043}
+	foreign := M{"id": 2, "field_num": "#2", "subject": "FOREIGN-TICKET", "assignee_id": 22, "user_group_id": 5060}
 	switch path {
 	case "tickets":
-		return M{"contents": []M{own, foreign}, "meta": M{"total_pages": 1}}, nil
+		return M{"contents": []M{own, foreign, shared}, "meta": M{"total_pages": 1}}, nil
 	case "tickets/detail":
+		if q.Get("id") == "3" || q.Get("num") == "#3" {
+			return M{"ticket": shared}, nil
+		}
 		if q.Get("id") == "1" || q.Get("num") == "#1" {
 			return M{"ticket": own}, nil
 		}
 		return M{"ticket": foreign}, nil
-	case "tickets/1/replies":
+	case "tickets/1/replies", "tickets/3/replies":
 		return M{"replies": []M{{"id": 1, "content": "Own reply"}}}, nil
 	}
 	return M{}, nil
@@ -67,7 +72,71 @@ func TestTicketAuthorizationAcrossAllHTTPPaths(t *testing.T) {
 		t.Fatal(e)
 	}
 	status, _, _ = x.req("GET", "/api/tickets", token, nil, "")
-	if status != 403 {
-		t.Fatal("disabled mapping", status)
+	if status != 200 {
+		t.Fatal("mapping must not restrict an active CRM account", status)
+	}
+}
+
+func TestEveryActiveRoleCanReadSharedMorphoAndCreateRMA(t *testing.T) {
+	x := prepareRMA(t)
+	server := New(x.s, t.TempDir())
+	server.Tickets.Tenant = "test"
+	server.Tickets.API = ticketAPI{}
+	x.r = server.Router()
+	// Directory mappings are deliberately absent for all of these accounts.
+	x.role("no_grants", []any{}, "0", 0)
+	for _, role := range []string{"operator", "analyst", "no_grants"} {
+		email := role + "@shared.test"
+		x.action(x.admin, "user.create", M{"name": role, "email": email, "password": "SecurePass!2026", "role": role}, 200)
+		token := x.login(email, "SecurePass!2026")
+		if role == "no_grants" {
+			var u ruoyi.SysUser
+			x.s.DB.Where("email=?", email).First(&u)
+			if e := x.s.DB.Where("user_id=?", u.UserID).Delete(&ruoyi.UserRole{}).Error; e != nil {
+				t.Fatal(e)
+			}
+		}
+		_, state, _ := x.req("GET", "/api/bootstrap", token, nil, "")
+		actor := domain.Obj(state["currentUser"])
+		if !domain.In("rma.create", domain.Strings(actor["permissions"])...) {
+			t.Fatal("no shared creation grant", actor)
+		}
+		if e := server.Tickets.Sync(context.Background()); e != nil {
+			t.Fatal(e)
+		}
+		for _, path := range []string{"/api/tickets", "/api/export/tickets", "/api/tickets/3", "/api/tickets/3/replies", "/api/tickets/lookup?number=%233"} {
+			status, _, _ := x.req("GET", path, token, nil, "")
+			if status != 200 {
+				t.Fatal(role, path, status)
+			}
+		}
+		status, draft, _ := x.req("POST", "/api/tickets/3/drafts", token, M{"description": "Shared ticket"}, "")
+		if status != 200 {
+			t.Fatal(role, status, draft)
+		}
+		input := rmaInput()
+		input["ticketNumber"] = "#3"
+		input["draftId"] = domain.Obj(draft["draft"])["id"]
+		input["ticketSnapshotId"] = domain.Obj(draft["payload"])["ticketSnapshotId"]
+		result := x.action(token, "rma.create", input, 200)
+		if domain.Obj(result["ticketReference"])["id"] != "3" {
+			t.Fatal(result)
+		}
+		for _, path := range []string{"/api/tickets/2", "/api/tickets/lookup?number=%232"} {
+			status, _, _ := x.req("GET", path, token, nil, "")
+			if status != 404 {
+				t.Fatal(role, path, status)
+			}
+		}
+		status, _, _ = x.req("POST", "/api/integrations/udesk/ticket-scope", token, M{}, "")
+		if status != 403 {
+			t.Fatal("nonadmin changed shared policy", status)
+		}
+		status, _, _ = x.req("GET", "/api/integrations/udesk/ticket-scope", token, nil, "")
+		if status != 403 {
+			t.Fatal("nonadmin read admin configuration", status)
+		}
+		// Shared creation does not grant approvals or execution.
+		x.action(token, "rmatask.review", M{}, 403)
 	}
 }

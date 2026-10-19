@@ -10,6 +10,7 @@ import (
 	"harbor/internal/store"
 	"harbor/internal/tickets"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -74,15 +75,15 @@ func fixture(t *testing.T) (*store.Store, *tickets.Service, *fake, M) {
 	db.DB.Where("email=?", "admin@harbor.local").First(&u)
 	a := (ruoyi.Service{DB: db.DB}).Actor(u)
 	f := &fake{data: map[string]M{
-		"agents":      {"agents": []M{{"id": 11, "email": "one@example.com", "nick_name": "One", "role_name": "agent", "disable_status": "enable", "user_group_ids": []any{float64(7)}, "password": "SIP-SECRET"}, {"id": 22, "email": "two@example.com", "nick_name": "Two", "role_name": "unexpected custom role", "disable_status": "enable", "user_group_ids": []any{float64(8)}}, {"id": 33, "email": "disabled@example.com", "nick_name": "Disabled", "role_name": "agent", "disable_status": "disable"}}, "meta": M{"total_pages": 1}},
-		"user_groups": {"user_groups": []M{{"id": 7, "name": "A"}, {"id": 8, "name": "B"}}, "meta": M{"total_pages": 1}}, "agent_roles": {"agent_roles": []M{{"id": 1, "name": "agent"}}},
+		"agents":      {"agents": []M{{"id": 11, "email": "one@example.com", "nick_name": "One", "role_name": "agent", "disable_status": "enable", "user_group_ids": []any{float64(5042)}, "password": "SIP-SECRET"}, {"id": 22, "email": "two@example.com", "nick_name": "Two", "role_name": "unexpected custom role", "disable_status": "enable", "user_group_ids": []any{float64(5060)}}, {"id": 33, "email": "disabled@example.com", "nick_name": "Disabled", "role_name": "agent", "disable_status": "disable"}}, "meta": M{"total_pages": 1}},
+		"user_groups": {"user_groups": []M{{"id": 5042, "name": "A"}, {"id": 5060, "name": "B"}}, "meta": M{"total_pages": 1}}, "agent_roles": {"agent_roles": []M{{"id": 1, "name": "agent"}}},
 		"tickets/status":           {"status": []M{{"status_id": 1, "name": "开启", "en_name": "open"}, {"status_id": 5, "name": "Pending", "en_name": "solving_5"}}},
 		"tickets/ticket_templates": {"templates": []M{{"id": 1, "custom_fields": []M{{"field_name": "SelectField_1", "field_title": "Issue"}}}}},
 		"custom_fields":            {"fields": []M{{"field_name": "SelectField_1", "field_label": "Issue", "options": []M{{"title": "Fault", "value": "0"}}}, {"field_name": "TextField_2", "content_type": "file"}}},
 		"tickets/filters":          {"filters": []M{{"id": 1, "name": "All", "permission": "All"}, {"id": 1, "name": "All", "permission": "All"}, {"id": 2, "name": "Private", "permission": "User", "permission_id": 22}}, "meta": M{"total_pages": 1}},
 		"tickets/1/replies":        {"replies": []M{{"id": 1, "content": "A reply", "function_type": "internat", "author": M{"email": "person@example.com"}}}, "meta": M{"total_pages": 1}},
 	}}
-	f.tickets = []M{{"id": 1, "field_num": "#1", "assignee_id": 11, "user_group_id": 7, "subject": "OWN", "user_email": "customer@example.com", "custom_fields": M{"SelectField_1": []any{"0"}, "UnknownField": []any{M{"name": "file", "url": "https://example.com/a"}}}, "updated_at": "2026-10-16T10:00:00+08:00"}, {"id": 2, "field_num": "#2", "assignee_id": 22, "user_group_id": 8, "subject": "FOREIGN"}, {"id": 3, "field_num": "#3", "assignee_id": nil, "user_group_id": 7, "subject": "UNASSIGNED"}}
+	f.tickets = []M{{"id": 1, "field_num": "#1", "assignee_id": 11, "user_group_id": 5042, "subject": "OWN", "user_email": "customer@example.com", "custom_fields": M{"SelectField_1": []any{"0"}, "UnknownField": []any{M{"name": "file", "url": "https://example.com/a"}}}, "updated_at": "2026-10-16T10:00:00+08:00"}, {"id": 2, "field_num": "#2", "assignee_id": 22, "user_group_id": 5060, "subject": "FOREIGN"}, {"id": 3, "field_num": "#3", "assignee_id": nil, "user_group_id": 5042, "subject": "UNASSIGNED"}}
 	svc := tickets.New(db.DB, &udesk.Client{Base: "https://example.udesk.cn"})
 	svc.API = f
 	if _, e = svc.SyncAccounts(context.Background(), a, false); e != nil {
@@ -114,72 +115,58 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 		t.Fatal(e)
 	}
 	meta, e := s.Metadata(ctx, one, true)
-	if e != nil {
-		t.Fatal(e)
+	if e != nil || len(domain.Items(meta["filters"])) != 2 || len(domain.Rows(domain.Obj(meta["fields"]), "fields")) != 2 {
+		t.Fatal(meta, e)
 	}
-	if len(domain.Items(meta["filters"])) != 1 || len(domain.Rows(domain.Obj(meta["fields"]), "fields")) != 2 {
-		t.Fatal("metadata dedup/permissions/fidelity")
-	}
-	if e = s.Sync(ctx); e != nil {
-		t.Fatal(e)
-	}
-	page, e := s.List(ctx, one, "1", "", 20)
-	if e != nil {
-		t.Fatal(e)
-	}
-	items := domain.Rows(page, "items")
-	if len(items) != 1 || domain.Obj(items[0]["source"])["subject"] != "OWN" {
-		t.Fatal(page)
-	}
-	source := domain.Obj(items[0]["source"])
-	if source["user_email"] != "••••" || domain.Obj(source["custom_fields"])["UnknownField"] == nil {
-		t.Fatal("mask or unknown fields lost")
-	}
-	_, e = s.List(ctx, one, "2", "", 20)
-	checkError(t, e, 403)
-	_, e = s.Detail(ctx, two, "1", false)
-	checkError(t, e, 404)
-	_, e = s.Replies(ctx, two, "1", 1)
-	checkError(t, e, 404)
-	for _, path := range f.calls {
-		if path == "tickets/1/replies" {
-			t.Fatal("foreign replies requested")
+	// All active actors see the same product scope, including unmapped accounts.
+	for _, who := range []M{one, two, a, actor(t, db, "operator@harbor.local")} {
+		page, e := s.List(ctx, who, "1", "", 20)
+		if e != nil || page["totalCount"] != 2 {
+			t.Fatal(page, e)
 		}
-	}
-	_, e = s.Detail(ctx, two, "#1", true)
-	checkError(t, e, 404)
-	for i := 0; i < 2; i++ {
-		if _, e = s.Detail(ctx, one, "1", false); e != nil {
+		for _, item := range domain.Rows(page, "items") {
+			if domain.N(domain.Obj(item["source"])["user_group_id"]) != 5042 {
+				t.Fatal("non-Morpho row", page)
+			}
+		}
+		detail, e := s.Detail(ctx, who, "1", false)
+		if e != nil {
 			t.Fatal(e)
 		}
+		if !reflect.DeepEqual(who["roles"], a["roles"]) && domain.Obj(detail["source"])["user_email"] != "••••" {
+			t.Fatal("mask lost")
+		}
+		if domain.Obj(domain.Obj(detail["source"])["custom_fields"])["UnknownField"] == nil {
+			t.Fatal("unknown field lost")
+		}
+		if _, e = s.Replies(ctx, who, "1", 1); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = s.Detail(ctx, who, "#1", true); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = s.List(ctx, who, "2", "", 20); e != nil {
+			t.Fatal("saved filter must not depend on user mapping", e)
+		}
+		_, e = s.Detail(ctx, who, "2", false)
+		checkError(t, e, 404)
 	}
 	var n int64
 	db.DB.Model(&tickets.Ticket{}).Count(&n)
 	if n != 3 {
-		t.Fatal("non-idempotent persistence", n)
+		t.Fatal("persistence not idempotent", n)
 	}
-	if _, e = s.Configure(a, M{"agentId": "11", "scope": "group", "groups": []any{"7"}}); e != nil {
+	// Personal reassignment is allowed; leaving the configured product is denied.
+	f.tickets[0]["assignee_id"] = 22
+	if _, e = s.Detail(ctx, one, "1", false); e != nil {
 		t.Fatal(e)
 	}
-	page, e = s.List(ctx, one, "", "", 20)
-	if e != nil || len(domain.Rows(page, "items")) != 2 {
-		t.Fatal("supervisor own + assigned group", page, e)
-	}
-	page, e = s.List(ctx, a, "", "", 20)
-	if e != nil || len(domain.Rows(page, "items")) != 3 {
-		t.Fatal("admin", page, e)
-	}
-	// Fresh source reassignment overrides previous cache permission.
-	f.tickets[0]["assignee_id"] = 22
-	f.tickets[0]["user_group_id"] = 8
+	f.tickets[0]["user_group_id"] = 5060
 	_, e = s.Detail(ctx, one, "1", false)
 	checkError(t, e, 404)
-	unmapped := actor(t, db, "operator@harbor.local")
-	_, e = s.List(ctx, unmapped, "", "", 20)
-	checkError(t, e, 403)
 	f.broken = true
 	if _, e = s.List(ctx, a, "", "", 20); e != nil {
-		t.Fatal("fresh index should remain readable during source outage", e)
+		t.Fatal("fresh index unavailable", e)
 	}
 }
 func TestAccountsDefaultPasswordUnknownRolesAndDisable(t *testing.T) {
@@ -209,7 +196,7 @@ func TestAccountsDefaultPasswordUnknownRolesAndDisable(t *testing.T) {
 	if strings.Contains(meta.Raw, "SIP-SECRET") {
 		t.Fatal("SIP secret persisted")
 	}
-	_, e := s.Configure(two, M{"agentId": "11", "scope": "group", "groups": []any{"7"}})
+	_, e := s.Configure(two, M{"agentId": "11", "scope": "group", "groups": []any{"5042"}})
 	checkError(t, e, 403)
 	f.data["agents"]["agents"] = domain.Items(f.data["agents"]["agents"])[1:]
 	if _, e = s.SyncAccounts(ctx, a, false); e != nil {
@@ -223,7 +210,7 @@ func TestDirectorySyncPreservesRevokedRolePermissions(t *testing.T) {
 	var role ruoyi.SysRole
 	var menu ruoyi.SysMenu
 	db.DB.Where("role_key=?", "support_agent").First(&role)
-	db.DB.Where("perms=?", "erp:service:view").First(&menu)
+	db.DB.Where("perms=?", "erp:rmatask:edit").First(&menu)
 	if e := db.DB.Where("role_id=? AND menu_id=?", role.RoleID, menu.MenuID).Delete(&ruoyi.RoleMenu{}).Error; e != nil {
 		t.Fatal(e)
 	}
@@ -231,7 +218,7 @@ func TestDirectorySyncPreservesRevokedRolePermissions(t *testing.T) {
 		t.Fatal(e)
 	}
 	one := actor(t, db, "one@example.com")
-	if (ruoyi.Service{DB: db.DB}).HasPermi(domain.Str(one["id"]), "erp:service:view") {
+	if (ruoyi.Service{DB: db.DB}).HasPermi(domain.Str(one["id"]), "erp:rmatask:edit") {
 		t.Fatal("Directory sync restored an explicitly revoked permission")
 	}
 }
@@ -315,7 +302,7 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 func TestUdeskLinkUsesInternalID(t *testing.T) {
 	_, service, source, actor := fixture(t)
 	service.Tenant = "https://ticketmorpho.udeskglobal.com/open_api_v1"
-	source.tickets = []M{{"id": 20713607, "field_num": "#717", "subject": "Link regression"}}
+	source.tickets = []M{{"id": 20713607, "field_num": "#717", "subject": "Link regression", "user_group_id": 5042}}
 	result, err := service.Detail(context.Background(), actor, "20713607", false)
 	if err != nil {
 		t.Fatal(err)
@@ -334,14 +321,14 @@ func TestTotalPagesRespectScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["totalPages"] != 2 {
+	if result["totalPages"] != 1 {
 		t.Fatalf("administrator total = %v", result["totalPages"])
 	}
 	result, err = service.List(context.Background(), actor(t, db, "one@example.com"), "", "", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["totalPages"] != 1 || result["totalCount"] != 1 {
+	if result["totalPages"] != 2 || result["totalCount"] != 2 {
 		t.Fatal("source global count leaked to scoped actor")
 	}
 }
@@ -362,8 +349,10 @@ func TestAttachmentReferenceRequiresLiveTicketAccess(t *testing.T) {
 	_, err = service.AttachmentURL(context.Background(), admin, "1", "http://127.0.0.1/secret", 0)
 	checkError(t, err, 404)
 	_, err = service.AttachmentURL(context.Background(), actor(t, db, "two@example.com"), "1", ref, 0)
-	checkError(t, err, 404)
-	source.tickets[0]["assignee_id"] = 22
+	if err != nil {
+		t.Fatal("shared attachment denied", err)
+	}
+	source.tickets[0]["user_group_id"] = 5060
 	_, err = service.AttachmentURL(context.Background(), actor(t, db, "one@example.com"), "1", ref, 0)
 	checkError(t, err, 404)
 }
@@ -397,11 +386,11 @@ func TestRepliesReadChronologicallyAcrossSourcePages(t *testing.T) {
 
 func TestGlobalSortBeforePagination(t *testing.T) {
 	db, service, source, admin := fixture(t)
-	old := M{"id": 1, "field_num": "#2", "assignee_id": 11, "replied_at": "2026-10-01T10:00:00Z"}
-	latest := M{"id": 2, "field_num": "#100", "assignee_id": 11, "replied_at": "2026-10-03T10:00:00Z"}
-	foreign := M{"id": 3, "field_num": "#900", "assignee_id": 22, "replied_at": "2026-10-04T10:00:00Z"}
-	same := M{"id": 4, "field_num": "#10", "assignee_id": 11, "replied_at": "2026-10-03T18:00:00+08:00"}
-	missing := M{"id": 5, "field_num": "#20", "assignee_id": 11}
+	old := M{"id": 1, "field_num": "#2", "assignee_id": 11, "user_group_id": 5042, "replied_at": "2026-10-01T10:00:00Z"}
+	latest := M{"id": 2, "field_num": "#100", "assignee_id": 11, "user_group_id": 5042, "replied_at": "2026-10-03T10:00:00Z"}
+	foreign := M{"id": 3, "field_num": "#900", "assignee_id": 22, "user_group_id": 5060, "replied_at": "2026-10-04T10:00:00Z"}
+	same := M{"id": 4, "field_num": "#10", "assignee_id": 11, "user_group_id": 5042, "replied_at": "2026-10-03T18:00:00+08:00"}
+	missing := M{"id": 5, "field_num": "#20", "assignee_id": 11, "user_group_id": 5042}
 	source.listPages = map[int]M{
 		1: {"contents": []M{old, missing}, "meta": M{"total_pages": 3, "total_count": 99}},
 		2: {"contents": []M{latest, foreign, same}, "meta": M{"total_pages": 3}},
@@ -443,7 +432,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal(e)
 	}
 	items = domain.Rows(numeric, "items")
-	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "3" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "2" {
+	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "2" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "5" {
 		t.Fatalf("wrong global numeric order: %v", items)
 	}
 	_, e = service.ListSorted(context.Background(), admin, "", "", 2, "content:desc")
@@ -457,7 +446,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal("failed source page must fail synchronization")
 	}
 	cached, err := service.List(context.Background(), admin, "", "", 2)
-	if err != nil || cached["totalCount"] != 5 {
+	if err != nil || cached["totalCount"] != 4 {
 		t.Fatal("failed sync replaced complete index", cached, err)
 	}
 }

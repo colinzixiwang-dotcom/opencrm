@@ -103,7 +103,13 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 		v, e := s.Tickets.SyncAccounts(c.Request.Context(), s.actor(c), domain.Bool(b["resetPasswords"]))
 		s.ticketResponse(c, v, e)
 	})
-	api.POST("/integrations/udesk/accounts/configure", func(c *gin.Context) { v, e := s.Tickets.Configure(s.actor(c), s.body(c)); s.ticketResponse(c, v, e) })
+	api.POST("/integrations/udesk/accounts/configure", func(c *gin.Context) {
+		if !domain.In("admin", domain.Strings(s.actor(c)["roles"])...) {
+			c.JSON(403, M{"error": "Only administrators can configure ticket group membership."})
+			return
+		}
+		c.JSON(410, M{"error": "Individual ticket scopes have been replaced by shared Morpho group membership."})
+	})
 	api.GET("/integrations/udesk/runs/:id", func(c *gin.Context) { v, e := s.Tickets.AuditRun(s.actor(c), c.Param("id")); s.ticketResponse(c, v, e) })
 }
 func (s *Server) exportTickets(c *gin.Context) {

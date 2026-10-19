@@ -55,8 +55,20 @@ func (s Service) Roles(userID string) []SysRole {
 	s.DB.Table(persistence.SQL(s.DB, "sys_role r")).Select("r.*").Joins(persistence.SQL(s.DB, "JOIN sys_user_role ur ON ur.role_id=r.role_id")).Where("ur.user_id=? AND r.status=?", userID, "0").Order("r.role_sort, r.role_id").Scan(&roles)
 	return roles
 }
+
+// These capabilities belong to every active CRM account, including accounts
+// with no role assignment. Review, execution and settings remain role controlled.
+var sharedTicketPermissions = []string{"erp:service:view", "erp:rma:view", "erp:rma:add"}
+
+func (s Service) activeUser(userID string) bool {
+	var n int64
+	return s.DB.Model(&SysUser{}).Where("user_id=? AND status=?", userID, "0").Count(&n).Error == nil && n == 1
+}
 func (s Service) Menus(userID string) []SysMenu {
 	out := []SysMenu{}
+	if !s.activeUser(userID) {
+		return out
+	}
 	admin := false
 	for _, r := range s.Roles(userID) {
 		if r.RoleKey == "admin" {
@@ -65,13 +77,13 @@ func (s Service) Menus(userID string) []SysMenu {
 	}
 	q := s.DB.Table(persistence.SQL(s.DB, "sys_menu m")).Select("DISTINCT m.*").Where("m.status=?", "0")
 	if !admin {
-		q = q.Joins(persistence.SQL(s.DB, "JOIN sys_role_menu rm ON rm.menu_id=m.menu_id JOIN sys_user_role ur ON ur.role_id=rm.role_id JOIN sys_role r ON r.role_id=ur.role_id")).Where("ur.user_id=? AND r.status=?", userID, "0")
+		q = q.Where(persistence.SQL(s.DB, "m.perms IN ? OR m.menu_id IN (SELECT rm.menu_id FROM sys_role_menu rm JOIN sys_user_role ur ON ur.role_id=rm.role_id JOIN sys_role r ON r.role_id=ur.role_id WHERE ur.user_id=? AND r.status=?)"), sharedTicketPermissions, userID, "0")
 	}
 	q.Order("m.order_num,m.menu_id").Scan(&out)
 	return out
 }
 func (s Service) HasPermi(userID, permission string) bool {
-	if permission == "" {
+	if permission == "" || !s.activeUser(userID) {
 		return false
 	}
 	for _, role := range s.Roles(userID) {

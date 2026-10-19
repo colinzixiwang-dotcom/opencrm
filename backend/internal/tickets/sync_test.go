@@ -61,7 +61,7 @@ func TestBackgroundIndexSearchFreshnessAndFailure(t *testing.T) {
 		t.Fatal("source failure not reported")
 	}
 	cached, e := s.List(ctx, own, "", "", 20)
-	if e != nil || cached["totalCount"] != 1 || cached["syncError"] == "" {
+	if e != nil || cached["totalCount"] != 2 || cached["syncError"] == "" {
 		t.Fatal("fresh cache lost on failure", cached, e)
 	}
 	old := time.Now().Add(-16 * time.Minute)
@@ -71,12 +71,12 @@ func TestBackgroundIndexSearchFreshnessAndFailure(t *testing.T) {
 		t.Fatal("stale scoped data exposed", stale, e)
 	}
 	staleAdmin, e := s.List(ctx, admin, "", "", 20)
-	if e != nil || staleAdmin["stale"] != true || staleAdmin["totalCount"] != 3 {
+	if e != nil || staleAdmin["stale"] != true || staleAdmin["totalCount"] != 0 {
 		t.Fatal("admin stale visibility", staleAdmin, e)
 	}
 }
 
-func TestSyncReassignmentRemovalAndImmediateMappingChanges(t *testing.T) {
+func TestSyncProductRemovalAndImmediateConfigurationChanges(t *testing.T) {
 	db, s, f, a := fixture(t)
 	ctx := context.Background()
 	own := actor(t, db, "one@example.com")
@@ -84,8 +84,7 @@ func TestSyncReassignmentRemovalAndImmediateMappingChanges(t *testing.T) {
 		t.Fatal(e)
 	}
 	f.tickets[0]["assignee_id"] = 22
-	f.tickets[0]["user_group_id"] = 8
-	// Detail still checks latest source assignment before the next index sync.
+	f.tickets[0]["user_group_id"] = 5060
 	_, e := s.Detail(ctx, own, "1", false)
 	checkError(t, e, 404)
 	db.DB.Model(&tickets.SyncState{}).Where("tenant=?", s.Tenant).Update("last_attempt", nil)
@@ -93,20 +92,23 @@ func TestSyncReassignmentRemovalAndImmediateMappingChanges(t *testing.T) {
 		t.Fatal(e)
 	}
 	got, e := s.List(ctx, own, "", "", 20)
-	if e != nil || got["totalCount"] != 0 {
-		t.Fatal("reassigned ticket exposed", got, e)
+	if e != nil || got["totalCount"] != 1 {
+		t.Fatal(got, e)
 	}
-	if _, e = s.Configure(a, M{"agentId": "11", "scope": "group", "groups": []any{"7"}}); e != nil {
+	// A config change applies to already indexed rows without a source scan.
+	calls := len(f.calls)
+	if _, e = s.SaveScope(ctx, a, scopeBody(1, "5042", "5060")); e != nil {
 		t.Fatal(e)
 	}
 	got, e = s.List(ctx, own, "", "", 20)
-	if e != nil || got["totalCount"] != 1 {
-		t.Fatal("current group grant ignored", got, e)
+	if e != nil || got["totalCount"] != 3 || len(f.calls) != calls {
+		t.Fatal(got, e)
 	}
 	db.DB.Model(&tickets.Mapping{}).Where("tenant=? AND agent_id=?", s.Tenant, "11").Update("enabled", false)
-	_, e = s.List(ctx, own, "", "", 20)
-	checkError(t, e, 403)
-	// A successful later scan removes absent index membership, not source history.
+	got, e = s.List(ctx, own, "", "", 20)
+	if e != nil || got["totalCount"] != 3 {
+		t.Fatal("mapping affected shared scope", got, e)
+	}
 	f.tickets = f.tickets[:1]
 	db.DB.Model(&tickets.SyncState{}).Where("tenant=?", s.Tenant).Update("last_attempt", nil)
 	if e = s.Sync(ctx); e != nil {
