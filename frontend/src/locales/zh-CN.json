@@ -1180,5 +1180,10 @@
   "All tickets": "全部工单",
   "Search help": "搜索说明",
   "Last reply: newest first": "最后回复：最新优先",
-  "Last reply: oldest first": "最后回复：最早优先"
+  "Last reply: oldest first": "最后回复：最早优先",
+  "Open ticket": "前往工单",
+  "Looking up…": "正在查找…",
+  "Ticket not found or not available to your account.": "未找到该工单，或你暂无查看权限。",
+  "Your Udesk account is not linked. Contact an administrator.": "尚未配置 Udesk 账号关联，请联系管理员。",
+  "Unable to look up this ticket. Please try again later.": "暂时无法查找该工单，请稍后再试。"
 }

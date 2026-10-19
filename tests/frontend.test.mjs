@@ -217,3 +217,21 @@ test("API body fallback cannot duplicate a populated field with an alternative U
   assert.equal(result.fields.length, 1);
   assert.equal(result.fields[0].name, "current");
 });
+
+import { syncTimestamp, ticketNumberQuery } from "../frontend/src/ticket-ui.js";
+test("sync times use workspace day boundaries and do not expose malformed source dates", () => {
+  const now = new Date("2026-10-19T01:00:00Z");
+  const stamp = syncTimestamp("2026-10-18T23:23:00Z", "zh-CN", "Asia/Shanghai", now);
+  assert.equal(stamp.short, "07:23");
+  assert.match(stamp.full, /2026/);
+  const previous = syncTimestamp("2026-10-18T10:00:00Z", "en-US", "Asia/Shanghai", now);
+  assert.match(previous.short, /Oct/);
+  assert.equal(syncTimestamp("not-an-iso-date", "en-US"), null);
+  assert.equal(syncTimestamp("", "en-US"), null);
+});
+test("only a complete ticket number offers an explicit live lookup", () => {
+  assert.equal(ticketNumberQuery(" #717 "), "717");
+  assert.equal(ticketNumberQuery("717"), "717");
+  for (const query of ["Order 717", "#717 extra", "-1", "", "9".repeat(21)])
+    assert.equal(ticketNumberQuery(query), null);
+});

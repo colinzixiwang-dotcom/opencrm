@@ -4097,3 +4097,17 @@ td {
  .ticket-help-content { right: 0; }
  .ticket-sync-status > summary { font-size: 10px; }
 }
+
+.ticket-search { display: flex; position: relative; flex: 1; min-width: 180px; max-width: 360px; gap: 8px; align-items: center; }
+.ticket-queue .ticket-search .search-field { flex: 1; max-width: none; }
+.ticket-number-action { display: flex; align-items: center; gap: 5px; background: #edf3e8; border: 1px solid #dce7d5; color: var(--green); font-size: 11px; padding: 8px 10px; border-radius: 6px; white-space: nowrap; }
+.ticket-number-action .icon { width: 13px; height: 13px; }
+.ticket-inline-notice { margin: 0 22px 16px; border: 1px solid #ebdfc8; border-radius: 7px; background: #fcf9f1; color: #8b6c3a; padding: 11px 14px; font-size: 12px; line-height: 1.6; }
+@media (max-width: 800px) {
+ .ticket-search { flex-basis: calc(100% - 34px); max-width: none; }
+ .ticket-queue .ticket-search .search-field { flex-basis: auto; }
+ .ticket-number-action { padding: 8px; }
+}
+@media (max-width: 700px) {
+ .ticket-help-content { position: fixed; top: auto; bottom: 24px; left: 16px; right: 16px; width: auto; max-width: none; }
+}

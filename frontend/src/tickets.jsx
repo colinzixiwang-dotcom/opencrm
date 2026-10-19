@@ -22,7 +22,7 @@ import {
   problemPresentation,
   isInitialSubmission,
 } from "./ticket-presentation";
-import { syncTimestamp } from "./ticket-ui";
+import { syncTimestamp, ticketNumberQuery } from "./ticket-ui";
 import { MailContent } from "./mail-content";
 import { RMAForm } from "./support";
 
@@ -690,7 +690,8 @@ export function TicketCenter() {
     ),
     [query, setQuery] = useState(""),
     [sort, setSort] = useState("replied_at:desc"),
-    [number, setNumber] = useState(""),
+    [lookupBusy, setLookupBusy] = useState(false),
+    [lookupError, setLookupError] = useState(null),
     [draft, setDraft] = useState(null),
     [drafts, setDrafts] = useState([]),
     [lastSync, setLastSync] = useState("");
@@ -707,6 +708,9 @@ export function TicketCenter() {
     return () => removeEventListener("hashchange", change);
   }, []);
   const items = data?.items || [];
+  const number = ticketNumberQuery(query);
+  const lookupRequest = useRef(null);
+  useEffect(() => () => lookupRequest.current?.abort(), []);
   const lastRequest = useRef("");
   useEffect(() => {
     const timer = window.setInterval(() => setRefresh((v) => v + 1), 15000);
@@ -778,17 +782,22 @@ export function TicketCenter() {
   }, []);
   const lookup = async (e) => {
     e.preventDefault();
-    setBusy(true);
-    setError("");
+    if (!number || lookupBusy) return;
+    lookupRequest.current?.abort();
+    const controller = new window.AbortController();
+    lookupRequest.current = controller;
+    setLookupBusy(true);
+    setLookupError(null);
     try {
       const v = await api(
-        "/api/tickets/lookup?" + new URLSearchParams({ number }),
+        "/api/tickets/lookup?" + new URLSearchParams({ number: "#" + number }),
+        { signal: controller.signal },
       );
-      setSelected(String(v.source.id));
+      if (!controller.signal.aborted) setSelected(String(v.source.id));
     } catch (e) {
-      setError(e.message);
+      if (e.name !== "AbortError") setLookupError(e);
     } finally {
-      setBusy(false);
+      if (lookupRequest.current === controller) setLookupBusy(false);
     }
   };
   const resume = async (id) => {
@@ -849,16 +858,25 @@ export function TicketCenter() {
               </a>
             }
           >
-            <SearchControl
-              label="Search ticket content"
-              placeholder="Search tickets…"
-              value={query}
-              onChange={(value) => {
-                setQuery(value);
-                setCursor("");
-                setHistory([]);
-              }}
-            />
+            <form className="ticket-search" onSubmit={lookup}>
+              <SearchControl
+                label="Search ticket content"
+                placeholder="Search tickets…"
+                value={query}
+                onChange={(value) => {
+                  lookupRequest.current?.abort();
+                  setLookupBusy(false);
+                  setLookupError(null);
+                  setQuery(value);
+                  setCursor("");
+                  setHistory([]);
+                }}
+              />
+              {number && <button className="ticket-number-action" type="submit" disabled={lookupBusy}>
+                {tr(lookupBusy ? "Looking up…" : "Open ticket")} {!lookupBusy && "#" + number}
+                {!lookupBusy && <Icon name="arrow" />}
+              </button>}
+            </form>
             <TicketHelp label="Search help"><p>{tr("Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.")}</p></TicketHelp>
             <FilterControl
               label="Udesk filter"
@@ -908,20 +926,9 @@ export function TicketCenter() {
               ]}
             />
           </ListToolbar>
-          <div className="ticket-queue-subbar">
-            <form onSubmit={lookup}>
-              <SearchControl
-                label="Find ticket by number"
-                placeholder="Ticket number, e.g. #717"
-                value={number}
-                onChange={setNumber}
-                required
-              />
-              <button className="btn secondary" disabled={busy}>
-                {tr("Find")}
-              </button>
-            </form>
-          </div>
+          {lookupError && <div className="ticket-inline-notice" role="alert">
+            {tr(lookupError.status === 404 ? "Ticket not found or not available to your account." : lookupError.status === 403 ? "Your Udesk account is not linked. Contact an administrator." : "Unable to look up this ticket. Please try again later.")}
+          </div>}
           {busy && (
             <LoadingState label="Loading tickets…" rows={5} />
           )}

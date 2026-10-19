@@ -11,3 +11,8 @@ export function syncTimestamp(value, locale, timeZone = "Asia/Shanghai", now = n
     full: new Intl.DateTimeFormat(locale, { ...clock, year: "numeric", month: "2-digit", day: "2-digit" }).format(date),
   };
 }
+
+export function ticketNumberQuery(value) {
+  const match = value.trim().match(/^#?(\d{1,20})$/);
+  return match ? match[1] : null;
+}
