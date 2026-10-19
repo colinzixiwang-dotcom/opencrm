@@ -128,6 +128,11 @@ export async function startUdeskMock() {
       res.end(pdf);
       return;
     }
+    if (url.pathname === "/preview/original.eml") {
+      res.setHeader("Content-Type", "message/rfc822");
+      res.end("From: customer@example.com\r\nTo: support@example.com\r\nSubject: Original email\r\n\r\nJust cant afford it now\r\n");
+      return;
+    }
     if (url.pathname.startsWith("/preview/")) {
       res.writeHead(404);
       res.end();

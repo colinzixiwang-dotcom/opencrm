@@ -1273,5 +1273,8 @@
   "Changes": "修改内容",
   "Unknown author": "未知发件人",
   "Times shown in Beijing (UTC+8)": "时间均为北京时间（UTC+8）",
-  "{count} messages": "{count} 条记录"
+  "{count} messages": "{count} 条记录",
+  "Download original email": "下载原始邮件",
+  "Original email": "原始邮件",
+  "Download": "下载"
 }

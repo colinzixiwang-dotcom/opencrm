@@ -185,3 +185,13 @@ Run `npm run test:ticket-scope` for the isolated PG/browser regression of config
 ### Membership settings and audit presentation
 
 The membership form uses a compact group selector, selected count, synced-ticket preview and explicit opt-in for tickets with no source handling group (product unknown; unrelated to assignee). The footer contains one row: View change history, Cancel changes and Save configuration. History is collapsed initially; expanding it shows a table of the latest 20 changes with actor, Beijing timestamp to seconds, added/removed group IDs and the no-group option before/after. Revision and update metadata are omitted from the footer; directory freshness is available on the directory refresh button. Differences are reconstructed from persisted revision snapshots, including one predecessor beyond the displayed window; missing snapshots are identified rather than guessed. Group labels use the current directory; IDs identify groups across renames.
+
+### Conversation readability (2026-10-19)
+
+- Keep chronological replies. Label known source customer/agent identities separately from internal notes; unknown source identities keep the generic external-reply label.
+- Conversation timestamps use Asia/Shanghai with an explicit timezone caption. Show the source message count; omit pagination for a single page, retaining existing controls for multiple pages.
+- Samsung/Outlook HTML with an Original message separator plus From/Date/To/Subject headers can fold its historical tail while keeping the complete HTML available. Explicit quotes followed by new inline text remain expanded. No-main-body and unrecognized cases are preserved.
+- Flatten only explicitly marked mail layout tables with at most one meaningful cell per row and no own headers/merged cells. Ambiguous and data tables retain their structure. Known mail-client signatures are muted, not deleted.
+- EML attachments show Original email, file size and Download. Downloads use the existing live-authorized source attachment proxy with `download=1`, attachment disposition and octet-stream content type; EML remains unavailable for inline preview.
+
+Validation: ticket #717 verified against live Udesk detail/replies, original EML download, collapsed/expanded history, Chinese/English and mobile rendering. Ticket #520 currently returns 404 under configured Morpho membership, so its live view was not bypassed; data tables, merged/empty cells, quoted HTML and trailing inline replies were checked with isolated PostgreSQL/browser fixtures.

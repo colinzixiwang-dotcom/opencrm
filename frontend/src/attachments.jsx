@@ -8,7 +8,7 @@ import React, {
   Suspense,
 } from "react";
 import { Icon, LoadingState } from "./components";
-import { tr } from "./i18n";
+import { tr, intlLocale } from "./i18n";
 
 const PDFPreview = lazy(() => import("./pdf-preview"));
 export const AttachmentContext = createContext(null);
@@ -36,6 +36,7 @@ function attachment(file, index) {
     ).toLowerCase();
     const mime = file?.content_type || file?.mime_type || "";
     const kind =
+      ext === "eml" || mime === "message/rfc822" ? "email" :
       /^(png|jpe?g|gif|webp|avif|bmp)$/.test(ext) || mime.startsWith("image/")
         ? "image"
         : ext === "pdf" || mime === "application/pdf"
@@ -45,7 +46,7 @@ function attachment(file, index) {
             : /^(mp3|wav|ogg|m4a)$/.test(ext)
               ? "audio"
               : "file";
-    return { url: url.href, name, kind, index };
+    return { url: url.href, name, kind, index, size: Number(file?.file_size || file?.size) || 0 };
   } catch {
     return null;
   }
@@ -163,6 +164,7 @@ export function AttachmentList({ value }) {
       if (!scope) return file;
       const url = new URL(file.url),
         params = new URLSearchParams({ ref: url.origin + url.pathname });
+      if (file.kind === "email") params.set("download", "1");
       if (scope.replyPage) params.set("replyPage", String(scope.replyPage));
       return {
         ...file,
@@ -176,7 +178,13 @@ export function AttachmentList({ value }) {
   return (
     <>
       <div className="attachment-list">
-        {files.map((file, i) => (
+        {files.map((file, i) => file.kind === "email" ? (
+          <a key={file.url + ":" + i} className="attachment-card attachment-email" href={file.url} download={file.name} title={file.name} aria-label={tr("Download original email")}>
+            <span className="attachment-thumbnail"><Icon name="download" /></span>
+            <span className="attachment-caption"><strong>{tr("Original email")}</strong><small>EML{file.size > 0 ? " · " + new Intl.NumberFormat(intlLocale(), {maximumFractionDigits: 1}).format(file.size / 1024) + " KB" : ""}</small></span>
+            <span className="attachment-open">{tr("Download")}</span>
+          </a>
+        ) : (
           <button
             key={file.url + ":" + i}
             type="button"

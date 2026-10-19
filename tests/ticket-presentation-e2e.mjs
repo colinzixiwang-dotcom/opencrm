@@ -63,7 +63,7 @@ try {
     },
   ];
   mock.state.replyOverride.push({
-    id: 16, content_format: "html", author: {nick_name: "Mail Customer", user_type: "customer"}, created_at: "2026-10-06T13:11:52+08:00",
+    id: 16, attachments: [{url:mock.base+"/preview/original.eml",file_name:"original.eml",file_size:24561}], content_format: "html", author: {nick_name: "Mail Customer", user_type: "customer"}, created_at: "2026-10-06T13:11:52+08:00",
     content: '<div>Just cant afford it now</div><div id="composer_signature">Sent from my Galaxy</div><div><div>-------- Original message --------</div><div>From: Support</div><div>Date: Yesterday</div><div>To: Customer</div><div>Subject: Order</div></div><table border="0" cellpadding="0" cellspacing="0"><tr><td><table border="0" cellpadding="0" cellspacing="0"><tr><td>Previous support response</td></tr></table></td></tr></table><table><tr><th>Item</th><th>Amount</th></tr><tr><td>Deposit</td><td>$50</td></tr></table><div>Unsubscribe footer</div>',
   }, {
     id: 17, content_format: "html", author: {nick_name:"Customer"}, created_at:"2026-10-07T00:00:00Z",
@@ -145,6 +145,23 @@ try {
   assert.equal(await samsung.locator("table").count(),1);
   assert.equal(await samsung.locator("table th").count(),2);
   await samsung.locator("summary").click();
+  const email = samsung.getByRole("link", {name:"Download original email",exact:true});
+  assert.ok((await email.getAttribute("href")).includes("download=1"));
+  assert.ok((await email.innerText()).includes("24 KB"));
+  const download = await Promise.all([page.waitForEvent("download"),email.click()]).then(([download])=>download);
+  assert.equal(download.suggestedFilename(),"original.eml");
+  assert.equal(await download.failure(),null);
+  const downloadURL = new URL(await email.getAttribute("href"),app.base);
+  const response = await page.request.get(downloadURL.href);
+  assert.equal(response.status(),200);
+  assert.ok(response.headers()["content-disposition"].startsWith("attachment;"));
+  assert.ok((await response.text()).includes("Just cant afford it now"));
+  downloadURL.searchParams.delete("download");
+  assert.equal((await page.request.get(downloadURL.href)).status(),415);
+  downloadURL.searchParams.set("download","1");
+  downloadURL.searchParams.set("ref",mock.base+"/preview/not-a-ticket-attachment.eml");
+  assert.ok((await page.request.get(downloadURL.href)).status() >= 400);
+  assert.equal(await page.getByRole("dialog",{name:"Attachment preview",exact:true}).count(),0);
   assert.equal(await messages.nth(6).locator("details").count(),0);
   await page.screenshot({
     path: "test-results/ticket-reading-en.png",

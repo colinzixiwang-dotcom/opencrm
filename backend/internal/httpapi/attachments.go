@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	mimepkg "mime"
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -85,6 +87,15 @@ func (s *Server) ticketAttachment(c *gin.Context) {
 	mime := strings.Split(response.Header.Get("Content-Type"), ";")[0]
 	if mime == "" || mime == "application/octet-stream" {
 		mime = http.DetectContentType(body)
+	}
+	// Original emails are downloads, never inline HTML. The URL has already
+	// passed current ticket membership and source-attachment validation above.
+	if c.Query("download") == "1" && (strings.EqualFold(path.Ext(target.Path), ".eml") || mime == "message/rfc822") {
+		c.Header("Content-Disposition", mimepkg.FormatMediaType("attachment", map[string]string{"filename": path.Base(target.Path)}))
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Cache-Control", "private, no-store")
+		c.Data(200, "application/octet-stream", body)
+		return
 	}
 	if !strings.HasPrefix(mime, "image/") && !strings.HasPrefix(mime, "video/") && !strings.HasPrefix(mime, "audio/") && mime != "application/pdf" {
 		c.JSON(415, M{"error": "Attachment preview is not supported for this file type."})
