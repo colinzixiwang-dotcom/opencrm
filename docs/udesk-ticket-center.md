@@ -1,6 +1,6 @@
 # Udesk ticket center: implementation and operating guide
 
-Status: updated 2026-10-19. Udesk is read-only. A shared background worker synchronizes source ranges every minute; interactive lists query PostgreSQL. The current behavior section below supersedes historical release notes. The live tenant account directory has been synchronized; the existing and imported CRM passwords were reset once to `HarborDemo!2026` at the user's request. Source-disabled accounts remain disabled. No Udesk writes have been made.
+Status: updated 2026-10-19. Udesk is read-only. A shared background worker synchronizes source ranges every minute; interactive lists query PostgreSQL. The shared Morpho membership section below supersedes historical personal-assignment rules. The live tenant account directory has been synchronized; the existing and imported CRM passwords were reset once to `HarborDemo!2026` at the user's request. Source-disabled accounts remain disabled. No Udesk writes have been made.
 
 Implementation: `backend/internal/integrations/udesk`, `backend/internal/tickets`, `backend/internal/httpapi/tickets.go`, and `frontend/src/tickets.jsx`.
 
@@ -20,7 +20,7 @@ The ticket center displays only Udesk records. Legacy internal tickets remain in
 ## Frontend
 
 - Keep `service` as the stable route/permission key; display Ticket center / 工单中心.
-- Server-paginated list: ticket number, subject, customer, assigned agent/group, template, status, priority, channel, tags, created/updated time, linked RMAs, last synchronization. Filters are the actual saved filters returned by Udesk, with source names and IDs; CRM does not invent an unsupported free-form source query. Administrators can maintain status, assignee, date or custom-field conditions in Udesk filters. A separate number lookup retrieves a single source ticket.
+- Server-paginated list: ticket number, subject, customer, assigned agent/group, template, status, priority, channel, tags, created/updated time, linked RMAs, last synchronization. Filters are the actual saved filters returned by Udesk, with source names and IDs; CRM does not invent an unsupported free-form source query. Administrators can maintain status, assignee, date or custom-field conditions in Udesk filters. The shared search input offers an explicit number-lookup action for complete ticket numbers.
 - Detail view: original ticket fields; conversation with internal/external distinction; attachments; template/custom fields; related tickets; linked RMAs; synchronization freshness/error. Fetch replies separately with pagination.
 - Render custom fields by source field identifier and metadata, preserving nulls, arrays, option IDs and attachment structures. Source-defined titles and option labels remain authoritative; use source bilingual labels when available and fall back to original values. UI chrome remains bilingual.
 - Actions: refresh this ticket, open in Udesk, create/resume/save an RMA draft, and display linked RMA IDs. Page export fetches the current authorized source page. Account synchronization and scope configuration are administrator-only. Source errors are explicit and include the last successful list synchronization time; stale rows are not presented as current.
@@ -37,7 +37,8 @@ Do not append bulk Udesk tickets to the existing JSON `app_state`. Every action 
 | --- | --- |
 | tickets | Unique tenant/source ID; indexed identity and assignment, complete source JSON, source update time and fetched time |
 | metadata | Tenant/kind records for source statuses, templates, all custom fields/options, filters, sanitized agents, groups and roles |
-| mappings | CRM user ↔ Udesk agent, source groups/role/status, own or explicitly authorized group scope |
+| mappings | CRM user ↔ Udesk agent identity and source role/group/status; historical scope columns are no longer authorization rules |
+| ticket_scopes / ticket_scope_groups / ticket_scope_changes | Versioned product-group membership aggregate, selected group IDs and transactional audit snapshots in Support Access |
 | snapshots | Immutable timestamped ticket facts referenced by drafts and RMAs |
 | drafts | Owner-scoped persisted intake payload and snapshot reference, submitted RMA reference |
 | links | Stable Udesk ticket ↔ RMA linkage, created in the RMA/task transaction |
@@ -53,12 +54,12 @@ Implemented CRM endpoints:
 - `GET /api/tickets/lookup?number=...`: fetch one number, authorize the result before returning/persisting it to the caller's scope.
 - `GET /api/tickets/:id`: authorized targeted refresh.
 - `GET /api/integrations/udesk/runs/:id`: owner/admin synchronization status.
-- `GET /api/integrations/udesk/accounts`, `POST /api/integrations/udesk/accounts/sync`, `POST /api/integrations/udesk/accounts/configure`: administrator account/scope management.
+- `GET /api/integrations/udesk/accounts`, `POST /api/integrations/udesk/accounts/sync`: administrator identity directory management. The old `/accounts/configure` scope editor returns 410 to administrators, 403 to other users.
 - `POST /api/tickets/:id/drafts`, `GET /api/intake-drafts`, `GET /api/intake-drafts/:id`: create/save/list/resume owned RMA drafts.
 - `GET /api/export/tickets?filterId=...&cursor=...`: live authorized-page CSV, including original source JSON.
 - Intake draft endpoints link a ticket snapshot and feed the existing server-side warranty/Solution assessment.
 
-One-line agents see their mapped Udesk tickets only, per the design. Team scope needs an explicit grant; possession of the integration admin token does not grant local users global ticket access. Apply this to list, detail, replies, lookup, exports and RMA links. Customer contact fields are masked according to role.
+All active CRM users share the configured Morpho group scope, including users without Udesk mappings or assigned roles. Administrators obey the same product boundary. Customer contact masking and owner-based RMA/draft visibility remain as before; ticket sharing does not grant approval, execution or settings permissions.
 
 ## API details and synchronization
 
@@ -77,15 +78,15 @@ One-line agents see their mapped Udesk tickets only, per the design. Team scope 
 
 ## Permissions and source filter context
 
-Ordinary agents see only `assignee_id == mapped agent ID`. Supervisors additionally see tickets whose source group is explicitly granted, including unassigned tickets in that group. Administrators see all source rows. Unmapped or source-disabled identities fail closed. Lists, detail, replies, number lookup, exports and draft access enforce this on the backend. Contact email/phone fields are masked for non-administrators. Existing RMA permissions continue to apply independently.
+All active users see the same configured Morpho groups regardless of assignment, role or Udesk mapping. A disabled CRM user cannot use their session. Product membership applies to list, detail, replies, number lookup, exports and draft access on the backend. Contact email/phone masking remains role-based; approval/execution and owner-scoped RMA access remain separate.
 
-The verified admin API token cannot sign requests using ordinary agent emails (Udesk returns code 2059). Consequently, Udesk “My”/“Group” contextual filters run in the integration account's context; CRM intersects the results with the caller's permitted scope and discloses this in the UI. Prefer explicit assignee/group conditions in source-maintained filters where precise per-agent behavior is required. Never treat a source filter as an authorization grant.
+The verified admin API token cannot sign requests using ordinary agent emails (Udesk returns code 2059). Consequently, Udesk “My”/“Group” contextual filters run in the integration account's context; CRM intersects the results with the configured Morpho group scope and discloses this in the UI. Source filters only narrow the shared Morpho result set; they never grant access to excluded product groups.
 
-CRM cursor pagination rescans the relevant live source page, collects only authorized rows and caps each request at three source pages. Sparse scopes may require continuing to the next cursor. It does not expose global source totals to ordinary agents. As source lists have no documented stable cursor, tickets may move between pages when Udesk updates them.
+CRM pagination queries the published PostgreSQL index. Group filtering precedes count, sort and pagination, so every role receives the same Morpho totals. Index publications and group configuration changes can move rows between pages.
 
 ## Draft evidence and submission
 
-Initial draft creation and subsequent saves refresh the source ticket and preserve a new immutable snapshot. Concurrent or already-submitted draft saves are rejected. Submitting rechecks current source ownership, then links the selected snapshot and closes the draft in the same database transaction as the RMA and tasks. Qualification failure rolls back all creation/link changes. The source ticket number cannot be changed in a linked draft. Existing RMA idempotency receipts remain authoritative on retry.
+Initial draft creation and subsequent saves refresh the source ticket and preserve a new immutable snapshot. Concurrent or already-submitted draft saves are rejected. Submitting rechecks current source product membership, then links the selected snapshot and closes the draft in the same database transaction as the RMA and tasks. Qualification failure rolls back all creation/link changes. The source ticket number cannot be changed in a linked draft. Existing RMA idempotency receipts remain authoritative on retry.
 
 This release warns about same-ticket RMA links, reads communication without providing a reply editor, and redirects editing to Udesk. It does not implement Udesk writes, full historical backfill, webhook workers, Shopify/MES fact verification, or automatic cross-system conflict resolution. Draft saves currently require a successful source refresh; offline draft saves are future work.
 
@@ -139,22 +140,44 @@ Opening a ticket detail does not trigger an unused full list scan; returning to 
 ## PostgreSQL list index — 2026-10-19 (current behavior)
 
 - Background synchronization starts with the backend, then attempts every minute. A PostgreSQL session advisory lock coordinates instances; an already running cycle is not overlapped. Failed or longer-than-one-minute cycles can increase freshness lag. The worker uses the existing verified paginated Udesk APIs, not an unverified export dependency, and refreshes field/template/filter metadata every 30 minutes.
-- List/search/sort/page/count/CSV queries read PG. Current user mapping is resolved once; SQL intersects tenant, published scope membership, own/group authorization and search before sorting/counting/pagination. Current mapping changes take effect on subsequent requests. Details, replies, attachments, number lookup and draft operations still check live source permission.
+- List/search/sort/page/count/CSV queries read PG. SQL intersects tenant, published source membership, the current Morpho group template and search before sorting/counting/pagination. Saved group changes take effect on subsequent requests. Details, replies, attachments, number lookup and draft operations still check live source permission.
 - Migration v2 adds typed query columns, query indexes, scope state and versioned membership. Legacy opportunistic cache rows alone never imply a complete initialized index. A successful transaction publishes a new scope generation; a failed scan retains the previous generation and timestamp. Rows missing from a later scope are excluded from that scope without deleting source history/RMA snapshots.
 - The tenant's observed final-page repeat is handled by exact first-page ID comparison only at the advertised final page. An empty/repeated intermediate page fails the scan. Deduplication produces local authorized counts instead of exposing source total_count. This is a bounded compatibility rule for observed source behavior, not a claim that the upstream API provides snapshot isolation or perfectly correct totals.
-- Lists have no manual refresh button or endpoint. Browsers re-read PG every 15 seconds, without triggering upstream synchronization, and display the selected scope's last complete successful time. Initialization shows “工单数据初始化中”. Background failure is explicit; fresh previous results remain available. After 15 minutes without success, agent/supervisor lists return no content; admins may inspect stale data with a warning.
+- Lists have no manual refresh button or endpoint. Browsers re-read PG every 15 seconds, without triggering upstream synchronization, and display the selected scope's last complete successful time. Initialization shows “工单数据初始化中”. Background failure is explicit; fresh previous results remain available. After 15 minutes without success, lists return no content for all roles, including administrators.
 - Search is global within the authorized selected scope and includes ticket number, subject, source description and custom_fields/custom_fields_v2. It excludes conversation history, masked customer contact fields and attachment URLs. Search is parameterized with literal wildcard handling; list and CSV share the same query. Conversation searching would require a separate full reply ingestion feature.
 - Default sorting remains replied_at descending, invalid/missing dates last, with deterministic source ID ties. Read-only repeatable-read transactions keep count/page membership consistent for a request. Separate pages can shift between background publications; the cursor is an offset, not a permanent snapshot.
 - No Redis, Kafka, webhook registration, source writes, reply prefetch or RMA business-rule changes are introduced. The background scan and live interactive source reads share the existing client's request pacing.
 
 ## Compact ticket workbench — 2026-10-19
 
-The page subtitle is “View Udesk tickets and create linked RMAs.” Queue totals and the last successful synchronization time sit in the card heading. Synchronization cadence, the full timestamp and workspace timezone are available through the synchronization disclosure; search coverage and Udesk-filter semantics have contextual help. Redundant read-only badges and repeated pagination timestamps are omitted.
+The page subtitle is “View Morpho tickets and create linked RMAs.” Queue totals and the last successful synchronization time sit in the card heading. Synchronization cadence, the full timestamp and workspace timezone are available through the synchronization disclosure; search coverage and Udesk-filter semantics have contextual help. Redundant read-only badges and repeated pagination timestamps are omitted.
 
 One search box handles indexed content search. A complete numeric query (optionally prefixed with `#`) offers an explicit Open ticket action, which performs live Udesk lookup and permission checking. Typing alone never starts a live ticket lookup. Lookup failures retain the list and appear inline. Search does not include conversation history.
 
-Initialization, no results, account mapping, unavailable filters and request failures render within the queue card. Empty lists omit pagination; an empty filtered result offers Clear filters. An unavailable filter offers View all tickets. Source synchronization failures retain the last complete dataset where permitted and disclose its age. Scoped stale lists remain paused by the backend. Raw upstream errors are not displayed in these list states. Local draft-opening errors stay in the drafts panel.
+Initialization, no results, unavailable filters and request failures render within the queue card. Empty lists omit pagination; an empty filtered result offers Clear filters. An unavailable filter offers View all tickets. Source synchronization failures retain the last complete dataset where permitted and disclose its age. Scoped stale lists remain paused by the backend. Raw upstream errors are not displayed in these list states. Local draft-opening errors stay in the drafts panel.
 
 Desktop controls use a compact row. On smaller screens, search, filter and sorting each have a separate row, with contextual help in a viewport-bound disclosure. Both languages retain the existing CRM theme.
 
 For UI-only regression checks against a running LAN frontend, use `node tests/ticket-queue-ui.mjs` (`REVIEW_BASE_URL` overrides the LAN default). List and lookup responses are intercepted with synthetic examples; this checks rendering and interactions rather than upstream correctness. Source authorization and persistence remain covered by `npm run test:udesk` with an isolated PostgreSQL namespace and mock Udesk.
+
+
+## Shared Morpho after-sales group membership — 2026-10-19 (current authority)
+
+The active setting is **设置 → 工单中心 → 工单售后组归属配置** / Settings → Ticket center → Ticket after-sales group membership. Membership matches the ticket's `user_group_id`, independent of its assignee and the viewing user's roles/source groups. Default selected IDs are `4918`, `4974`, `5041`, `5042`, `5043`, `5044`. `5060` (Email-售前组-Colorbox) is not selected. Missing groups are excluded unless Include tickets without a handling group is enabled. Newly discovered group IDs are never automatically included. Source IDs missing from the current directory are shown with their indexed counts; an unknown, unselected ID cannot be added until present in the directory. An existing missing selection can be removed.
+
+The administrator can refresh the source group directory without account synchronization or password changes. Only group IDs and names are exposed. Counts and candidate previews use the last complete global PG index; they do not call Udesk or trigger full scans. The preview is approximate with respect to upstream changes. Saving the template applies immediately to indexed rows without resynchronizing or deleting tickets. An empty selection deliberately produces an empty scope. Defaults are seeded once per source tenant and never reapplied after edits/restarts.
+
+All authenticated, enabled CRM users receive service view, RMA view and RMA creation as baseline capabilities, including users with no roles or mappings. Saved Udesk filters are shared source result sets and remain intersected with product membership. Search/count/export/sort/pagination all apply group membership in SQL before pagination. A list older than 15 minutes is paused for every role. Detail, replies, attachment access, lookup, draft save/resume and RMA submission revalidate live source group membership. An upstream outage cannot grant detail access from cached membership. Transferring between agents within Morpho does not revoke access; moving to an excluded group does. Lists can retain their normal background-sync delay.
+
+RMA eligibility and approvals are unchanged. Own drafts/RMAs and their link visibility remain owner/admin scoped. Sharing source tickets does not grant access to other people's draft payloads, notes, approval or execution actions. Existing RMA/snapshot history is retained when membership changes.
+
+Migration v3 adds `support_access.ticket_scopes`, `ticket_scope_groups`, `ticket_scope_changes`. A configuration save locks its aggregate row, checks the expected revision, replaces its member rows and appends a versioned snapshot/actor/time in one PG transaction. A stale editor receives HTTP 409 and must reload. This is a small group-membership aggregate, not a generic rule engine. Access Control owns login/base capabilities; Support Access owns product membership/source projection; RMA owns intake and case lifecycle; Integration owns background sync.
+
+Administrator endpoints:
+
+- `GET /api/integrations/udesk/ticket-scope`: current template, sanitized group directory and recent change records.
+- `POST /api/integrations/udesk/ticket-scope`: save `revision`, `groupIds`, `includeUnassigned`.
+- `POST /api/integrations/udesk/ticket-scope/preview`: preview candidate `groupIds` / `includeUnassigned` against the index.
+- `POST /api/integrations/udesk/ticket-scope/groups/sync`: fetch every source `user_groups` page, then publish the complete group directory; no source writes.
+
+Run `npm run test:ticket-scope` for the isolated PG/browser regression of configuration, new-group opt-in, unknown-group exclusion, unsaved changes, version conflicts, immediate queries, missing-group opt-in, full shared access and draft revocation.
