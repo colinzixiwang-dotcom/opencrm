@@ -149,6 +149,7 @@ try {
   assert.equal(await samsung.locator("table").count(),1);
   assert.equal(await samsung.locator("table th").count(),2);
   await samsung.locator("summary").click();
+  assert.equal(await samsung.getByRole("navigation",{name:"Attachment pagination",exact:true}).count(),0);
   const email = samsung.getByRole("link", {name:"Download original email",exact:true});
   assert.ok((await email.getAttribute("href")).includes("download=1"));
   assert.ok((await email.innerText()).includes("24 KB"));

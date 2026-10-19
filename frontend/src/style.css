@@ -3953,7 +3953,7 @@ td {
   color: var(--muted);
   font-size: 12px;
 }
-.ticket-files > .attachment-list {
+.ticket-files > .attachment-gallery {
   padding: 0 20px;
 }
 .ticket-initial-reference {
@@ -4202,3 +4202,11 @@ td {
 .mail-inline-files strong { overflow-wrap: anywhere; font-weight: 500; }
 .mail-inline-files small { display: block; color: var(--muted); margin-top: 3px; }
 .mail-inline-files a > span:last-child { white-space: nowrap; font-size: 11px; }
+
+.pagination.pagination-compact { border: 0; padding: 8px 0 0; gap: 8px; justify-content: flex-end; }
+.pagination-compact .pagination-controls { gap: 10px; }
+.pagination-compact .pagination-button { width: 30px; min-height: 30px; padding: 0; }
+.pagination-compact .pagination-position { gap: 7px; min-width: 38px; justify-content: center; font-variant-numeric: tabular-nums; }
+.attachment-gallery { min-width: 0; }
+.attachment-gallery .attachment-card { width: 100%; }
+.attachment-preview footer .pagination-compact { padding: 0; }

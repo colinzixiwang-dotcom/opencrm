@@ -1278,5 +1278,10 @@
   "Original email": "原始邮件",
   "Download": "下载",
   "Files linked in this email": "邮件内文件链接",
-  "Open link": "打开链接"
+  "Open link": "打开链接",
+  "Attachment pagination": "附件分页",
+  "Attachment preview navigation": "附件预览切换",
+  "Previous attachment": "上一个附件",
+  "Next attachment": "下一个附件",
+  "Download this email to view it in your email application.": "下载原始邮件后，可使用邮件客户端查看。"
 }

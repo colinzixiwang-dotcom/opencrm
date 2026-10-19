@@ -291,6 +291,7 @@ export async function startUdeskMock() {
       file_name: "manual.pdf",
       content_type: "application/pdf",
     },
+    {url: previewBase + "/preview/original.eml", file_name: "original.eml", file_size: 24561},
     { url: "javascript:alert(1)", file_name: "unsafe.html" },
   );
   return {

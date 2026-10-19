@@ -195,3 +195,11 @@ The membership form uses a compact group selector, selected count, synced-ticket
 - EML attachments show Original email, file size and Download. Downloads use the existing live-authorized source attachment proxy with `download=1`, attachment disposition and octet-stream content type; EML remains unavailable for inline preview.
 
 Validation: ticket #717 verified against live Udesk detail/replies, original EML download, collapsed/expanded history, Chinese/English and mobile rendering. Ticket #520 currently returns 404 under configured Morpho membership, so its live view was not bypassed; data tables, merged/empty cells, quoted HTML and trailing inline replies were checked with isolated PostgreSQL/browser fixtures.
+
+### Outlook threads and attachment pagination (2026-10-19)
+
+Ticket #562 uses an Outlook `divRplyFwdMsg` header after an in-body policy quotation. Validated Outlook reply headers take precedence over ordinary blockquotes, so the policy quotation and all six new questions remain visible while prior mail is folded. Samsung separator recognition remains covered by #717 and browser fixtures. Safe paragraph spacing and ordered-list start values are preserved; only explicitly identified Outlook file chips are shown separately as external links (including OneDrive), not as downloaded Udesk attachments.
+
+The shared attachment list now shows one card at a time with compact left/right pagination and current/total position, for both ticket sidebar and reply attachments. The controls reuse the global Pagination component. Preview dialogs also support left/right controls and ArrowLeft/ArrowRight, excluding native media/input interactions. Each gallery resets if its source file list or ticket/page changes. Single attachments omit pagination, EML keeps its authorized download, and unknown file URLs remain excluded.
+
+Validated with live #562 Chinese/English desktop/mobile screenshots, all three reply attachments and #717 single-email regression; browser fixtures cover image/failure/PDF/EML transitions, first/last limits, keyboard navigation, Outlook inline quotations/questions, paragraph spacing, and original quoted HTML/data tables.

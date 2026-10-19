@@ -7,7 +7,7 @@ import React, {
   lazy,
   Suspense,
 } from "react";
-import { Icon, LoadingState } from "./components";
+import { Icon, LoadingState, Pagination } from "./components";
 import { tr, intlLocale } from "./i18n";
 
 const PDFPreview = lazy(() => import("./pdf-preview"));
@@ -51,7 +51,7 @@ function attachment(file, index) {
     return null;
   }
 }
-function Preview({ file, onClose }) {
+function Preview({ file, onClose, navigation, onPrevious, onNext }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -64,6 +64,11 @@ function Preview({ file, onClose }) {
       className="attachment-preview"
       aria-label={tr("Attachment preview")}
       onCancel={onClose}
+      onKeyDown={(e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.("video,audio,input,textarea,select,[contenteditable]")) return;
+        if (e.key === "ArrowLeft" && onPrevious) { e.preventDefault(); onPrevious(); }
+        if (e.key === "ArrowRight" && onNext) { e.preventDefault(); onNext(); }
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -135,19 +140,20 @@ function Preview({ file, onClose }) {
         ) : (
           <div className="attachment-unavailable">
             <Icon name="download" />
-            <p>{tr("This file type opens in its original application.")}</p>
+            <p>{tr(file.kind === "email" ? "Download this email to view it in your email application." : "This file type opens in its original application.")}</p>
           </div>
         )}
       </div>
       <footer>
-        <span>{tr("Source attachment from Udesk")}</span>
+        {navigation || <span>{tr("Source attachment from Udesk")}</span>}
         <a
           className="btn secondary"
-          href={file.originalURL || file.url}
+          href={file.kind === "email" ? file.url : file.originalURL || file.url}
+          download={file.kind === "email" ? file.name : undefined}
           target="_blank"
           rel="noreferrer"
         >
-          {tr("Open original attachment")}
+          {tr(file.kind === "email" ? "Download original email" : "Open original attachment")}
           <Icon name="arrow" />
         </a>
       </footer>
@@ -155,7 +161,7 @@ function Preview({ file, onClose }) {
   );
 }
 export function AttachmentList({ value }) {
-  const [selected, setSelected] = useState(null);
+  const [position, setPosition] = useState({ key: "", index: 0, preview: false });
   const scope = useContext(AttachmentContext);
   const files = (Array.isArray(value) ? value : [value])
     .map(attachment)
@@ -174,11 +180,21 @@ export function AttachmentList({ value }) {
           params,
       };
     });
+  const key = JSON.stringify(files.map((file) => [file.url, file.name]));
+  const index = position.key === key ? Math.min(position.index, files.length - 1) : 0;
+  const previewOpen = position.key === key && position.preview;
+  const move = (delta, preview = false) => setPosition({ key, index: Math.max(0, Math.min(files.length - 1, index + delta)), preview });
+  const pager = (preview = false) => files.length > 1 ? <Pagination compact
+    label={preview ? "Attachment preview navigation" : "Attachment pagination"}
+    previousLabel="Previous attachment" nextLabel="Next attachment"
+    page={index + 1} totalPages={files.length}
+    onPrevious={() => move(-1, preview)} onNext={() => move(1, preview)} /> : null;
   if (!files.length) return null;
   return (
     <>
-      <div className="attachment-list">
-        {files.map((file, i) => file.kind === "email" ? (
+      <div className="attachment-gallery">
+      <div className="attachment-list" aria-live="polite">
+        {files.slice(index, index + 1).map((file, i) => file.kind === "email" ? (
           <a key={file.url + ":" + i} className="attachment-card attachment-email" href={file.url} download={file.name} title={file.name} aria-label={tr("Download original email")}>
             <span className="attachment-thumbnail"><Icon name="download" /></span>
             <span className="attachment-caption"><strong>{tr("Original email")}</strong><small>EML{file.size > 0 ? " · " + new Intl.NumberFormat(intlLocale(), {maximumFractionDigits: 1}).format(file.size / 1024) + " KB" : ""}</small></span>
@@ -190,7 +206,7 @@ export function AttachmentList({ value }) {
             type="button"
             className="attachment-card"
             aria-label={tr("Preview {name}", { name: file.name })}
-            onClick={() => setSelected(file)}
+            onClick={() => setPosition({key, index, preview: true})}
           >
             <span className="attachment-thumbnail">
               {file.kind === "image" ? (
@@ -219,11 +235,16 @@ export function AttachmentList({ value }) {
           </button>
         ))}
       </div>
-      {selected && (
+      {pager()}
+      </div>
+      {previewOpen && (
         <Preview
-          key={selected.url}
-          file={selected}
-          onClose={() => setSelected(null)}
+          key={files[index].url}
+          file={files[index]}
+          onClose={() => setPosition({key, index, preview:false})}
+          navigation={pager(true)}
+          onPrevious={index > 0 ? () => move(-1, true) : undefined}
+          onNext={index < files.length - 1 ? () => move(1, true) : undefined}
         />
       )}
     </>

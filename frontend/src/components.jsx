@@ -446,39 +446,42 @@ export function Pagination({
   disabled = false,
   context,
   label = "Pagination",
+  compact = false,
+  previousLabel = "Previous",
+  nextLabel = "Next",
 }) {
   const total = totalPages == null ? null : Math.max(1, totalPages);
   return (
-    <nav className="pagination" aria-label={tr(label)}>
+    <nav className={"pagination" + (compact ? " pagination-compact" : "")} aria-label={tr(label)}>
       {context && <span className="pagination-context">{context}</span>}
       <div className="pagination-controls">
         <button
           type="button"
           className="pagination-button"
-          aria-label={tr("Previous")}
+          aria-label={tr(previousLabel)}
           disabled={disabled || page <= 1}
           onClick={onPrevious}
         >
           <span aria-hidden="true">‹</span>
-          {tr("Previous")}
+          {!compact && tr(previousLabel)}
         </button>
         <span className="pagination-position" aria-live="polite">
-          <strong>{tr("Page {page}", { page })}</strong>
+          <strong>{compact ? page : tr("Page {page}", { page })}</strong>
           <span className="pagination-divider">/</span>
           <span>
             {total == null
               ? tr("Total pages pending")
-              : tr("{total} pages total", { total })}
+              : compact ? total : tr("{total} pages total", { total })}
           </span>
         </span>
         <button
           type="button"
           className="pagination-button"
-          aria-label={tr("Next")}
+          aria-label={tr(nextLabel)}
           disabled={disabled || !(hasNext ?? (total != null && page < total))}
           onClick={onNext}
         >
-          {tr("Next")}
+          {!compact && tr(nextLabel)}
           <span aria-hidden="true">›</span>
         </button>
       </div>

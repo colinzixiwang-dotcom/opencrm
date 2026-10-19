@@ -205,8 +205,18 @@ try {
     ),
   );
   await page.screenshot({ path: "test-results/ticket-attachment-preview.png" });
+  const previewPager = preview.getByRole("navigation",{name:"Attachment preview navigation",exact:true});
+  assert.ok((await previewPager.innerText()).includes("1"));
+  assert.equal(await previewPager.getByRole("button",{name:"Previous attachment",exact:true}).isDisabled(),true);
+  await page.keyboard.press("ArrowRight");
+  await preview.getByText("Preview unavailable. Open the original attachment to view it.",{exact:true}).waitFor();
+  await previewPager.getByRole("button",{name:"Previous attachment",exact:true}).click();
+  await preview.locator("img").evaluate(img=>img.decode());
   await page.keyboard.press("Escape");
   await preview.waitFor({ state: "detached" });
+  const gallery = page.locator(".ticket-sidebar .attachment-gallery").first();
+  const attachmentPager = gallery.getByRole("navigation",{name:"Attachment pagination",exact:true});
+  await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).click();
   await page
     .getByRole("button", { name: "Preview missing.jpg", exact: true })
     .click();
@@ -219,6 +229,8 @@ try {
   await page
     .getByRole("button", { name: "Close preview", exact: true })
     .click();
+  await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).click();
+  assert.equal(await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).isDisabled(),false);
   const pdfResponse = page.waitForResponse(
     (r) => r.url().includes("/attachment?") && r.url().includes("manual.pdf"),
   );
@@ -240,6 +252,11 @@ try {
     }),
   );
   await page.screenshot({ path: "test-results/ticket-pdf-preview.png" });
+  await previewPager.getByRole("button",{name:"Next attachment",exact:true}).click();
+  const emailDownload = preview.getByRole("link",{name:"Download original email",exact:true});
+  await emailDownload.waitFor();
+  assert.ok((await emailDownload.getAttribute("href")).includes("download=1"));
+  assert.equal(await previewPager.getByRole("button",{name:"Next attachment",exact:true}).isDisabled(),true);
   await page
     .getByRole("button", { name: "Close preview", exact: true })
     .click();
