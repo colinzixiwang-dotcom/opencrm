@@ -146,3 +146,15 @@ Opening a ticket detail does not trigger an unused full list scan; returning to 
 - Search is global within the authorized selected scope and includes ticket number, subject, source description and custom_fields/custom_fields_v2. It excludes conversation history, masked customer contact fields and attachment URLs. Search is parameterized with literal wildcard handling; list and CSV share the same query. Conversation searching would require a separate full reply ingestion feature.
 - Default sorting remains replied_at descending, invalid/missing dates last, with deterministic source ID ties. Read-only repeatable-read transactions keep count/page membership consistent for a request. Separate pages can shift between background publications; the cursor is an offset, not a permanent snapshot.
 - No Redis, Kafka, webhook registration, source writes, reply prefetch or RMA business-rule changes are introduced. The background scan and live interactive source reads share the existing client's request pacing.
+
+## Compact ticket workbench — 2026-10-19
+
+The page subtitle is “View Udesk tickets and create linked RMAs.” Queue totals and the last successful synchronization time sit in the card heading. Synchronization cadence, the full timestamp and workspace timezone are available through the synchronization disclosure; search coverage and Udesk-filter semantics have contextual help. Redundant read-only badges and repeated pagination timestamps are omitted.
+
+One search box handles indexed content search. A complete numeric query (optionally prefixed with `#`) offers an explicit Open ticket action, which performs live Udesk lookup and permission checking. Typing alone never starts a live ticket lookup. Lookup failures retain the list and appear inline. Search does not include conversation history.
+
+Initialization, no results, account mapping, unavailable filters and request failures render within the queue card. Empty lists omit pagination; an empty filtered result offers Clear filters. An unavailable filter offers View all tickets. Source synchronization failures retain the last complete dataset where permitted and disclose its age. Scoped stale lists remain paused by the backend. Raw upstream errors are not displayed in these list states. Local draft-opening errors stay in the drafts panel.
+
+Desktop controls use a compact row. On smaller screens, search, filter and sorting each have a separate row, with contextual help in a viewport-bound disclosure. Both languages retain the existing CRM theme.
+
+For UI-only regression checks against a running LAN frontend, use `node tests/ticket-queue-ui.mjs` (`REVIEW_BASE_URL` overrides the LAN default). List and lookup responses are intercepted with synthetic examples; this checks rendering and interactions rather than upstream correctness. Source authorization and persistence remain covered by `npm run test:udesk` with an isolated PostgreSQL namespace and mock Udesk.
