@@ -62,6 +62,13 @@ try {
       created_at: "2026-10-05T10:00:00Z",
     },
   ];
+  mock.state.replyOverride.push({
+    id: 16, content_format: "html", author: {nick_name: "Mail Customer", user_type: "customer"}, created_at: "2026-10-06T13:11:52+08:00",
+    content: '<div>Just cant afford it now</div><div id="composer_signature">Sent from my Galaxy</div><div><div>-------- Original message --------</div><div>From: Support</div><div>Date: Yesterday</div><div>To: Customer</div><div>Subject: Order</div></div><table border="0" cellpadding="0" cellspacing="0"><tr><td><table border="0" cellpadding="0" cellspacing="0"><tr><td>Previous support response</td></tr></table></td></tr></table><table><tr><th>Item</th><th>Amount</th></tr><tr><td>Deposit</td><td>$50</td></tr></table><div>Unsubscribe footer</div>',
+  }, {
+    id: 17, content_format: "html", author: {nick_name:"Customer"}, created_at:"2026-10-07T00:00:00Z",
+    content: '<div>Current reply</div><div>-------- Original message --------</div><div>No email headers: this is part of my reply.</div>',
+  });
   app = await startServer(join(temp, "test-workspace"), mock.env);
   browser = await chromium.launch({
     headless: true,
@@ -105,7 +112,7 @@ try {
     0,
   );
   const messages = page.locator(".ticket-conversation article");
-  assert.equal(await messages.count(), 5);
+  assert.equal(await messages.count(), 7);
   assert.ok(!(await messages.nth(0).innerText()).includes("Order Number:"));
   await messages.nth(0).locator("summary").click();
   assert.ok((await messages.nth(0).innerText()).includes("Order Number:"));
@@ -120,6 +127,18 @@ try {
   );
   assert.equal(await messages.nth(3).locator("details").count(), 0);
   assert.equal(await messages.nth(4).locator("details").count(), 1);
+  const samsung = messages.nth(5);
+  assert.equal(await samsung.getByText("Just cant afford it now",{exact:true}).isVisible(),true);
+  assert.equal(await samsung.getByText("Previous support response",{exact:true}).isVisible(),false);
+  assert.equal(await samsung.locator(".mail-signature").innerText(),"Sent from my Galaxy");
+  await samsung.locator("summary").click();
+  assert.equal(await samsung.getByText("Previous support response",{exact:true}).isVisible(),true);
+  assert.equal(await samsung.getByText("Unsubscribe footer",{exact:true}).isVisible(),true);
+  assert.equal(await samsung.locator(".mail-layout").count(),2);
+  assert.equal(await samsung.locator("table").count(),1);
+  assert.equal(await samsung.locator("table th").count(),2);
+  await samsung.locator("summary").click();
+  assert.equal(await messages.nth(6).locator("details").count(),0);
   await page.screenshot({
     path: "test-results/ticket-reading-en.png",
     fullPage: true,

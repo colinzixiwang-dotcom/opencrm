@@ -51,6 +51,42 @@ function safeLink(value) {
     return undefined;
   }
 }
+// Flatten only explicit mail layout tables with at most one meaningful cell per
+// row. Ambiguous tables and any headers/merged cells retain their data structure.
+function layoutTable(table) {
+  const explicit = table.getAttribute("role") === "presentation" ||
+    ["border", "cellpadding", "cellspacing"].every((key) => table.getAttribute(key) === "0");
+  return explicit && ![...table.querySelectorAll("th,[colspan],[rowspan]")].some((cell) => cell.closest("table") === table) &&
+    [...table.rows].every((row) => [...row.cells].filter((cell) => cell.textContent.trim()).length <= 1);
+}
+function quotedHistory(doc) {
+  const quoted = doc.querySelector(".gmail_quote, .yahoo_quoted, blockquote");
+  if (quoted) {
+    const tail = doc.createRange();
+    tail.selectNodeContents(doc.body); tail.setStartAfter(quoted);
+    // Never hide inline replies placed after a recognized quote.
+    if (tail.toString().trim()) return [];
+    const header = quoted.previousElementSibling;
+    const includeHeader = header && /^(On .{6,500} wrote:|在.{6,500}写道[：:])$/s.test(header.textContent.trim());
+    const before = doc.createRange(); before.selectNodeContents(doc.body); before.setEndBefore(includeHeader ? header : quoted);
+    if (!before.toString().trim()) return [];
+    const result = [...(includeHeader ? [header] : []), quoted];
+    if (includeHeader) header.remove(); quoted.remove();
+    return result;
+  }
+  // Samsung/Outlook HTML often has no blockquote. Require both a separator and
+  // recognizable message headers, and keep the complete original HTML in a fold.
+  for (const marker of doc.querySelectorAll("div,p")) {
+    if (!/^-{3,}\s*(Original message|原始邮件)\s*-{3,}$/i.test(marker.textContent.trim()) || marker.closest("table")) continue;
+    const tail = doc.createRange(); tail.selectNodeContents(doc.body); tail.setStartBefore(marker);
+    const text = tail.toString();
+    if (!/(From|发件人)\s*[:：]/i.test(text) || !/(To|收件人)\s*[:：]/i.test(text) || !/(Subject|主题)\s*[:：]/i.test(text) || !/(Date|Sent|日期|发送时间)\s*[:：]/i.test(text)) continue;
+    const before = doc.createRange(); before.selectNodeContents(doc.body); before.setEndBefore(marker);
+    if (!before.toString().trim()) continue;
+    return [...tail.extractContents().childNodes];
+  }
+  return [];
+}
 function nodes(list, prefix = "mail", preserveSpace = false) {
   return [...list].map((node, index) => {
     const key = prefix + index;
@@ -67,6 +103,10 @@ function nodes(list, prefix = "mail", preserveSpace = false) {
       !node.querySelector("table")
     )
       return null;
+    if (tag === "table" && layoutTable(node))
+      return <div key={key} className="mail-layout">{[...node.rows].map((row, rowIndex) =>
+        <div key={rowIndex}>{[...row.cells].map((cell, cellIndex) => <div key={cellIndex}>{nodes(cell.childNodes, key + "-layout-" + rowIndex + "-" + cellIndex)}</div>)}</div>
+      )}</div>;
     const children = nodes(
       node.childNodes,
       key + "-",
@@ -91,6 +131,7 @@ function nodes(list, prefix = "mail", preserveSpace = false) {
     if (!allowed.has(tag))
       return <React.Fragment key={key}>{children}</React.Fragment>;
     const props = { key };
+    if (node.id === "composer_signature" || node.classList.contains("gmail_signature")) props.className = "mail-signature";
     if (["td", "th"].includes(tag))
       for (const [attribute, prop] of [
         ["colspan", "colSpan"],
@@ -116,24 +157,7 @@ export function MailContent({ html }) {
     doc
       .querySelectorAll("script,style,noscript,head,iframe,object,embed")
       .forEach((node) => node.remove());
-    const quoted = doc.querySelector(".gmail_quote, .yahoo_quoted, blockquote");
-    let quote = [];
-    if (quoted) {
-      const range = doc.createRange();
-      range.selectNodeContents(doc.body);
-      range.setStartAfter(quoted);
-      if (!range.toString().trim()) {
-        const header = quoted.previousElementSibling;
-        const includeHeader =
-          header &&
-          /^(On .{6,500} wrote:|在.{6,500}写道[：:])$/s.test(
-            header.textContent.trim(),
-          );
-        quote = [...(includeHeader ? [header] : []), quoted];
-        if (includeHeader) header.remove();
-        quoted.remove();
-      }
-    }
+    const quote = quotedHistory(doc);
     return { main: nodes(doc.body.childNodes), quote: nodes(quote, "quote") };
   }, [html]);
   return (
