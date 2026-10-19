@@ -56,7 +56,7 @@ export function TicketScopeSettings() {
   for (const item of preview?.groupCounts || []) {
     if (item.groupId && !groups.some((g) => String(g.id) === item.groupId)) groups.push({ id: item.groupId, name: tr("Unavailable group"), missing: true });
   }
-  groups.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  groups.sort((a, b) => Number(!!a.missing) - Number(!!b.missing) || String(a.id).localeCompare(String(b.id)));
   const count = (id) => preview?.groupCounts.find((g) => g.groupId === id)?.count || 0;
   return <Panel className="ticket-scope-settings">
     <PanelHeading title="Ticket after-sales group membership">

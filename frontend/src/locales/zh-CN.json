@@ -1219,7 +1219,7 @@
   "Included after-sales groups": "纳入的售后组",
   "New Udesk groups are excluded until an administrator selects them. Group names are for display; membership uses group IDs.": "新增的 Udesk 组需由管理员勾选后才会纳入。组名称用于展示，归属判断使用组 ID。",
   "Not in the current directory": "不在当前组目录中",
-  "Unavailable group": "已失效的组",
+  "Unavailable group": "未识别的客服组",
   "Include tickets without a handling group": "包含未分配受理客服组的工单",
   "Controls unassigned groups, regardless of the assigned agent.": "仅针对受理客服组为空的工单，与是否分配客服无关。",
   "Preview of synced tickets": "已同步工单预览",
