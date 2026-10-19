@@ -4119,3 +4119,15 @@ td {
 .ticket-queue-state p { color: var(--muted); font-size: 12px; line-height: 1.8; max-width: 400px; margin: 9px 0 0; }
 .ticket-queue-state .btn { margin-top: 20px; font-size: 12px; }
 .ticket-queue .pagination { border-top: 1px solid var(--line); }
+
+@media (max-width: 800px) {
+  .ticket-queue .list-toolbar { flex-direction: column; align-items: stretch; }
+  .ticket-queue .list-controls { display: grid; grid-template-columns: minmax(0, 1fr) 24px; width: 100%; gap: 10px 6px; }
+  .ticket-queue .ticket-search { min-width: 0; max-width: none; flex-wrap: wrap; }
+  .ticket-queue .ticket-search .search-field { min-width: 0; width: 100%; }
+  .ticket-queue .ticket-search input { min-width: 0; width: 100%; }
+  .ticket-queue .filter-select { min-width: 0; width: 100%; }
+  .ticket-queue .filter-select:last-child { grid-column: 1 / -1; }
+  .ticket-queue .filter-select select { flex: 1; min-width: 0; }
+  .ticket-queue .toolbar-right { width: 100%; justify-content: flex-end; }
+}
