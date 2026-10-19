@@ -32,6 +32,15 @@ try {
   );
   assert.equal(r.status(), 200, await r.text());
   assert.equal((await r.json()).accounts, 3);
+  await page.route("**/api/tickets?*", (route) => route.fulfill({
+    json: { items: [], initializing: true, fetchedAt: "", totalCount: 0, totalPages: 1, nextCursor: "", syncIntervalSeconds: 60 },
+  }));
+  await page.locator('a.nav-item[href="#service"]').click();
+  await page.getByRole("status", { name: "Ticket data is initializing", exact: true }).waitFor();
+  assert.equal(await page.locator(".ticket-queue-subbar strong").count(), 0);
+  await page.screenshot({ path: "test-results/ticket-index-initializing.png" });
+  await page.unroute("**/api/tickets?*");
+  await page.locator('a.nav-item[href="#home"]').click();
   await page.locator('a.nav-item[href="#service"]').click();
   await page.locator("tbody tr").first().waitFor();
   await page

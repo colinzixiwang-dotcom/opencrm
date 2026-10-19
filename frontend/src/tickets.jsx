@@ -895,7 +895,7 @@ export function TicketCenter() {
               {tr(
                 "Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.",
               )}{" "}
-              {data && (
+              {data && !data.initializing && !data.stale && (
                 <strong>
                   {tr("Total")}: {data.totalCount}
                 </strong>
