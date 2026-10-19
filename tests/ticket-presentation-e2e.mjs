@@ -70,7 +70,7 @@ try {
     content: '<div>Current reply</div><div>-------- Original message --------</div><div>No email headers: this is part of my reply.</div>',
   });
   mock.state.replyOverride.push({
-    id: 18, content_format: "html", author: {nick_name:"Outlook Customer",user_type:"customer"},created_at:"2026-10-08T00:00:00Z",
+    id: 18, attachments: ticket.attachments.slice(0,3), content_format: "html", author: {nick_name:"Outlook Customer",user_type:"customer"},created_at:"2026-10-08T00:00:00Z",
     content: '<div style="margin-top:1em;margin-bottom:1em"><span>\u200b</span><a id="OLK_Beautified_pdf" href="https://1drv.ms/example">bank statements.pdf</a>Hi Morpho Team,</div><div style="margin-top:1em;margin-bottom:1em">Please confirm the reserved price.</div><blockquote>Reserved price is $2,799</blockquote><div style="margin-top:1em;margin-bottom:1em">My new questions follow this quote.</div><ol start="2"><li>Which reward should I select?</li><li>How are my deposits applied?</li></ol><div>Best, Customer</div><hr><div id="divRplyFwdMsg"><b>From:</b> Support<br><b>Sent:</b> Yesterday<br><b>To:</b> Customer<br><b>Subject:</b> Price</div><div>Previous support pricing response</div><table><tr><th>Reward</th><th>Price</th></tr><tr><td>Pro</td><td>$2,799</td></tr></table><div>Older unsubscribe footer</div>',
   });
   app = await startServer(join(temp, "test-workspace"), mock.env);
@@ -169,6 +169,19 @@ try {
   assert.equal(await page.getByRole("dialog",{name:"Attachment preview",exact:true}).count(),0);
   assert.equal(await messages.nth(6).locator("details").count(),0);
   const outlook = messages.nth(7);
+  const gallery = outlook.locator(".attachment-gallery");
+  assert.equal(await gallery.locator(".attachment-card").count(),3);
+  assert.equal(await gallery.getByRole("navigation").count(),0);
+  for (const card of await gallery.locator(".attachment-card").all()) assert.equal(await card.isVisible(),true);
+  await gallery.getByRole("button",{name:"Preview manual.pdf",exact:true}).click();
+  const preview = page.getByRole("dialog",{name:"Attachment preview",exact:true});
+  const previewPager = preview.getByRole("navigation",{name:"Attachment preview navigation",exact:true});
+  assert.match(await previewPager.innerText(), /3\s*\/\s*3/);
+  assert.equal(await previewPager.getByRole("button",{name:"Next attachment",exact:true}).isDisabled(),true);
+  await previewPager.getByRole("button",{name:"Previous attachment",exact:true}).click();
+  assert.match(await previewPager.innerText(), /2\s*\/\s*3/);
+  await page.keyboard.press("Escape");
+  await preview.waitFor({state:"detached"});
   assert.equal(await outlook.getByText("Reserved price is $2,799",{exact:true}).isVisible(),true);
   assert.equal(await outlook.getByText("My new questions follow this quote.",{exact:true}).isVisible(),true);
   assert.equal(await outlook.locator("ol li").count(),2);

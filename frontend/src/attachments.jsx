@@ -160,7 +160,7 @@ function Preview({ file, onClose, navigation, onPrevious, onNext }) {
     </dialog>
   );
 }
-export function AttachmentList({ value, paginate = true }) {
+export function AttachmentList({ value }) {
   const [position, setPosition] = useState({ key: "", index: 0, preview: false });
   const scope = useContext(AttachmentContext);
   const files = (Array.isArray(value) ? value : [value])
@@ -194,7 +194,7 @@ export function AttachmentList({ value, paginate = true }) {
     <>
       <div className="attachment-gallery">
       <div className="attachment-list" aria-live="polite">
-        {(paginate ? files.slice(index, index + 1) : files).map((file, i) => file.kind === "email" ? (
+        {files.map((file, i) => file.kind === "email" ? (
           <a key={file.url + ":" + i} className="attachment-card attachment-email" href={file.url} download={file.name} title={file.name} aria-label={tr("Download original email")}>
             <span className="attachment-thumbnail"><Icon name="download" /></span>
             <span className="attachment-caption"><strong>{tr("Original email")}</strong><small>EML{file.size > 0 ? " · " + new Intl.NumberFormat(intlLocale(), {maximumFractionDigits: 1}).format(file.size / 1024) + " KB" : ""}</small></span>
@@ -206,7 +206,7 @@ export function AttachmentList({ value, paginate = true }) {
             type="button"
             className="attachment-card"
             aria-label={tr("Preview {name}", { name: file.name })}
-            onClick={() => setPosition({key, index: paginate ? index : i, preview: true})}
+            onClick={() => setPosition({key, index: i, preview: true})}
           >
             <span className="attachment-thumbnail">
               {file.kind === "image" ? (
@@ -235,7 +235,6 @@ export function AttachmentList({ value, paginate = true }) {
           </button>
         ))}
       </div>
-      {paginate && pager()}
       </div>
       {previewOpen && (
         <Preview
