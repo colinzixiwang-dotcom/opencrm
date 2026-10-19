@@ -1,15 +1,18 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"harbor/internal/domain"
+	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
+	source "harbor/internal/supportsource"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (s *Server) ticketResponse(c *gin.Context, v any, e error) {
@@ -18,11 +21,34 @@ func (s *Server) ticketResponse(c *gin.Context, v any, e error) {
 		if errors.As(e, &d) {
 			s.respond(c, e)
 		} else {
-			c.JSON(502, M{"error": e.Error(), "lastSyncAt": s.Tickets.LastSync(s.actor(c))})
+			status, code := 502, "source_error"
+			var upstream *source.Error
+			if errors.As(e, &upstream) {
+				code = "source_" + string(upstream.Kind)
+				switch upstream.Kind {
+				case source.NotFound:
+					status = 404
+				case source.InvalidQuery:
+					status = 400
+				case source.Unavailable, source.RateLimited:
+					status = 503
+				}
+			}
+			if errors.Is(e, context.DeadlineExceeded) {
+				status = 504
+				code = "source_timeout"
+			}
+			c.JSON(status, M{"error": e.Error(), "code": code, "lastSyncAt": s.Tickets.LastSync(s.actor(c))})
 		}
 		return
 	}
-	c.JSON(200, v)
+	if strings.Contains(c.GetHeader("Accept"), "application/vnd.morpho.support.v2+json") || c.Query("contract") == "2" {
+		c.Header("Vary", "Accept")
+		c.JSON(200, source.PublicResponse(v))
+	} else {
+		c.Header("Vary", "Accept")
+		c.JSON(200, udesk.CompatibilityResponse(v))
+	}
 }
 func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 	api.GET("/integrations/udesk/ticket-scope", func(c *gin.Context) {
@@ -125,11 +151,20 @@ func (s *Server) exportTickets(c *gin.Context) {
 	c.Status(http.StatusOK)
 	w := csv.NewWriter(c.Writer)
 	defer w.Flush()
-	w.Write([]string{"id", "field_num", "subject", "status", "assignee_name", "fetched_at", "source_json"})
+	canonical := c.Query("contract") == "2"
+	header := []string{"id", "number", "subject", "status", "assigneeName", "fetchedAt", "ticket_json"}
+	if !canonical {
+		header = []string{"id", "field_num", "subject", "status", "assignee_name", "fetched_at", "source_json"}
+	}
+	w.Write(header)
 	for _, item := range domain.Rows(v, "items") {
-		t := domain.Obj(item["source"])
-		raw, _ := json.Marshal(t)
-		cells := []string{fmt.Sprint(t["id"]), domain.Str(t["field_num"]), domain.Str(t["subject"]), domain.Str(t["status"]), domain.Str(t["assignee_name"]), domain.Str(item["fetchedAt"]), string(raw)}
+		ticket := item["ticket"].(source.Ticket)
+		raw, _ := json.Marshal(ticket)
+		if !canonical {
+			legacy := udesk.CompatibilityResponse(item).(M)
+			raw, _ = json.Marshal(legacy["source"])
+		}
+		cells := []string{ticket.ID, ticket.Number, ticket.Subject, ticket.Status, ticket.AssigneeName, domain.Str(item["fetchedAt"]), string(raw)}
 		for i, cell := range cells {
 			if len(cell) > 0 && (cell[0] == '=' || cell[0] == '+' || cell[0] == '-' || cell[0] == '@') {
 				cells[i] = "'" + cell

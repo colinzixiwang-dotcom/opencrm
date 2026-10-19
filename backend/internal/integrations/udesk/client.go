@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	source "harbor/internal/supportsource"
 	"io"
 	"net/http"
 	"net/url"
@@ -27,6 +28,7 @@ type Client struct {
 	HTTP               *http.Client
 	mu                 sync.Mutex
 	next               time.Time
+	foreground         int
 }
 
 // LoadEnv only supplies missing variables; credentials never reach the frontend.
@@ -68,26 +70,15 @@ func (c *Client) Tenant() string   { return c.Base }
 func (c *Client) Configured() bool { return c.Base != "" && c.Email != "" && c.Token != "" }
 func (c *Client) Get(ctx context.Context, path string, params url.Values) (M, error) {
 	if !c.Configured() {
-		return nil, fmt.Errorf("Udesk connection is not configured.")
+		return nil, &source.Error{Kind: source.Rejected, Message: "Udesk connection is not configured."}
 	}
 	base, e := url.Parse(c.Base)
 	if e != nil || base.Host == "" || (base.Scheme != "https" && base.Scheme != "http") {
-		return nil, fmt.Errorf("Invalid Udesk base URL.")
+		return nil, invalid("Invalid Udesk base URL.")
 	}
 	for attempt := 0; attempt < 3; attempt++ {
-		c.mu.Lock()
-		wait := time.Until(c.next)
-		if wait < 0 {
-			wait = 0
-		}
-		c.next = time.Now().Add(wait + 1100*time.Millisecond)
-		c.mu.Unlock()
-		timer := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return nil, ctx.Err()
-		case <-timer.C:
+		if e = c.acquire(ctx); e != nil {
+			return nil, e
 		}
 		nonce := make([]byte, 16)
 		if _, e = rand.Read(nonce); e != nil {
@@ -112,12 +103,15 @@ func (c *Client) Get(ctx context.Context, path string, params url.Values) (M, er
 		endpoint += "/" + strings.TrimLeft(path, "/") + "?" + q.Encode()
 		req, e := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 		if e != nil {
-			return nil, fmt.Errorf("Invalid Udesk request.")
+			return nil, invalid("Invalid Udesk request.")
 		}
 		req.Header.Set("Accept", "application/json")
 		response, e := c.HTTP.Do(req)
 		if e != nil {
-			return nil, fmt.Errorf("Udesk request failed or timed out.")
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, &source.Error{Kind: source.Unavailable, Message: "Udesk request failed or timed out."}
 		}
 		data, e := io.ReadAll(io.LimitReader(response.Body, 16<<20))
 		response.Body.Close()
@@ -132,19 +126,28 @@ func (c *Client) Get(ctx context.Context, path string, params url.Values) (M, er
 			continue
 		}
 		if response.StatusCode != 200 {
-			return nil, fmt.Errorf("Udesk returned HTTP %d.", response.StatusCode)
+			kind := source.Rejected
+			switch {
+			case response.StatusCode == 404:
+				kind = source.NotFound
+			case response.StatusCode == 429:
+				kind = source.RateLimited
+			case response.StatusCode >= 500:
+				kind = source.Unavailable
+			}
+			return nil, &source.Error{Kind: kind, Message: fmt.Sprintf("Udesk returned HTTP %d.", response.StatusCode)}
 		}
 		if e != nil {
-			return nil, fmt.Errorf("Cannot read Udesk response.")
+			return nil, invalid("Cannot read Udesk response.")
 		}
 		var out M
 		if json.Unmarshal(data, &out) != nil {
-			return nil, fmt.Errorf("Invalid Udesk response.")
+			return nil, invalid("Invalid Udesk response.")
 		}
 		if out["code"] != float64(1000) {
-			return nil, fmt.Errorf("Udesk rejected the request (code %v).", out["code"])
+			return nil, &source.Error{Kind: source.Rejected, Message: fmt.Sprintf("Udesk rejected the request (code %v).", out["code"])}
 		}
 		return out, nil
 	}
-	return nil, fmt.Errorf("Udesk is temporarily unavailable.")
+	return nil, &source.Error{Kind: source.Unavailable, Message: "Udesk is temporarily unavailable."}
 }

@@ -293,3 +293,28 @@ func (c *Client) DecodeMetadata(v map[string]json.RawMessage) (source.Metadata, 
 
 var _ source.Source = (*Adapter)(nil)
 var _ source.Source = (*Client)(nil)
+
+func (a *Adapter) DecodeGroups(raw json.RawMessage) ([]source.Group, error) {
+	var v M
+	if json.Unmarshal(raw, &v) != nil {
+		return nil, invalid("Invalid stored group directory.")
+	}
+	groups, ok := v["groups"]
+	if !ok {
+		groups = v["user_groups"]
+	}
+	out := []source.Group{}
+	for _, g := range records(groups) {
+		out = append(out, source.Group{ID: key(g["id"]), Name: key(g["name"])})
+	}
+	return out, nil
+}
+func (a *Adapter) ResolveAttachment(raw json.RawMessage, ref string) string {
+	return ResolveAttachment(raw, ref)
+}
+func (c *Client) DecodeGroups(raw json.RawMessage) ([]source.Group, error) {
+	return c.adapter().DecodeGroups(raw)
+}
+func (c *Client) ResolveAttachment(raw json.RawMessage, ref string) string {
+	return c.adapter().ResolveAttachment(raw, ref)
+}

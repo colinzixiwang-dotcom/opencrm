@@ -41,7 +41,10 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateAdministratorName(tx, ledger); e != nil {
 				return e
 			}
-			return migrateBuiltinRoleNames(tx, ledger)
+			if e := migrateBuiltinRoleNames(tx, ledger); e != nil {
+				return e
+			}
+			return migrateSourceProjection(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -72,7 +75,10 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateAdministratorName(tx, ledger); e != nil {
 			return e
 		}
-		return migrateBuiltinRoleNames(tx, ledger)
+		if e := migrateBuiltinRoleNames(tx, ledger); e != nil {
+			return e
+		}
+		return migrateSourceProjection(tx, ledger)
 	})
 }
 
@@ -275,4 +281,31 @@ func renameBuiltinLabels(value any, previousName, nextName string) bool {
 		}
 	}
 	return changed
+}
+
+// v6 adds rebuildable ACL projections; no source records or RMA history are removed.
+func migrateSourceProjection(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=6").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	for _, name := range []string{"tickets", "metadata", "snapshots", "reply_pages"} {
+		table := persistence.Table(tx, name)
+		if e := tx.Exec("ALTER TABLE " + table + " ADD COLUMN IF NOT EXISTS normalized jsonb, ADD COLUMN IF NOT EXISTS mapping_version integer NOT NULL DEFAULT 0").Error; e != nil {
+			return e
+		}
+	}
+	snapshots := persistence.Table(tx, "snapshots")
+	if e := tx.Exec("ALTER TABLE " + snapshots + " ADD COLUMN IF NOT EXISTS group_id text, ADD COLUMN IF NOT EXISTS provider text").Error; e != nil {
+		return e
+	}
+	// Explicit one-time Udesk legacy evidence migration. Domain transactions only
+	// read the resulting neutral columns and never inspect the provider payload.
+	if e := tx.Exec("UPDATE " + snapshots + " SET group_id=COALESCE(NULLIF(raw,'')::jsonb->>'user_group_id',''),provider='udesk' WHERE provider IS NULL").Error; e != nil {
+		return e
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(6)").Error
 }

@@ -152,6 +152,8 @@ type Source interface {
 	// Legacy records are upgraded by the provider's codec, not by domain code.
 	DecodeTicket(json.RawMessage) (Ticket, error)
 	DecodeMetadata(map[string]json.RawMessage) (Metadata, error)
+	DecodeGroups(json.RawMessage) ([]Group, error)
+	ResolveAttachment(json.RawMessage, string) string
 }
 
 type ErrorKind string

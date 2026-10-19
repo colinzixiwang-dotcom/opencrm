@@ -165,3 +165,38 @@ func TestAdministratorLabelMigration(t *testing.T) {
 		t.Fatal(admin.UserName, e)
 	}
 }
+
+func TestACLProjectionMigrationPreservesLegacySnapshot(t *testing.T) {
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
+	s, e := store.Open(filepath.Join(t.TempDir(), "acl-migration"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { s.Destroy() })
+	ledger := persistence.Table(s.DB, "schema_migrations")
+	snapshots := persistence.Table(s.DB, "snapshots")
+	evidence := `{"id":20713607,"field_num":"#717","user_group_id":5042,"custom_fields":{"future":"kept"}}`
+	if e = s.DB.Exec("INSERT INTO "+snapshots+" (id,tenant,ticket_id,number,raw) VALUES (?,?,?,?,?)", "legacy-snapshot", "tenant", "20713607", "#717", evidence).Error; e != nil {
+		t.Fatal(e)
+	}
+	if e = s.DB.Exec("DELETE FROM " + ledger + " WHERE version=6").Error; e != nil {
+		t.Fatal(e)
+	}
+	for i := 0; i < 2; i++ {
+		if e = store.Migrate(s.DB); e != nil {
+			t.Fatal(e)
+		}
+	}
+	var row struct {
+		GroupID, Provider, Raw string
+		MappingVersion         int
+	}
+	if e = s.DB.Table(snapshots).Where("id=?", "legacy-snapshot").Take(&row).Error; e != nil {
+		t.Fatal(e)
+	}
+	if row.GroupID != "5042" || row.Provider != "udesk" || row.Raw != evidence || row.MappingVersion != 0 {
+		t.Fatal("legacy evidence changed", row)
+	}
+}

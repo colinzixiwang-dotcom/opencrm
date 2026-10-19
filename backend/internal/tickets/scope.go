@@ -88,8 +88,7 @@ func (s *Service) scope(ctx context.Context) (TicketScope, error) {
 	e = s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var err error; p, err = scopeFrom(tx, s.Tenant); return err }, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return p, e
 }
-func (p TicketScope) matches(ticket M) bool {
-	g := id(ticket["user_group_id"])
+func (p TicketScope) matchesGroup(g string) bool {
 	if g == "" {
 		return p.IncludeUnassigned
 	}
@@ -126,10 +125,9 @@ func (s *Service) ScopeConfig(ctx context.Context, actor M) (M, error) {
 	if e != nil {
 		return nil, e
 	}
-	directory, at := s.metadata("groups")
-	groups := []M{}
-	for _, g := range rows(directory["user_groups"]) {
-		groups = append(groups, M{"id": id(g["id"]), "name": g["name"]})
+	groups, at, e := s.groupDirectory()
+	if e != nil {
+		return nil, e
 	}
 	history := []TicketScopeChange{}
 	// One extra snapshot supplies the predecessor for the oldest displayed entry.
@@ -159,21 +157,21 @@ func (s *Service) SyncGroups(ctx context.Context, actor M) (M, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	groups, e := s.all(ctx, "user_groups", "user_groups", nil)
+	groups, e := s.API.ReadGroups(ctx)
 	if e != nil {
 		return nil, e
 	}
 	clean := []M{}
 	seen := map[string]bool{}
 	for _, g := range groups {
-		key := id(g["id"])
+		key := g.ID
 		if key == "" || seen[key] {
 			continue
 		}
 		seen[key] = true
-		clean = append(clean, M{"id": key, "name": g["name"]})
+		clean = append(clean, M{"id": key, "name": g.Name})
 	}
-	if e = s.saveMetadata("groups", M{"user_groups": clean}); e != nil {
+	if e = s.saveMetadata("groups", M{"groups": clean}); e != nil {
 		return nil, e
 	}
 	return s.ScopeConfig(ctx, actor)
@@ -204,9 +202,12 @@ func (s *Service) scopeInput(ctx context.Context, actor M, body M) (TicketScope,
 		return current, fail("Choose valid ticket groups and an unassigned-ticket setting.", 400)
 	}
 	known := map[string]bool{}
-	directory, _ := s.metadata("groups")
-	for _, g := range rows(directory["user_groups"]) {
-		known[id(g["id"])] = true
+	directory, _, directoryError := s.groupDirectory()
+	if directoryError != nil {
+		return current, directoryError
+	}
+	for _, g := range directory {
+		known[g.ID] = true
 	}
 	// Existing selections remain editable if the source directory loses a group.
 	for _, g := range current.GroupIDs {

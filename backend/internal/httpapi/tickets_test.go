@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"harbor/internal/domain"
+	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
 	"harbor/internal/tickets"
 	"net/url"
@@ -36,7 +37,7 @@ func TestTicketAuthorizationAcrossAllHTTPPaths(t *testing.T) {
 	x := setup(t)
 	server := New(x.s, t.TempDir())
 	server.Tickets.Tenant = "test"
-	server.Tickets.API = ticketAPI{}
+	server.Tickets.API = udesk.NewAdapter(ticketAPI{}, "test")
 	x.r = server.Router()
 	u := x.user("operator")
 	uid := domain.Str(u["id"])
@@ -81,7 +82,7 @@ func TestEveryActiveRoleCanReadSharedMorphoAndCreateRMA(t *testing.T) {
 	x := prepareRMA(t)
 	server := New(x.s, t.TempDir())
 	server.Tickets.Tenant = "test"
-	server.Tickets.API = ticketAPI{}
+	server.Tickets.API = udesk.NewAdapter(ticketAPI{}, "test")
 	x.r = server.Router()
 	// Directory mappings are deliberately absent for all of these accounts.
 	x.role("no_grants", []any{}, "0", 0)
@@ -138,5 +139,35 @@ func TestEveryActiveRoleCanReadSharedMorphoAndCreateRMA(t *testing.T) {
 		}
 		// Shared creation does not grant approvals or execution.
 		x.action(token, "rmatask.review", M{}, 403)
+	}
+}
+
+func TestCRMContractDoesNotExposeProviderDTO(t *testing.T) {
+	x := setup(t)
+	server := New(x.s, t.TempDir())
+	server.Tickets.Tenant = "test"
+	server.Tickets.API = udesk.NewAdapter(ticketAPI{}, "test")
+	x.r = server.Router()
+	x.user("operator")
+	token := x.login("qa@example.com", "SecurePass!2026")
+	status, body, w := x.req("GET", "/api/tickets/1?contract=2", token, nil, "")
+	if status != 200 {
+		t.Fatal(status, w.Body.String())
+	}
+	ticket := domain.Obj(body["ticket"])
+	if ticket["number"] != "#1" || ticket["groupId"] != "5042" || body["source"] != nil || strings.Contains(w.Body.String(), "field_num") || strings.Contains(w.Body.String(), "Evidence") {
+		t.Fatal("provider DTO escaped", body)
+	}
+	status, body, _ = x.req("GET", "/api/tickets/1", token, nil, "")
+	if status != 200 || domain.Obj(body["source"])["field_num"] != "#1" {
+		t.Fatal("v1 compatibility lost", body)
+	}
+	status, body, w = x.req("GET", "/api/tickets/1/replies?contract=2", token, nil, "")
+	if status != 200 || body["messages"] == nil || body["replies"] != nil || strings.Contains(w.Body.String(), "function_type") {
+		t.Fatal("conversation contract", body)
+	}
+	status, _, _ = x.req("GET", "/api/tickets/2?contract=2", token, nil, "")
+	if status != 404 {
+		t.Fatal("v2 bypassed product policy")
 	}
 }

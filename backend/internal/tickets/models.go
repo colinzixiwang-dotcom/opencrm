@@ -12,31 +12,35 @@ type M = domain.M
 // Support Access owns external records; the naming strategy places drafts/links
 // in the RMA context and synchronization runs in Integration.
 type Ticket struct {
-	ID            uint   `gorm:"primaryKey"`
-	Tenant        string `gorm:"uniqueIndex:ticket_source"`
-	ExternalID    string `gorm:"uniqueIndex:ticket_source"`
-	Number        string `gorm:"index"`
-	Assignee      string `gorm:"index"`
-	GroupID       string `gorm:"index"`
-	SourceUpdated string
-	FetchedAt     string
-	Raw           string
-	Subject       string
-	Status        string
-	Channel       string
-	AssigneeName  string
-	NumberValue   int64
-	CreatedTime   *time.Time
-	UpdatedTime   *time.Time
-	RepliedTime   *time.Time
-	SearchText    string
+	ID             uint   `gorm:"primaryKey"`
+	Tenant         string `gorm:"uniqueIndex:ticket_source"`
+	ExternalID     string `gorm:"uniqueIndex:ticket_source"`
+	Number         string `gorm:"index"`
+	Assignee       string `gorm:"index"`
+	GroupID        string `gorm:"index"`
+	SourceUpdated  string
+	FetchedAt      string
+	Raw            string
+	Subject        string
+	Status         string
+	Channel        string
+	AssigneeName   string
+	NumberValue    int64
+	CreatedTime    *time.Time
+	UpdatedTime    *time.Time
+	RepliedTime    *time.Time
+	SearchText     string
+	Normalized     string `gorm:"type:jsonb;default:'null'"`
+	MappingVersion int    `gorm:"not null;default:0"`
 }
 type Metadata struct {
-	ID        uint   `gorm:"primaryKey"`
-	Tenant    string `gorm:"uniqueIndex:metadata_source"`
-	Kind      string `gorm:"uniqueIndex:metadata_source"`
-	FetchedAt string
-	Raw       string
+	ID             uint   `gorm:"primaryKey"`
+	Tenant         string `gorm:"uniqueIndex:metadata_source"`
+	Kind           string `gorm:"uniqueIndex:metadata_source"`
+	FetchedAt      string
+	Raw            string
+	Normalized     string `gorm:"type:jsonb;default:'null'"`
+	MappingVersion int    `gorm:"not null;default:0"`
 }
 type Mapping struct {
 	ID           uint   `gorm:"primaryKey" json:"id"`
@@ -53,12 +57,16 @@ type Mapping struct {
 	Managed      bool   `json:"managed"`
 }
 type Snapshot struct {
-	ID        string `gorm:"primaryKey"`
-	Tenant    string
-	TicketID  string `gorm:"index"`
-	Number    string
-	FetchedAt string
-	Raw       string
+	ID             string `gorm:"primaryKey"`
+	Tenant         string
+	TicketID       string `gorm:"index"`
+	Number         string
+	FetchedAt      string
+	Raw            string
+	Normalized     string `gorm:"type:jsonb;default:'null'"`
+	MappingVersion int    `gorm:"not null;default:0"`
+	GroupID        string
+	Provider       string
 }
 type Draft struct {
 	ID         string `gorm:"primaryKey" json:"id"`
@@ -80,12 +88,14 @@ type Link struct {
 	SnapshotID string
 }
 type ReplyPage struct {
-	ID        uint   `gorm:"primaryKey"`
-	Tenant    string `gorm:"uniqueIndex:reply_page"`
-	TicketID  string `gorm:"uniqueIndex:reply_page"`
-	Page      int    `gorm:"uniqueIndex:reply_page"`
-	FetchedAt string
-	Raw       string
+	ID             uint   `gorm:"primaryKey"`
+	Tenant         string `gorm:"uniqueIndex:reply_page"`
+	TicketID       string `gorm:"uniqueIndex:reply_page"`
+	Page           int    `gorm:"uniqueIndex:reply_page"`
+	FetchedAt      string
+	Raw            string
+	Normalized     string `gorm:"type:jsonb;default:'null'"`
+	MappingVersion int    `gorm:"not null;default:0"`
 }
 type Run struct {
 	ID          string `gorm:"primaryKey" json:"id"`

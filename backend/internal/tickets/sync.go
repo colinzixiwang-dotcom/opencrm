@@ -2,17 +2,14 @@ package tickets
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
-	"net/url"
-	"strconv"
 	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"harbor/internal/domain"
 	"harbor/internal/persistence"
+	source "harbor/internal/supportsource"
 )
 
 // Run starts one minute ticks. One worker never overlaps itself; a PostgreSQL
@@ -33,6 +30,7 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) Sync(ctx context.Context) error {
+	ctx = source.Background(ctx)
 	return s.DB.WithContext(ctx).Connection(func(conn *gorm.DB) error {
 		conn = conn.Session(&gorm.Session{NewDB: true})
 		key := persistence.Prefix(conn) + s.Tenant + ":udesk.sync"
@@ -55,7 +53,10 @@ func (s *Service) Sync(ctx context.Context) error {
 		if e := conn.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "scope"}}, DoUpdates: clause.AssignmentColumns([]string{"last_attempt"})}).Create(&SyncState{Tenant: s.Tenant, Scope: "", LastAttempt: &now}).Error; e != nil {
 			return e
 		}
-		_, at := worker.metadata("fields")
+		_, at, catalogError := worker.catalog()
+		if catalogError != nil {
+			return catalogError
+		}
 		parsed := sourceTime(at)
 		if parsed == nil || time.Since(*parsed) > 30*time.Minute {
 			if e := worker.refreshMetadata(ctx); e != nil {
@@ -64,13 +65,13 @@ func (s *Service) Sync(ctx context.Context) error {
 			}
 		}
 		scopes := []string{""}
-		data, _ := worker.metadata("filters")
-		for _, f := range rows(data["filters"]) {
-			if active, ok := f["active"].(bool); ok && !active {
-				continue
-			}
-			if key := id(f["id"]); key != "" {
-				scopes = append(scopes, key)
+		catalog, _, e := worker.catalog()
+		if e != nil {
+			return e
+		}
+		for _, f := range catalog.Filters {
+			if f.Active && f.ID != "" {
+				scopes = append(scopes, f.ID)
 			}
 		}
 		var firstError error
@@ -109,62 +110,11 @@ func (s *Service) syncFailure(scope string, e error) {
 	s.DB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "scope"}}, DoUpdates: clause.AssignmentColumns([]string{"error", "last_attempt"})}).Create(&SyncState{Tenant: s.Tenant, Scope: scope, LastAttempt: &now, Error: e.Error()})
 }
 
-// Use the existing verified list contract first. The tenant can overstate its
-// last page and return page one again: tolerate only an exact first-page repeat
-// on the final advertised page, never a duplicate in the middle of the scan.
-func (s *Service) scan(ctx context.Context, scope string) ([]M, error) {
-	all := []M{}
-	seen := map[string]bool{}
-	firstIDs := []string{}
-	for page, pages := 1, 1; page <= pages; page++ {
-		path := "tickets"
-		q := url.Values{"page": {strconv.Itoa(page)}, "per_page": {"100"}}
-		if scope != "" {
-			path = "tickets/tickets_in_filter"
-			q.Set("filter_id", scope)
-		}
-		v, e := s.API.Get(ctx, path, q)
-		if e != nil {
-			return nil, e
-		}
-		if page == 1 {
-			pages = max(1, int(domain.N(obj(v["meta"])["total_pages"])))
-			if pages > 10000 {
-				return nil, fmt.Errorf("Udesk synchronization range exceeds its page limit")
-			}
-		}
-		batch := rows(v["contents"])
-		ids := []string{}
-		added := 0
-		for _, row := range batch {
-			ticket := sourceTicket(row)
-			key := id(ticket["id"])
-			if key == "" {
-				return nil, fmt.Errorf("Udesk returned a ticket without an ID")
-			}
-			ids = append(ids, key)
-			if !seen[key] {
-				seen[key] = true
-				all = append(all, ticket)
-				added++
-			}
-		}
-		if page == 1 {
-			firstIDs = ids
-		}
-		if page > 1 && added == 0 {
-			a, _ := json.Marshal(ids)
-			b, _ := json.Marshal(firstIDs)
-			if page == pages && (len(ids) == 0 || string(a) == string(b)) {
-				break
-			}
-			return nil, fmt.Errorf("Udesk repeated or omitted an intermediate source page")
-		}
-	}
-	return all, nil
+func (s *Service) scan(ctx context.Context, scope string) ([]source.Ticket, error) {
+	return s.API.ScanTickets(ctx, scope)
 }
 
-func (s *Service) publish(scope string, all []M, started time.Time) error {
+func (s *Service) publish(scope string, all []source.Ticket, started time.Time) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		worker := &Service{DB: tx, API: s.API, Tenant: s.Tenant}
 		generation := domain.ID("INDEX")
@@ -175,7 +125,7 @@ func (s *Service) publish(scope string, all []M, started time.Time) error {
 		}
 		members := make([]FilterMember, 0, len(all))
 		for _, t := range all {
-			members = append(members, FilterMember{Tenant: s.Tenant, Scope: scope, Generation: generation, TicketID: id(t["id"])})
+			members = append(members, FilterMember{Tenant: s.Tenant, Scope: scope, Generation: generation, TicketID: t.ID})
 		}
 		if len(members) > 0 {
 			if e := tx.CreateInBatches(members, 500).Error; e != nil {

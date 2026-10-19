@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	source "harbor/internal/supportsource"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSigningEncodingAndNoCredentialErrors(t *testing.T) {
@@ -55,5 +58,56 @@ func TestLoadEnvPreservesProcessSettings(t *testing.T) {
 	}
 	if os.Getenv("UDESK_TEST_VALUE") != "from-file" || os.Getenv("UDESK_TEST_EXISTING") != "correct" {
 		t.Fatal("dotenv precedence")
+	}
+}
+
+func TestSourceErrorsAreClassifiedWithoutCredentials(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		fmt.Fprint(w, "sensitive provider error body")
+	}))
+	defer server.Close()
+	c := &Client{Base: server.URL, Email: "admin@example.com", Token: "secret", HTTP: server.Client()}
+	_, err := c.Get(context.Background(), "tickets/detail", nil)
+	var upstream *source.Error
+	if !errors.As(err, &upstream) || upstream.Kind != source.NotFound || strings.Contains(err.Error(), "sensitive") || strings.Contains(err.Error(), "secret") {
+		t.Fatal(err)
+	}
+}
+func TestInteractiveBudgetOvertakesBackgroundAndCancellation(t *testing.T) {
+	c := &Client{next: time.Now().Add(100 * time.Millisecond)}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	done := make(chan string, 2)
+	go func() {
+		if c.acquire(source.Background(ctx)) == nil {
+			done <- "background"
+		}
+	}()
+	go func() {
+		if c.acquire(ctx) == nil {
+			done <- "foreground"
+		}
+	}()
+	select {
+	case first := <-done:
+		if first != "foreground" {
+			t.Fatal("background took interactive slot")
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	cancelled, stop := context.WithCancel(context.Background())
+	stop()
+	if !errors.Is(c.acquire(cancelled), context.Canceled) {
+		t.Fatal("canceled wait granted a slot")
+	}
+	select {
+	case second := <-done:
+		if second != "background" {
+			t.Fatal(second)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
 	}
 }

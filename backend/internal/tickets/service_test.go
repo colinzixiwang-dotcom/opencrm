@@ -8,6 +8,7 @@ import (
 	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
+	source "harbor/internal/supportsource"
 	"harbor/internal/tickets"
 	"net/url"
 	"reflect"
@@ -85,7 +86,7 @@ func fixture(t *testing.T) (*store.Store, *tickets.Service, *fake, M) {
 	}}
 	f.tickets = []M{{"id": 1, "field_num": "#1", "assignee_id": 11, "user_group_id": 5042, "subject": "OWN", "user_email": "customer@example.com", "custom_fields": M{"SelectField_1": []any{"0"}, "UnknownField": []any{M{"name": "file", "url": "https://example.com/a"}}}, "updated_at": "2026-10-16T10:00:00+08:00"}, {"id": 2, "field_num": "#2", "assignee_id": 22, "user_group_id": 5060, "subject": "FOREIGN"}, {"id": 3, "field_num": "#3", "assignee_id": nil, "user_group_id": 5042, "subject": "UNASSIGNED"}}
 	svc := tickets.New(db.DB, &udesk.Client{Base: "https://example.udesk.cn"})
-	svc.API = f
+	svc.API = udesk.NewAdapter(f, svc.Tenant)
 	if _, e = svc.SyncAccounts(context.Background(), a, false); e != nil {
 		t.Fatal(e)
 	}
@@ -115,6 +116,7 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 		t.Fatal(e)
 	}
 	meta, e := s.Metadata(ctx, one, true)
+	meta = udesk.CompatibilityResponse(meta).(M)
 	if e != nil || len(domain.Items(meta["filters"])) != 2 || len(domain.Rows(domain.Obj(meta["fields"]), "fields")) != 2 {
 		t.Fatal(meta, e)
 	}
@@ -125,7 +127,7 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 			t.Fatal(page, e)
 		}
 		for _, item := range domain.Rows(page, "items") {
-			if domain.N(domain.Obj(item["source"])["user_group_id"]) != 5042 {
+			if domain.N(legacyTicket(item)["user_group_id"]) != 5042 {
 				t.Fatal("non-Morpho row", page)
 			}
 		}
@@ -133,10 +135,10 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		if !reflect.DeepEqual(who["roles"], a["roles"]) && domain.Obj(detail["source"])["user_email"] != "••••" {
+		if !reflect.DeepEqual(who["roles"], a["roles"]) && legacyTicket(detail)["user_email"] != "••••" {
 			t.Fatal("mask lost")
 		}
-		if domain.Obj(domain.Obj(detail["source"])["custom_fields"])["UnknownField"] == nil {
+		if domain.Obj(legacyTicket(detail)["custom_fields"])["UnknownField"] == nil {
 			t.Fatal("unknown field lost")
 		}
 		if _, e = s.Replies(ctx, who, "1", 1); e != nil {
@@ -300,13 +302,14 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 func TestUdeskLinkUsesInternalID(t *testing.T) {
 	_, service, source, actor := fixture(t)
 	service.Tenant = "https://ticketmorpho.udeskglobal.com/open_api_v1"
+	service.API = udesk.NewAdapter(source, service.Tenant)
 	source.tickets = []M{{"id": 20713607, "field_num": "#717", "subject": "Link regression", "user_group_id": 5042}}
 	result, err := service.Detail(context.Background(), actor, "20713607", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result["udeskUrl"] != "https://ticketmorpho.udeskglobal.com/entry/ticket/show/20713607" {
-		t.Fatalf("wrong ticket URL: %v", result["udeskUrl"])
+	if result["sourceUrl"] != "https://ticketmorpho.udeskglobal.com/entry/ticket/show/20713607" {
+		t.Fatalf("wrong ticket URL: %v", result["sourceUrl"])
 	}
 }
 
@@ -366,11 +369,11 @@ func TestRepliesReadChronologicallyAcrossSourcePages(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		list := domain.Rows(got, "replies")
+		list := domain.Rows(udesk.CompatibilityResponse(got).(M), "replies")
 		if len(list) != 2 || domain.N(list[0]["id"]) != int64(page*2-1) || domain.N(list[1]["id"]) != int64(page*2) {
 			t.Fatalf("page %d: %v", page, got)
 		}
-		if domain.N(domain.Obj(got["meta"])["current_page"]) != int64(page) {
+		if domain.N(domain.Obj(udesk.CompatibilityResponse(got).(M)["meta"])["current_page"]) != int64(page) {
 			t.Fatal("source page leaked into display pagination", got)
 		}
 	}
@@ -403,7 +406,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal(e)
 	}
 	items := domain.Rows(page, "items")
-	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "4" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "2" {
+	if fmt.Sprint(legacyTicket(items[0])["id"]) != "4" || fmt.Sprint(legacyTicket(items[1])["id"]) != "2" {
 		t.Fatalf("wrong global default order: %v", items)
 	}
 	if page["totalCount"] != 4 || page["totalPages"] != 2 {
@@ -414,7 +417,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal(e)
 	}
 	items = domain.Rows(second, "items")
-	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "1" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "5" || second["nextCursor"] != "" {
+	if fmt.Sprint(legacyTicket(items[0])["id"]) != "1" || fmt.Sprint(legacyTicket(items[1])["id"]) != "5" || second["nextCursor"] != "" {
 		t.Fatalf("wrong next page: %v", second)
 	}
 	ascending, e := service.ListSorted(context.Background(), own, "", "", 10, "replied_at:asc")
@@ -422,7 +425,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal(e)
 	}
 	items = domain.Rows(ascending, "items")
-	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "1" || fmt.Sprint(domain.Obj(items[3]["source"])["id"]) != "5" {
+	if fmt.Sprint(legacyTicket(items[0])["id"]) != "1" || fmt.Sprint(legacyTicket(items[3])["id"]) != "5" {
 		t.Fatalf("missing date must stay last: %v", items)
 	}
 	numeric, e := service.ListSorted(context.Background(), admin, "", "", 2, "field_num:desc")
@@ -430,7 +433,7 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		t.Fatal(e)
 	}
 	items = domain.Rows(numeric, "items")
-	if fmt.Sprint(domain.Obj(items[0]["source"])["id"]) != "2" || fmt.Sprint(domain.Obj(items[1]["source"])["id"]) != "5" {
+	if fmt.Sprint(legacyTicket(items[0])["id"]) != "2" || fmt.Sprint(legacyTicket(items[1])["id"]) != "5" {
 		t.Fatalf("wrong global numeric order: %v", items)
 	}
 	_, e = service.ListSorted(context.Background(), admin, "", "", 2, "content:desc")
@@ -446,5 +449,42 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 	cached, err := service.List(context.Background(), admin, "", "", 2)
 	if err != nil || cached["totalCount"] != 4 {
 		t.Fatal("failed sync replaced complete index", cached, err)
+	}
+}
+
+func legacyTicket(v M) M { return domain.Obj(udesk.CompatibilityResponse(v).(M)["source"]) }
+
+func TestLegacyProjectionReadsOfflineAndKeepsCanonicalRedaction(t *testing.T) {
+	db, s, upstream, _ := fixture(t)
+	if e := s.Sync(context.Background()); e != nil {
+		t.Fatal(e)
+	}
+	if e := db.DB.Model(&tickets.Ticket{}).Where("tenant=?", s.Tenant).Updates(M{"normalized": nil, "mapping_version": 0}).Error; e != nil {
+		t.Fatal(e)
+	}
+	calls := len(upstream.calls)
+	upstream.broken = true
+	result, e := s.List(context.Background(), actor(t, db, "one@example.com"), "", "", 20)
+	if e != nil || len(upstream.calls) != calls {
+		t.Fatal("legacy read contacted source", e)
+	}
+	var ticket source.Ticket
+	for _, item := range domain.Items(result["items"]) {
+		candidate := item["ticket"].(source.Ticket)
+		if candidate.ID == "1" {
+			ticket = candidate
+		}
+	}
+	if ticket.CustomerEmail != "••••" || ticket.Number != "#1" {
+		t.Fatal("canonical policy projection", ticket)
+	}
+	for _, field := range ticket.Fields {
+		if field.Key == "customerEmail" && field.Value != "••••" {
+			t.Fatal("contact leaked through display fields")
+		}
+	}
+	wire, _ := json.Marshal(source.PublicResponse(result))
+	if strings.Contains(string(wire), "customer@example.com") || strings.Contains(string(wire), "field_num") {
+		t.Fatal("raw payload escaped", string(wire))
 	}
 }

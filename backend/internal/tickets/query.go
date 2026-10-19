@@ -3,7 +3,6 @@ package tickets
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +32,12 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 	}
 	columns := map[string]string{"replied_at": "replied_time", "created_at": "created_time", "updated_at": "updated_time", "field_num": "number_value", "subject": "lower(subject)", "assignee_name": "lower(assignee_name)", "status": "lower(status)"}
 	parts := strings.Split(order, ":")
+	aliases := map[string]string{"repliedAt": "replied_at", "createdAt": "created_at", "updatedAt": "updated_at", "number": "field_num", "assigneeName": "assignee_name"}
+	if len(parts) == 2 {
+		if column, ok := aliases[parts[0]]; ok {
+			parts[0] = column
+		}
+	}
 	if len(parts) != 2 || columns[parts[0]] == "" || (parts[1] != "asc" && parts[1] != "desc") || ((parts[0] == "subject" || parts[0] == "assignee_name" || parts[0] == "status") && parts[1] != "asc") {
 		return nil, fail("Invalid ticket sort order.", 400)
 	}
@@ -100,11 +105,11 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 		}
 		items := []M{}
 		for _, record := range records {
-			v := M{}
-			if e := json.Unmarshal([]byte(record.Raw), &v); e != nil {
+			v, e := s.decodeRecord(record)
+			if e != nil {
 				return e
 			}
-			items = append(items, (&Service{DB: tx, Tenant: s.Tenant}).public(actor, v, record.FetchedAt))
+			items = append(items, (&Service{DB: tx, API: s.API, Tenant: s.Tenant}).public(actor, v, record.FetchedAt))
 		}
 		next := ""
 		if int64(offset+size) < count {

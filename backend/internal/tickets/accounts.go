@@ -6,57 +6,20 @@ import (
 	"harbor/internal/domain"
 	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
-	"net/url"
-	"strconv"
 	"strings"
 )
 
-func (s *Service) all(ctx context.Context, path, key string, q url.Values) ([]M, error) {
-	out := []M{}
-	if q == nil {
-		q = url.Values{}
-	}
-	for page := 1; page <= 1000; page++ {
-		q.Set("page", strconv.Itoa(page))
-		q.Set("per_page", "100")
-		v, e := s.API.Get(ctx, path, q)
-		if e != nil {
-			return nil, e
-		}
-		out = append(out, rows(v[key])...)
-		if page >= int(domain.N(obj(v["meta"])["total_pages"])) {
-			return out, nil
-		}
-	}
-	return nil, fail("Udesk account pagination exceeded its limit.", 502)
-}
 func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, error) {
 	if !admin(actor) {
 		return nil, fail("Only administrators can synchronize Udesk accounts.", 403)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	agents, e := s.all(ctx, "agents", "agents", url.Values{"with_disabled": {"true"}})
+	directory, e := s.API.ReadDirectory(ctx)
 	if e != nil {
 		return nil, e
 	}
-	groups, e := s.all(ctx, "user_groups", "user_groups", nil)
-	if e != nil {
-		return nil, e
-	}
-	roles, e := s.API.Get(ctx, "agent_roles", nil)
-	if e != nil {
-		return nil, e
-	}
-	// Whitelist account data: the agent API can contain unrelated SIP passwords.
-	clean := []M{}
-	for _, a := range agents {
-		v := M{}
-		for _, k := range []string{"id", "email", "nick_name", "role_name", "disable_status", "user_group_ids", "profile"} {
-			v[k] = a[k]
-		}
-		clean = append(clean, v)
-	}
+	clean, groups, roles := directory.Agents, directory.Groups, directory.Roles
 	hash := domain.HashPassword("HarborDemo!2026")
 	e = s.DB.Transaction(func(tx *gorm.DB) error {
 		if e := persistence.Lock(tx); e != nil {
@@ -67,13 +30,13 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 		}
 		seen := []string{}
 		for _, a := range clean {
-			aid := id(a["id"])
-			email := strings.ToLower(strings.TrimSpace(id(a["email"])))
+			aid := a.ID
+			email := a.Email
 			if aid == "" || !strings.Contains(email, "@") {
 				return fail("Udesk returned an account without a valid ID or email.", 502)
 			}
-			sourceRole := strings.ToLower(strings.TrimSpace(id(a["role_name"])))
-			enabled := id(a["disable_status"]) == "enable"
+			sourceRole := a.Role
+			enabled := a.Enabled
 			scope := "own"
 			roleKey := "support_agent"
 			switch sourceRole {
@@ -107,7 +70,7 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 				if conflict > 0 {
 					return fail("An account is already mapped to another Udesk agent.", 409)
 				}
-				m = Mapping{Tenant: s.Tenant, AgentID: aid, UserID: user.UserID, Scope: scope, Groups: enc(a["user_group_ids"])}
+				m = Mapping{Tenant: s.Tenant, AgentID: aid, UserID: user.UserID, Scope: scope, Groups: enc(a.GroupIDs)}
 			}
 			// Preserve existing non-source accounts' role grants on an email match.
 			if isNew || lookup == nil {
@@ -128,7 +91,7 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 					return e
 				}
 			}
-			user.UserName = id(a["nick_name"])
+			user.UserName = a.Name
 			if user.UserName == "" {
 				user.UserName = email
 			}
@@ -144,12 +107,7 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 			if e := tx.Save(&user).Error; e != nil {
 				return e
 			}
-			sourceGroups := []string{}
-			if raw, ok := a["user_group_ids"].([]any); ok {
-				for _, g := range raw {
-					sourceGroups = append(sourceGroups, id(g))
-				}
-			}
+			sourceGroups := a.GroupIDs
 			if !m.Managed {
 				m.Scope = scope
 				m.Groups = enc(sourceGroups)
@@ -204,7 +162,7 @@ func (s *Service) SyncAccounts(ctx context.Context, actor M, reset bool) (M, err
 	if e != nil {
 		return nil, e
 	}
-	for kind, data := range map[string]M{"agents": {"agents": clean}, "groups": {"user_groups": groups}, "roles": roles} {
+	for kind, data := range map[string]M{"agents": {"agents": clean}, "groups": {"groups": groups}, "roles": {"roles": roles}} {
 		if e = s.saveMetadata(kind, data); e != nil {
 			return nil, e
 		}
@@ -219,7 +177,10 @@ func (s *Service) Accounts(actor M) (M, error) {
 	if e := s.DB.Where("tenant=?", s.Tenant).Order("name").Find(&m).Error; e != nil {
 		return nil, e
 	}
-	g, _ := s.metadata("groups")
+	g, _, e := s.groupDirectory()
+	if e != nil {
+		return nil, e
+	}
 	r, _ := s.metadata("roles")
-	return M{"mappings": m, "groups": g["user_groups"], "roles": r["agent_roles"]}, nil
+	return M{"mappings": m, "groups": g, "roles": r["roles"]}, nil
 }
