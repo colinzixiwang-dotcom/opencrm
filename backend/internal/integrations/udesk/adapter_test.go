@@ -102,3 +102,12 @@ func TestMalformedPagesCannotPublishAnEmptyDirectoryOrIndex(t *testing.T) {
 		t.Fatal("missing contents interpreted as complete empty index")
 	}
 }
+
+func TestV1MetadataKeepsSourceTypesButNotExcludedFilters(t *testing.T) {
+	value := M{"filters": []source.Filter{{ID: "7", Name: "Allowed", Active: true}}, "_compatMetadata": map[string]json.RawMessage{"filters": json.RawMessage(`{"filters":[{"id":7,"name":"Allowed","permission":"All"},{"id":7,"name":"Duplicate"},{"id":8,"name":"Excluded"}]}`)}}
+	result := CompatibilityResponse(value).(M)
+	filters := records(result["filters"])
+	if len(filters) != 1 || filters[0]["id"] != float64(7) || filters[0]["permission"] != "All" || result["_compatMetadata"] != nil {
+		t.Fatal(result)
+	}
+}

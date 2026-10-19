@@ -75,6 +75,26 @@ func CompatibilityResponse(value any) any {
 		out["filters"] = list
 	}
 	if evidence, ok := v["_compatMetadata"].(map[string]json.RawMessage); ok {
+		// Preserve source filter IDs/types and supplementary metadata for v1,
+		// while applying the application's allowed filter set and deduplication.
+		var filtersDocument M
+		_ = json.Unmarshal(evidence["filters"], &filtersDocument)
+		allowed := map[string]bool{}
+		if filters, ok := v["filters"].([]source.Filter); ok {
+			for _, f := range filters {
+				allowed[f.ID] = true
+			}
+		}
+		legacyFilters := []M{}
+		seen := map[string]bool{}
+		for _, filter := range records(filtersDocument["filters"]) {
+			id := key(filter["id"])
+			if allowed[id] && !seen[id] {
+				seen[id] = true
+				legacyFilters = append(legacyFilters, filter)
+			}
+		}
+		out["filters"] = legacyFilters
 		for _, kind := range []string{"fields", "templates", "statuses"} {
 			var m M
 			_ = json.Unmarshal(evidence[kind], &m)
