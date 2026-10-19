@@ -111,10 +111,11 @@ func TestAdministratorLabelMigration(t *testing.T) {
 	users := persistence.Table(s.DB, "sys_user")
 	audit := persistence.OwnerTable(s.DB, "audit", "entries")
 	for _, query := range []string{
-		"DELETE FROM " + ledger + " WHERE version=4",
+		"DELETE FROM " + ledger + " WHERE version IN (4,5)",
 		"UPDATE " + users + " SET user_name='Alex Morgan' WHERE user_id='USR-ADMIN'",
-		"UPDATE " + users + " SET user_name='Custom name' WHERE user_id='USR-OPERATOR'",
-		"INSERT INTO " + audit + ` (id,position,data) VALUES ('rename-check',0,'{"actor":"Alex Morgan","description":"Alex Morgan","history":[{"actor":"Alex Morgan"}]}')`,
+		"UPDATE " + users + " SET user_name='Jamie Chen' WHERE user_id='USR-OPERATOR'",
+		"UPDATE " + users + " SET user_name='Sam Rivera' WHERE user_id='USR-ANALYST'",
+		"INSERT INTO " + audit + ` (id,position,data) VALUES ('rename-check',0,'{"actor":"Alex Morgan","description":"Alex Morgan","owner":"Jamie Chen","actorName":"Sam Rivera","history":[{"actor":"Alex Morgan"}]}')`,
 	} {
 		if e := s.DB.Exec(query).Error; e != nil {
 			t.Fatal(e)
@@ -144,8 +145,14 @@ func TestAdministratorLabelMigration(t *testing.T) {
 	if e := json.Unmarshal([]byte(row.Data), &event); e != nil {
 		t.Fatal(e)
 	}
-	if event["actor"] != "Administrator" || event["description"] != "Alex Morgan" || domain.Obj(event["history"].([]any)[0])["actor"] != "Administrator" {
+	if event["owner"] != "Operator" || event["actorName"] != "Analyst" || event["actor"] != "Administrator" || event["description"] != "Alex Morgan" || domain.Obj(event["history"].([]any)[0])["actor"] != "Administrator" {
 		t.Fatal(event)
+	}
+	for userID, expected := range map[string]string{"USR-OPERATOR": "Operator", "USR-ANALYST": "Analyst"} {
+		var name string
+		if e := s.DB.Table(users).Select("user_name").Where("user_id=?", userID).Scan(&name).Error; e != nil || name != expected {
+			t.Fatal(userID, name, e)
+		}
 	}
 	// Later administrator edits are not reset on subsequent starts.
 	if e := s.DB.Exec("UPDATE " + users + " SET user_name='My administrator' WHERE user_id='USR-ADMIN'").Error; e != nil {

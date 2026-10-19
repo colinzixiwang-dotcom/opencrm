@@ -38,7 +38,10 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateTicketScope(tx, ledger); e != nil {
 				return e
 			}
-			return migrateAdministratorName(tx, ledger)
+			if e := migrateAdministratorName(tx, ledger); e != nil {
+				return e
+			}
+			return migrateBuiltinRoleNames(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -66,7 +69,10 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateTicketScope(tx, ledger); e != nil {
 			return e
 		}
-		return migrateAdministratorName(tx, ledger)
+		if e := migrateAdministratorName(tx, ledger); e != nil {
+			return e
+		}
+		return migrateBuiltinRoleNames(tx, ledger)
 	})
 }
 
@@ -194,16 +200,40 @@ func migrateAdministratorName(tx *gorm.DB, ledger string) error {
 	if n > 0 {
 		return nil
 	}
-	if e := tx.Model(&ruoyi.SysUser{}).Where("user_id=? AND user_name=?", "USR-ADMIN", "Alex Morgan").Update("user_name", "Administrator").Error; e != nil {
+	if e := renameBuiltinName(tx, "USR-ADMIN", "Alex Morgan", "Administrator"); e != nil {
 		return e
 	}
-	if e := tx.Model(&tickets.TicketScopeChange{}).Where("actor_id=? AND actor_name=?", "USR-ADMIN", "Alex Morgan").Update("actor_name", "Administrator").Error; e != nil {
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(4)").Error
+}
+func migrateBuiltinRoleNames(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=5").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	for _, account := range []struct{ id, old, name string }{
+		{"USR-OPERATOR", "Jamie Chen", "Operator"},
+		{"USR-ANALYST", "Sam Rivera", "Analyst"},
+	} {
+		if e := renameBuiltinName(tx, account.id, account.old, account.name); e != nil {
+			return e
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(5)").Error
+}
+func renameBuiltinName(tx *gorm.DB, userID, previousName, nextName string) error {
+	if e := tx.Model(&ruoyi.SysUser{}).Where("user_id=? AND user_name=?", userID, previousName).Update("user_name", nextName).Error; e != nil {
+		return e
+	}
+	if e := tx.Model(&tickets.TicketScopeChange{}).Where("actor_id=? AND actor_name=?", userID, previousName).Update("actor_name", nextName).Error; e != nil {
 		return e
 	}
 	for _, collection := range persistence.Collections {
 		table := persistence.OwnerTable(tx, collection.Owner, collection.Table)
 		var records []struct{ ID, Data string }
-		if e := tx.Table(table).Where("data::text LIKE ?", "%Alex Morgan%").Find(&records).Error; e != nil {
+		if e := tx.Table(table).Where("data::text LIKE ?", "%"+previousName+"%").Find(&records).Error; e != nil {
 			return e
 		}
 		for _, record := range records {
@@ -211,7 +241,7 @@ func migrateAdministratorName(tx *gorm.DB, ledger string) error {
 			if e := json.Unmarshal([]byte(record.Data), &value); e != nil {
 				return e
 			}
-			if !renameAdministratorLabels(value) {
+			if !renameBuiltinLabels(value, previousName, nextName) {
 				continue
 			}
 			encoded, e := json.Marshal(value)
@@ -223,23 +253,23 @@ func migrateAdministratorName(tx *gorm.DB, ledger string) error {
 			}
 		}
 	}
-	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(4)").Error
+	return nil
 }
-func renameAdministratorLabels(value any) bool {
+func renameBuiltinLabels(value any, previousName, nextName string) bool {
 	changed := false
 	switch v := value.(type) {
 	case map[string]any:
 		for key, child := range v {
-			if (key == "actor" || key == "owner" || key == "actorName") && child == "Alex Morgan" {
-				v[key] = "Administrator"
+			if (key == "actor" || key == "owner" || key == "actorName") && child == previousName {
+				v[key] = nextName
 				changed = true
-			} else if renameAdministratorLabels(child) {
+			} else if renameBuiltinLabels(child, previousName, nextName) {
 				changed = true
 			}
 		}
 	case []any:
 		for _, child := range v {
-			if renameAdministratorLabels(child) {
+			if renameBuiltinLabels(child, previousName, nextName) {
 				changed = true
 			}
 		}

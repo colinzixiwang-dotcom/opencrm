@@ -17,7 +17,7 @@
     },
     {
       "id": "USR-OPERATOR",
-      "name": "Jamie Chen",
+      "name": "Operator",
       "email": "operator@harbor.local",
       "role": "operator",
       "active": true,
@@ -25,7 +25,7 @@
     },
     {
       "id": "USR-ANALYST",
-      "name": "Sam Rivera",
+      "name": "Analyst",
       "email": "analyst@harbor.local",
       "role": "analyst",
       "active": true,
@@ -1573,7 +1573,7 @@
     {
       "id": "TASK-609d22e1",
       "title": "Review reading lamp replenishment",
-      "owner": "Jamie Chen",
+      "owner": "Operator",
       "dueDate": "2026-10-14",
       "priority": "high",
       "status": "open",
