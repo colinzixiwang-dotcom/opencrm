@@ -16,7 +16,6 @@ import {
 import { intlLocale } from "./i18n";
 import { WarrantySettings } from "./warranty";
 import { UdeskAccounts } from "./tickets";
-import { TicketScopeSettings } from "./ticket-scope-settings";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
   const { state: s, can, setModal, act } = useWorkspace(),
@@ -33,7 +32,7 @@ export function Settings() {
     ["audit", "Audit trail"],
     ["integrations", "Integrations"],
     ...(s.currentUser.roles.includes("admin")
-      ? [["ticket-center", "Ticket center"], ["udesk", "Udesk accounts & mapping"]]
+      ? [["udesk", "Udesk accounts & mapping"]]
       : []),
   ];
   return (
@@ -59,8 +58,6 @@ export function Settings() {
       {(tab === "roles" || tab === "users") && <Note icon="users">{tr("Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.")}</Note>}
       {tab === "warranty" ? (
         <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
-      ) : tab === "ticket-center" ? (
-        <TicketScopeSettings />
       ) : tab === "udesk" ? (
         <UdeskAccounts />
       ) : tab === "users" ? (

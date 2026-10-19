@@ -27,7 +27,9 @@ try {
   await page.locator('tbody tr').first().waitFor();
   let list=await (await page.request.get(app.base+'/api/tickets')).json();assert.equal(list.totalCount,4);
   await page.locator('a.nav-item[href="#settings"]').click();
-  await page.getByRole('tab',{name:'Ticket center',exact:true}).click();
+  assert.equal(await page.getByRole('tab',{name:'Ticket center',exact:true}).count(),0);
+  await page.locator('a.nav-item[href="#rmaconfig"]').click();
+  await page.getByRole('tab',{name:'Ticket after-sales group membership',exact:true}).click();
   await page.getByRole('heading',{name:'Ticket after-sales group membership',exact:true}).waitFor();
   const panel=page.locator('.ticket-scope-settings');
   await panel.locator('.scope-preview strong').filter({hasText:'4 tickets'}).waitFor();

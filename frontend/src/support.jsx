@@ -1,4 +1,5 @@
 import { LanguageSwitcher } from "./language";
+import { TicketScopeSettings } from "./ticket-scope-settings";
 import { tr } from "./i18n";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useWorkspace, api, money, title, formatDate, today } from "./context";
@@ -2040,6 +2041,24 @@ export function SupportConfig() {
         <h2>{tr("Administrator access required")}</h2>
       </Panel>
     );
+  const navigation = (
+    <Tabs
+      items={[...configTabs, ["ticket-scope", "Ticket after-sales group membership"]]}
+      value={tab}
+      onChange={(x) => {
+        setTab(x);
+        setEditor(null);
+      }}
+    />
+  );
+  if (tab === "ticket-scope")
+    return (
+      <>
+        <Heading />
+        {navigation}
+        <TicketScopeSettings />
+      </>
+    );
   const rows = s.supportConfig[tab].map((r) => ({
     ...r,
     status: r.enabled ? "active" : "inactive",
@@ -2080,14 +2099,7 @@ export function SupportConfig() {
           }
         </Button>
       </Heading>
-      <Tabs
-        items={configTabs}
-        value={tab}
-        onChange={(x) => {
-          setTab(x);
-          setEditor(null);
-        }}
-      />
+      {navigation}
       <div className="support-config-callout">
         <Icon name="settings" />
         <div>
