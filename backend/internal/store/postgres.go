@@ -31,7 +31,10 @@ func Migrate(db *gorm.DB) error {
 			return e
 		}
 		if n > 0 {
-			return migrateTicketIndex(tx, ledger)
+			if e := migrateTicketIndex(tx, ledger); e != nil {
+				return e
+			}
+			return migrateTicketScope(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -53,7 +56,10 @@ func Migrate(db *gorm.DB) error {
 		if e := tx.Exec("INSERT INTO " + ledger + " (version) VALUES(1)").Error; e != nil {
 			return e
 		}
-		return migrateTicketIndex(tx, ledger)
+		if e := migrateTicketIndex(tx, ledger); e != nil {
+			return e
+		}
+		return migrateTicketScope(tx, ledger)
 	})
 }
 
@@ -154,4 +160,19 @@ func migrateTicketIndex(tx *gorm.DB, ledger string) error {
 		}
 	}
 	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(2)").Error
+}
+
+// v3 adds configurable product membership, independent of personal Udesk scope.
+func migrateTicketScope(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=3").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := tx.AutoMigrate(&tickets.TicketScope{}, &tickets.TicketScopeGroup{}, &tickets.TicketScopeChange{}); e != nil {
+		return e
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(3)").Error
 }

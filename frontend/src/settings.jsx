@@ -16,6 +16,7 @@ import {
 import { intlLocale } from "./i18n";
 import { WarrantySettings } from "./warranty";
 import { UdeskAccounts } from "./tickets";
+import { TicketScopeSettings } from "./ticket-scope-settings";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
   const { state: s, can, setModal, act } = useWorkspace(),
@@ -32,7 +33,7 @@ export function Settings() {
     ["audit", "Audit trail"],
     ["integrations", "Integrations"],
     ...(s.currentUser.roles.includes("admin")
-      ? [["udesk", "Udesk accounts & access"]]
+      ? [["ticket-center", "Ticket center"], ["udesk", "Udesk accounts & access"]]
       : []),
   ];
   return (
@@ -57,6 +58,8 @@ export function Settings() {
       <Tabs value={tab} onChange={setTab} items={tabs} />
       {tab === "warranty" ? (
         <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
+      ) : tab === "ticket-center" ? (
+        <TicketScopeSettings />
       ) : tab === "udesk" ? (
         <UdeskAccounts />
       ) : tab === "users" ? (

@@ -22,6 +22,7 @@ import (
 var Tables = map[string]string{
 	"sys_user": "access_control", "sys_role": "access_control", "sys_menu": "access_control", "sys_user_role": "access_control", "sys_role_menu": "access_control", "sessions": "access_control",
 	"tickets": "support_access", "metadata": "support_access", "mappings": "support_access", "snapshots": "support_access", "reply_pages": "support_access",
+	"ticket_scopes": "support_access", "ticket_scope_groups": "support_access", "ticket_scope_changes": "support_access",
 	"sync_states": "integration", "filter_members": "support_access",
 	"drafts": "rma", "links": "rma", "runs": "integration", "request_receipts": "integration", "workspace_values": "integration", "schema_migrations": "integration",
 }

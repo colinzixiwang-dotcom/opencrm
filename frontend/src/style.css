@@ -4131,3 +4131,42 @@ td {
   .ticket-queue .filter-select select { flex: 1; min-width: 0; }
   .ticket-queue .toolbar-right { width: 100%; justify-content: flex-end; }
 }
+
+/* Product scope configuration follows the CRM's quiet white workbench. */
+.ticket-scope-settings { padding: 24px; }
+.ticket-scope-settings .panel-heading { padding: 0; }
+.scope-intro { max-width: 800px; font-size: 13px; line-height: 1.8; color: var(--muted); margin: 10px 0 24px; }
+.scope-template-summary { display: grid; grid-template-columns: 1fr 1fr auto; gap: 24px; padding: 20px; border: 1px solid var(--line); border-radius: 9px; background: #f8faf6; }
+.scope-template-summary strong, .scope-preview strong { display: block; margin-top: 7px; font-size: 15px; font-weight: 600; }
+.scope-eyebrow { font-size: 11px; color: var(--muted); }
+.scope-group-fieldset { border: 0; padding: 0; margin: 26px 0 20px; min-width: 0; }
+.scope-group-fieldset legend { font-size: 14px; font-weight: 600; }
+.scope-group-fieldset > p { margin: 8px 0 16px; font-size: 12px; line-height: 1.7; }
+.scope-group-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.scope-group { display: flex; align-items: center; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
+.scope-group.is-selected { border-color: #b9cdb0; background: #f8fbf4; }
+.scope-group input { accent-color: var(--green); width: 16px; height: 16px; flex: 0 0 auto; }
+.scope-group-name { min-width: 0; flex: 1; }
+.scope-group-name strong { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.scope-group-name small { display: block; margin-top: 6px; font-size: 10px; line-height: 1.5; color: var(--muted); }
+.scope-group-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.scope-unassigned { grid-column: 1 / -1; }
+.scope-preview { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: #f5f8f1; border-radius: 8px; padding: 18px 20px; }
+.scope-preview strong { color: var(--green); }
+.scope-preview p { max-width: 540px; margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.scope-config-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+.scope-config-footer small { font-size: 11px; color: var(--muted); line-height: 1.8; }
+.scope-saved { padding: 12px 16px; background: #eff5e8; color: var(--green); border-radius: 6px; font-size: 12px; }
+.scope-error { padding: 12px 16px; background: #fff4ef; color: #934c36; border-radius: 6px; font-size: 12px; line-height: 1.8; margin-bottom: 18px; }
+.scope-history { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 18px; font-size: 12px; color: var(--muted); }
+.scope-history summary { cursor: pointer; }
+.scope-history ul { list-style: none; padding: 0; }
+.scope-history li { display: flex; gap: 16px; justify-content: space-between; padding: 10px 0; }
+@media (max-width: 700px) {
+ .ticket-scope-settings { padding: 18px; }
+ .ticket-scope-settings .panel-heading { gap: 16px; flex-wrap: wrap; }
+ .scope-group-list { grid-template-columns: minmax(0,1fr); }
+ .scope-template-summary { grid-template-columns: 1fr; gap: 16px; }
+ .scope-preview { flex-direction: column; align-items: flex-start; gap: 12px; }
+ .scope-config-footer .row-actions { width: 100%; flex-wrap: wrap; }
+}

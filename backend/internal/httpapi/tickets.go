@@ -25,6 +25,23 @@ func (s *Server) ticketResponse(c *gin.Context, v any, e error) {
 	c.JSON(200, v)
 }
 func (s *Server) ticketRoutes(api *gin.RouterGroup) {
+	api.GET("/integrations/udesk/ticket-scope", func(c *gin.Context) {
+		v, e := s.Tickets.ScopeConfig(c.Request.Context(), s.actor(c))
+		s.ticketResponse(c, v, e)
+	})
+	api.POST("/integrations/udesk/ticket-scope", func(c *gin.Context) {
+		v, e := s.Tickets.SaveScope(c.Request.Context(), s.actor(c), s.body(c))
+		s.ticketResponse(c, v, e)
+	})
+	api.POST("/integrations/udesk/ticket-scope/preview", func(c *gin.Context) {
+		v, e := s.Tickets.PreviewScope(c.Request.Context(), s.actor(c), s.body(c))
+		s.ticketResponse(c, v, e)
+	})
+	api.POST("/integrations/udesk/ticket-scope/groups/sync", func(c *gin.Context) {
+		v, e := s.Tickets.SyncGroups(c.Request.Context(), s.actor(c))
+		s.ticketResponse(c, v, e)
+	})
+
 	view := func(c *gin.Context) { s.require(c, ruoyi.ViewPermission("service")); c.Next() }
 	t := api.Group("/tickets", view)
 	t.GET("", func(c *gin.Context) {
