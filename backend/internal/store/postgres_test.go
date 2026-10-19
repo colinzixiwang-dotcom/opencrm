@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"encoding/json"
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
 	"harbor/internal/persistence"
@@ -94,5 +95,66 @@ func TestPostgresCrossInstanceIdempotencyAndOwnership(t *testing.T) {
 	var n int64
 	if e := one.DB.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema LIKE ? AND table_name='app_state'", persistence.Prefix(one.DB)+"%").Scan(&n).Error; e != nil || n != 0 {
 		t.Fatal("monolithic app_state table exists")
+	}
+}
+
+func TestAdministratorLabelMigration(t *testing.T) {
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
+	s, e := store.Open(filepath.Join(t.TempDir(), "administrator-label"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { s.Destroy() })
+	ledger := persistence.Table(s.DB, "schema_migrations")
+	users := persistence.Table(s.DB, "sys_user")
+	audit := persistence.OwnerTable(s.DB, "audit", "entries")
+	for _, query := range []string{
+		"DELETE FROM " + ledger + " WHERE version=4",
+		"UPDATE " + users + " SET user_name='Alex Morgan' WHERE user_id='USR-ADMIN'",
+		"UPDATE " + users + " SET user_name='Custom name' WHERE user_id='USR-OPERATOR'",
+		"INSERT INTO " + audit + ` (id,position,data) VALUES ('rename-check',0,'{"actor":"Alex Morgan","description":"Alex Morgan","history":[{"actor":"Alex Morgan"}]}')`,
+	} {
+		if e := s.DB.Exec(query).Error; e != nil {
+			t.Fatal(e)
+		}
+	}
+	var passwordBefore string
+	if e := s.DB.Table(users).Select("password").Where("user_id=?", "USR-ADMIN").Scan(&passwordBefore).Error; e != nil {
+		t.Fatal(e)
+	}
+	for i := 0; i < 2; i++ {
+		if e := store.Migrate(s.DB); e != nil {
+			t.Fatal(e)
+		}
+	}
+	var admin struct{ UserName, Password string }
+	if e := s.DB.Table(users).Where("user_id=?", "USR-ADMIN").Take(&admin).Error; e != nil {
+		t.Fatal(e)
+	}
+	if admin.UserName != "Administrator" || admin.Password != passwordBefore {
+		t.Fatal("rename must preserve credentials", admin.UserName)
+	}
+	var row struct{ Data string }
+	if e := s.DB.Table(audit).Where("id=?", "rename-check").Take(&row).Error; e != nil {
+		t.Fatal(e)
+	}
+	var event domain.M
+	if e := json.Unmarshal([]byte(row.Data), &event); e != nil {
+		t.Fatal(e)
+	}
+	if event["actor"] != "Administrator" || event["description"] != "Alex Morgan" || domain.Obj(event["history"].([]any)[0])["actor"] != "Administrator" {
+		t.Fatal(event)
+	}
+	// Later administrator edits are not reset on subsequent starts.
+	if e := s.DB.Exec("UPDATE " + users + " SET user_name='My administrator' WHERE user_id='USR-ADMIN'").Error; e != nil {
+		t.Fatal(e)
+	}
+	if e := store.Migrate(s.DB); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.DB.Table(users).Where("user_id=?", "USR-ADMIN").Take(&admin).Error; e != nil || admin.UserName != "My administrator" {
+		t.Fatal(admin.UserName, e)
 	}
 }

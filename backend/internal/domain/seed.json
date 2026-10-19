@@ -9,7 +9,7 @@
   "users": [
     {
       "id": "USR-ADMIN",
-      "name": "Alex Morgan",
+      "name": "Administrator",
       "email": "admin@harbor.local",
       "role": "admin",
       "active": true,
@@ -330,7 +330,7 @@
       "totalCostCents": 1480,
       "onHandAfter": 80,
       "valueCentsAfter": 59200,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.170Z"
     },
     {
@@ -344,7 +344,7 @@
       "totalCostCents": 1120,
       "onHandAfter": 66,
       "valueCentsAfter": 73920,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.169Z"
     },
     {
@@ -358,7 +358,7 @@
       "totalCostCents": 2480,
       "onHandAfter": 173,
       "valueCentsAfter": 107260,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.168Z"
     },
     {
@@ -372,7 +372,7 @@
       "totalCostCents": 5040,
       "onHandAfter": 9,
       "valueCentsAfter": 15120,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.167Z"
     },
     {
@@ -386,7 +386,7 @@
       "totalCostCents": 2480,
       "onHandAfter": 130,
       "valueCentsAfter": 161200,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.166Z"
     },
     {
@@ -400,7 +400,7 @@
       "totalCostCents": 850,
       "onHandAfter": 248,
       "valueCentsAfter": 210800,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.165Z"
     },
     {
@@ -414,7 +414,7 @@
       "totalCostCents": 2960,
       "onHandAfter": 82,
       "valueCentsAfter": 60680,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.164Z"
     },
     {
@@ -428,7 +428,7 @@
       "totalCostCents": 3360,
       "onHandAfter": 67,
       "valueCentsAfter": 75040,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.163Z"
     },
     {
@@ -442,7 +442,7 @@
       "totalCostCents": 1240,
       "onHandAfter": 177,
       "valueCentsAfter": 109740,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.162Z"
     },
     {
@@ -456,7 +456,7 @@
       "totalCostCents": 1680,
       "onHandAfter": 12,
       "valueCentsAfter": 20160,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.161Z"
     },
     {
@@ -470,7 +470,7 @@
       "totalCostCents": 4960,
       "onHandAfter": 132,
       "valueCentsAfter": 163680,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.160Z"
     },
     {
@@ -484,7 +484,7 @@
       "totalCostCents": 2550,
       "onHandAfter": 249,
       "valueCentsAfter": 211650,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.160Z"
     },
     {
@@ -498,7 +498,7 @@
       "totalCostCents": 1480,
       "onHandAfter": 86,
       "valueCentsAfter": 63640,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.159Z"
     },
     {
@@ -512,7 +512,7 @@
       "totalCostCents": 1120,
       "onHandAfter": 70,
       "valueCentsAfter": 78400,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.159Z"
     },
     {
@@ -526,7 +526,7 @@
       "totalCostCents": 2480,
       "onHandAfter": 179,
       "valueCentsAfter": 110980,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.158Z"
     },
     {
@@ -540,7 +540,7 @@
       "totalCostCents": 5040,
       "onHandAfter": 13,
       "valueCentsAfter": 21840,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.157Z"
     },
     {
@@ -554,7 +554,7 @@
       "totalCostCents": 2480,
       "onHandAfter": 136,
       "valueCentsAfter": 168640,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.157Z"
     },
     {
@@ -568,7 +568,7 @@
       "totalCostCents": 850,
       "onHandAfter": 252,
       "valueCentsAfter": 214200,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.154Z"
     },
     {
@@ -582,7 +582,7 @@
       "totalCostCents": 59940,
       "onHandAfter": 81,
       "valueCentsAfter": 59940,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -596,7 +596,7 @@
       "totalCostCents": 65120,
       "onHandAfter": 88,
       "valueCentsAfter": 65120,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -610,7 +610,7 @@
       "totalCostCents": 70300,
       "onHandAfter": 95,
       "valueCentsAfter": 70300,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -624,7 +624,7 @@
       "totalCostCents": 71680,
       "onHandAfter": 64,
       "valueCentsAfter": 71680,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -638,7 +638,7 @@
       "totalCostCents": 79520,
       "onHandAfter": 71,
       "valueCentsAfter": 79520,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -652,7 +652,7 @@
       "totalCostCents": 87360,
       "onHandAfter": 78,
       "valueCentsAfter": 87360,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -666,7 +666,7 @@
       "totalCostCents": 109120,
       "onHandAfter": 176,
       "valueCentsAfter": 109120,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -680,7 +680,7 @@
       "totalCostCents": 113460,
       "onHandAfter": 183,
       "valueCentsAfter": 113460,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -694,7 +694,7 @@
       "totalCostCents": 117800,
       "onHandAfter": 190,
       "valueCentsAfter": 117800,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -708,7 +708,7 @@
       "totalCostCents": 15120,
       "onHandAfter": 9,
       "valueCentsAfter": 15120,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -722,7 +722,7 @@
       "totalCostCents": 26880,
       "onHandAfter": 16,
       "valueCentsAfter": 26880,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -736,7 +736,7 @@
       "totalCostCents": 38640,
       "onHandAfter": 23,
       "valueCentsAfter": 38640,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -750,7 +750,7 @@
       "totalCostCents": 162440,
       "onHandAfter": 131,
       "valueCentsAfter": 162440,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.152Z"
     },
     {
@@ -764,7 +764,7 @@
       "totalCostCents": 171120,
       "onHandAfter": 138,
       "valueCentsAfter": 171120,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.151Z"
     },
     {
@@ -778,7 +778,7 @@
       "totalCostCents": 179800,
       "onHandAfter": 145,
       "valueCentsAfter": 179800,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.151Z"
     },
     {
@@ -792,7 +792,7 @@
       "totalCostCents": 209100,
       "onHandAfter": 246,
       "valueCentsAfter": 209100,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.151Z"
     },
     {
@@ -806,7 +806,7 @@
       "totalCostCents": 215050,
       "onHandAfter": 253,
       "valueCentsAfter": 215050,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.151Z"
     },
     {
@@ -820,7 +820,7 @@
       "totalCostCents": 221000,
       "onHandAfter": 260,
       "valueCentsAfter": 221000,
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.151Z"
     }
   ],
@@ -1327,7 +1327,7 @@
       "amountCents": 5380,
       "date": "2026-10-14",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.170Z"
     },
     {
@@ -1337,7 +1337,7 @@
       "amountCents": 3490,
       "date": "2026-10-13",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.169Z"
     },
     {
@@ -1347,7 +1347,7 @@
       "amountCents": 9160,
       "date": "2026-10-12",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.169Z"
     },
     {
@@ -1357,7 +1357,7 @@
       "amountCents": 16470,
       "date": "2026-10-11",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.168Z"
     },
     {
@@ -1367,7 +1367,7 @@
       "amountCents": 7980,
       "date": "2026-10-10",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.166Z"
     },
     {
@@ -1377,7 +1377,7 @@
       "amountCents": 2890,
       "date": "2026-10-09",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.165Z"
     },
     {
@@ -1387,7 +1387,7 @@
       "amountCents": 10760,
       "date": "2026-10-08",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.164Z"
     },
     {
@@ -1397,7 +1397,7 @@
       "amountCents": 10470,
       "date": "2026-10-07",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.163Z"
     },
     {
@@ -1407,7 +1407,7 @@
       "amountCents": 4580,
       "date": "2026-10-06",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.162Z"
     },
     {
@@ -1417,7 +1417,7 @@
       "amountCents": 5490,
       "date": "2026-10-05",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.162Z"
     },
     {
@@ -1427,7 +1427,7 @@
       "amountCents": 15960,
       "date": "2026-10-04",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.161Z"
     },
     {
@@ -1437,7 +1437,7 @@
       "amountCents": 8670,
       "date": "2026-10-03",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.160Z"
     },
     {
@@ -1447,7 +1447,7 @@
       "amountCents": 5380,
       "date": "2026-10-02",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.159Z"
     },
     {
@@ -1457,7 +1457,7 @@
       "amountCents": 3490,
       "date": "2026-10-01",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.159Z"
     },
     {
@@ -1467,7 +1467,7 @@
       "amountCents": 9160,
       "date": "2026-09-30",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.158Z"
     },
     {
@@ -1477,7 +1477,7 @@
       "amountCents": 16470,
       "date": "2026-09-29",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.158Z"
     },
     {
@@ -1487,7 +1487,7 @@
       "amountCents": 7980,
       "date": "2026-09-28",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.157Z"
     },
     {
@@ -1497,7 +1497,7 @@
       "amountCents": 2890,
       "date": "2026-09-27",
       "note": "",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "createdAt": "2026-10-14T15:47:34.156Z"
     }
   ],
@@ -1553,7 +1553,7 @@
       "notes": [
         {
           "text": "Please confirm the packaging dimensions for the next order.",
-          "actor": "Alex Morgan",
+          "actor": "Administrator",
           "at": "2026-10-14T15:47:34.172Z"
         }
       ],
@@ -1564,7 +1564,7 @@
     {
       "id": "TASK-82231d47",
       "title": "Check supplier quotes for next month",
-      "owner": "Alex Morgan",
+      "owner": "Administrator",
       "dueDate": "2026-10-14",
       "priority": "normal",
       "status": "open",
@@ -1585,56 +1585,56 @@
       "id": "AUD-4d3dcbca",
       "action": "task.create",
       "reference": "TASK-82231d47",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.173Z"
     },
     {
       "id": "AUD-22cbc75c",
       "action": "task.create",
       "reference": "TASK-609d22e1",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.173Z"
     },
     {
       "id": "AUD-98b4ca57",
       "action": "ticket.create",
       "reference": "TKT-65e46951",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     },
     {
       "id": "AUD-0298bf6b",
       "action": "campaign.create",
       "reference": "AD-18ce8770",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     },
     {
       "id": "AUD-75ecf265",
       "action": "campaign.create",
       "reference": "AD-acc3d9f5",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     },
     {
       "id": "AUD-a6aa6754",
       "action": "expense.create",
       "reference": "EXP-3fd2a50e",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     },
     {
       "id": "AUD-50b6ab41",
       "action": "expense.create",
       "reference": "EXP-4c9f89a5",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     },
     {
       "id": "AUD-7e73404d",
       "action": "purchase.transition",
       "reference": "PO-8bd5c2cc",
-      "actor": "Alex Morgan",
+      "actor": "Administrator",
       "at": "2026-10-14T15:47:34.172Z"
     }
   ]

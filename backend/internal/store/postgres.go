@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
@@ -34,7 +35,10 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateTicketIndex(tx, ledger); e != nil {
 				return e
 			}
-			return migrateTicketScope(tx, ledger)
+			if e := migrateTicketScope(tx, ledger); e != nil {
+				return e
+			}
+			return migrateAdministratorName(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -59,7 +63,10 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateTicketIndex(tx, ledger); e != nil {
 			return e
 		}
-		return migrateTicketScope(tx, ledger)
+		if e := migrateTicketScope(tx, ledger); e != nil {
+			return e
+		}
+		return migrateAdministratorName(tx, ledger)
 	})
 }
 
@@ -175,4 +182,67 @@ func migrateTicketScope(tx *gorm.DB, ledger string) error {
 		return e
 	}
 	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(3)").Error
+}
+
+// v4 replaces the original demo administrator label, preserving IDs, credentials,
+// permissions and audit event timestamps. Only the old built-in label is changed.
+func migrateAdministratorName(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=4").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := tx.Model(&ruoyi.SysUser{}).Where("user_id=? AND user_name=?", "USR-ADMIN", "Alex Morgan").Update("user_name", "Administrator").Error; e != nil {
+		return e
+	}
+	if e := tx.Model(&tickets.TicketScopeChange{}).Where("actor_id=? AND actor_name=?", "USR-ADMIN", "Alex Morgan").Update("actor_name", "Administrator").Error; e != nil {
+		return e
+	}
+	for _, collection := range persistence.Collections {
+		table := persistence.OwnerTable(tx, collection.Owner, collection.Table)
+		var records []struct{ ID, Data string }
+		if e := tx.Table(table).Where("data::text LIKE ?", "%Alex Morgan%").Find(&records).Error; e != nil {
+			return e
+		}
+		for _, record := range records {
+			var value any
+			if e := json.Unmarshal([]byte(record.Data), &value); e != nil {
+				return e
+			}
+			if !renameAdministratorLabels(value) {
+				continue
+			}
+			encoded, e := json.Marshal(value)
+			if e != nil {
+				return e
+			}
+			if e := tx.Exec("UPDATE "+table+" SET data=?::jsonb WHERE id=?", string(encoded), record.ID).Error; e != nil {
+				return e
+			}
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(4)").Error
+}
+func renameAdministratorLabels(value any) bool {
+	changed := false
+	switch v := value.(type) {
+	case map[string]any:
+		for key, child := range v {
+			if (key == "actor" || key == "owner" || key == "actorName") && child == "Alex Morgan" {
+				v[key] = "Administrator"
+				changed = true
+			} else if renameAdministratorLabels(child) {
+				changed = true
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if renameAdministratorLabels(child) {
+				changed = true
+			}
+		}
+	}
+	return changed
 }
