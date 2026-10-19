@@ -181,3 +181,7 @@ Administrator endpoints:
 - `POST /api/integrations/udesk/ticket-scope/groups/sync`: fetch every source `user_groups` page, then publish the complete group directory; no source writes.
 
 Run `npm run test:ticket-scope` for the isolated PG/browser regression of configuration, new-group opt-in, unknown-group exclusion, unsaved changes, version conflicts, immediate queries, missing-group opt-in, full shared access and draft revocation.
+
+### Membership settings and audit presentation
+
+The membership form uses a compact group selector, selected count, synced-ticket preview and explicit opt-in for tickets with no source handling group (product unknown; unrelated to assignee). History shows the latest 20 revisions with actor, Beijing timestamp to seconds, added/removed group IDs and the no-group option before/after. Differences are reconstructed from persisted revision snapshots, including one predecessor beyond the displayed window; missing snapshots are identified rather than guessed. Group labels use the current directory; IDs identify groups across renames.

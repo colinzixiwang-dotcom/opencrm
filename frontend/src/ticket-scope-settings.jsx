@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { api, useWorkspace, formatDate } from "./context";
-import { tr } from "./i18n";
+import { api, useWorkspace } from "./context";
+import { tr, intlLocale } from "./i18n";
 import { Panel, PanelHeading, Button, Icon, LoadingState } from "./components";
 
 const endpoint = "/api/integrations/udesk/ticket-scope";
@@ -8,6 +8,24 @@ const defaults = {
   "4918": "morpho--Email组", "4974": "运营组", "5041": "Email-售前组-Morpho",
   "5042": "Email-售后组-Morpho", "5043": "技术组", "5044": "客诉升级组",
 };
+const timestamp = (value) => value ? new Intl.DateTimeFormat(intlLocale(), {
+  timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+}).format(new Date(value)) : "—";
+function changes(entry, groupName) {
+  if (!entry.after) return [tr("Change details unavailable")];
+  const after = entry.after, before = entry.before;
+  if (!before && entry.revision !== 1) return [tr("Previous configuration unavailable")];
+  const result = [];
+  const added = after.groupIds.filter((id) => !before?.groupIds.includes(id));
+  const removed = (before?.groupIds || []).filter((id) => !after.groupIds.includes(id));
+  if (!before) result.push(tr("Initial configuration"));
+  if (added.length) result.push(tr("Groups included") + ": " + added.map(groupName).join("、"));
+  if (removed.length) result.push(tr("Groups excluded") + ": " + removed.map(groupName).join("、"));
+  if (!before || before.includeUnassigned !== after.includeUnassigned)
+    result.push(tr("Tickets without a group") + ": " + tr(after.includeUnassigned ? "Included" : "Excluded"));
+  return result.length ? result : [tr("Saved without membership changes")];
+}
 export function TicketScopeSettings() {
   const { state } = useWorkspace();
   const [data, setData] = useState(null), [draft, setDraft] = useState(null);
@@ -62,18 +80,13 @@ export function TicketScopeSettings() {
     <PanelHeading title="Ticket after-sales group membership">
       <Button disabled={busy || !data} onClick={syncGroups}><Icon name="refresh" />{tr("Update group directory")}</Button>
     </PanelHeading>
-    <p className="scope-intro">{tr("Choose the Udesk handling groups whose tickets belong to Morpho. All active CRM users share this scope and can create RMAs from these tickets.")}</p>
+    <p className="scope-intro">{tr("Tickets in the selected groups appear in Morpho for all CRM users and can be used to create RMAs.")}</p>
     {error && <div className="scope-error" role="alert">{tr(error)} <button className="text-button" disabled={busy} onClick={() => {setError("");setReload((v) => v + 1);}}>{tr("Reload configuration")}</button></div>}
     {message && <p className="scope-saved" role="status">{message}</p>}
     {!draft ? !error && <LoadingState label="Loading ticket group membership…" rows={4} /> : <form onSubmit={save}>
-      <div className="scope-template-summary">
-        <div><span className="scope-eyebrow">{tr("Active template")}</span><strong>{tr("Morpho tickets")}</strong></div>
-        <div><span className="scope-eyebrow">{tr("Membership rule")}</span><strong>{tr("Udesk handling group")}</strong></div>
-        <div><span className="scope-eyebrow">{tr("Selected groups")}</span><strong>{draft.groupIds.length}</strong></div>
-      </div>
       <fieldset disabled={busy} className="scope-group-fieldset">
-        <legend>{tr("Included after-sales groups")}</legend>
-        <p className="muted">{tr("New Udesk groups are excluded until an administrator selects them. Group names are for display; membership uses group IDs.")}</p>
+        <legend>{tr("Included after-sales groups")} <span className="scope-selection-count">{draft.groupIds.length} {tr("selected")}</span></legend>
+        <p className="muted">{tr("New groups are excluded by default. Select them here to include their tickets.")}</p>
         <div className="scope-group-list">
           {groups.map((g) => {
             const id = String(g.id), checked = draft.groupIds.includes(id);
@@ -86,21 +99,24 @@ export function TicketScopeSettings() {
             </label>;
           })}
           <label className={"scope-group scope-unassigned" + (draft.includeUnassigned ? " is-selected" : "")}>
-            <input type="checkbox" aria-label={tr("Include tickets without a handling group")} checked={draft.includeUnassigned} onChange={(e) => {setMessage("");setDraft({...draft, includeUnassigned:e.target.checked});}} />
-            <span className="scope-group-name"><strong>{tr("Include tickets without a handling group")}</strong><small>{tr("Controls unassigned groups, regardless of the assigned agent.")}</small></span>
+            <input type="checkbox" aria-label={tr("Also show tickets with no Udesk group")} checked={draft.includeUnassigned} onChange={(e) => {setMessage("");setDraft({...draft, includeUnassigned:e.target.checked});}} />
+            <span className="scope-group-name"><strong>{tr("Also show tickets with no Udesk group")}</strong><small>{tr("Off by default: their product is unknown. This is unrelated to whether an agent is assigned.")}</small></span>
             <span className="scope-group-count">{preview && !preview.initializing ? count("") + " " + tr("tickets") : "—"}</span>
           </label>
         </div>
       </fieldset>
       <div className="scope-preview" aria-live="polite">
         <div><span className="scope-eyebrow">{tr("Preview of synced tickets")}</span><strong>{previewError ? "—" : !preview ? tr("Calculating…") : preview.initializing ? tr("Ticket data is initializing") : preview.totalCount + " " + tr("tickets")}</strong></div>
-        <p>{previewError ? tr("Unable to calculate the preview. Please reload the configuration.") : preview?.initializing ? tr("Counts will be available after the first successful synchronization.") : tr("Preview uses the latest local index. Saving applies the selection immediately; source group changes follow background synchronization.")}</p>
+        <p>{previewError ? tr("Unable to calculate the preview. Please reload the configuration.") : preview?.initializing ? tr("Counts will be available after the first successful synchronization.") : tr("Based on synced tickets. Changes take effect after saving.")}</p>
       </div>
       <div className="scope-config-footer">
-        <small>{tr("Revision")} {data.policy.revision} · {tr("Updated")} {formatDate(data.policy.updatedAt)}<br />{tr("Group directory updated")}: {data.groupsFetchedAt ? formatDate(data.groupsFetchedAt) : tr("Not yet synchronized")}</small>
+        <small>{tr("Revision")} {data.policy.revision} · {tr("Updated")} {timestamp(data.policy.updatedAt)}<br />{tr("Group directory updated")}: {data.groupsFetchedAt ? timestamp(data.groupsFetchedAt) : tr("Not yet synchronized")}</small>
         <div className="row-actions"><Button disabled={busy || !dirty} onClick={() => {setDraft(data.policy);setMessage("");}}>{tr("Discard changes")}</Button><Button kind="primary" type="submit" disabled={busy || !dirty}>{tr(busy ? "Saving…" : "Save membership")}</Button></div>
       </div>
-      {data.history?.length > 0 && <details className="scope-history"><summary>{tr("Configuration history")}</summary><ul>{data.history.map((entry) => <li key={entry.revision}><strong>{tr("Revision")} {entry.revision}</strong><span>{entry.actorName || entry.actorId}</span><time>{formatDate(entry.changedAt)}</time></li>)}</ul></details>}
+      {data.history?.length > 0 && <details className="scope-history"><summary>{tr("Configuration history")} <span className="scope-history-zone">{tr("Latest 20 changes · Beijing time (UTC+8)")}</span></summary><ul>{data.history.map((entry) => <li key={entry.revision}>
+        <div className="scope-history-meta"><strong>{entry.actorName === "System" ? tr("System") : entry.actorName || entry.actorId}</strong><span>{tr("Revision")} {entry.revision}</span><time dateTime={entry.changedAt}>{timestamp(entry.changedAt)}</time></div>
+        <ul className="scope-change-list">{changes(entry, (id) => (groups.find((g) => String(g.id) === id && !g.missing)?.name || defaults[id] || tr("Unavailable group")) + " (" + id + ")").map((change, index) => <li key={index}>{change}</li>)}</ul>
+      </li>)}</ul></details>}
     </form>}
   </Panel>;
 }

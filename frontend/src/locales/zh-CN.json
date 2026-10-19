@@ -1248,5 +1248,22 @@
   "Source accounts provide identity mapping. All active CRM users share the configured Morpho ticket scope.": "源账号用于身份映射。所有启用的 CRM 用户均可访问配置范围内的 Morpho 工单。",
   "Ticket not found or outside the configured Morpho groups.": "工单不存在，或不属于已配置的 Morpho 客服组。",
   "Individual ticket scopes have been replaced by shared Morpho group membership.": "个人工单范围设置已被共享的 Morpho 售后组归属配置取代。",
-  "Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.": "所有启用的 CRM 用户共享工单中心访问和 RMA 创建权限，其他能力由角色权限控制。"
+  "Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.": "所有启用的 CRM 用户共享工单中心访问和 RMA 创建权限，其他能力由角色权限控制。",
+  "Tickets in the selected groups appear in Morpho for all CRM users and can be used to create RMAs.": "所选售后组的工单将在工单中心向所有 CRM 用户展示，并可用于创建 RMA。",
+  "New groups are excluded by default. Select them here to include their tickets.": "新增售后组默认不纳入，可在此勾选。",
+  "Also show tickets with no Udesk group": "同时展示未设置 Udesk 售后组的工单",
+  "Off by default: their product is unknown. This is unrelated to whether an agent is assigned.": "默认关闭：这类工单的产品归属不明，与是否分配具体客服无关。",
+  "Based on synced tickets. Changes take effect after saving.": "基于已同步工单统计，保存后生效。",
+  "selected": "个已选",
+  "Change details unavailable": "修改详情不可用",
+  "Previous configuration unavailable": "缺少上一版本，无法还原具体改动",
+  "Initial configuration": "初始化配置",
+  "Groups included": "纳入售后组",
+  "Groups excluded": "移出售后组",
+  "Tickets without a group": "未设置售后组的工单",
+  "Included": "纳入",
+  "Excluded": "不纳入",
+  "Saved without membership changes": "保存配置，归属范围未变更",
+  "Latest 20 changes · Beijing time (UTC+8)": "最近 20 次 · 北京时间（UTC+8）",
+  "System": "系统"
 }

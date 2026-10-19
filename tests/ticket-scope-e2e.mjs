@@ -48,7 +48,10 @@ try {
   await page.getByRole('status').filter({hasText:'Ticket group membership saved.'}).waitFor();
   list=await(await page.request.get(app.base+'/api/tickets')).json();assert.equal(list.totalCount,3);
   assert.equal((await page.request.get(app.base+'/api/tickets/105')).status(),404);
-  await page.getByLabel('Include tickets without a handling group',{exact:true}).check();
+  await page.locator('.scope-history summary').click();
+  await page.locator('.scope-change-list').first().filter({hasText:'Groups excluded: 技术组 (5043)'}).waitFor();
+  assert.match(await page.locator('.scope-history-meta time').first().innerText(), /\d{2}:\d{2}:\d{2}/);
+  await page.getByLabel('Also show tickets with no Udesk group',{exact:true}).check();
   await panel.locator('.scope-preview strong').filter({hasText:'4 tickets'}).waitFor();
   await page.getByRole('button',{name:'Save membership',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ticket group membership saved.'}).waitFor();
