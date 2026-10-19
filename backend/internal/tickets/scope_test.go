@@ -54,6 +54,14 @@ func TestScopeDefaultsConfigurationPreviewAndAudit(t *testing.T) {
 	if saved["policy"].(tickets.TicketScope).Revision != 2 || len(saved["history"].([]tickets.TicketScopeChange)) != 2 {
 		t.Fatal(saved)
 	}
+	history := saved["history"].([]tickets.TicketScopeChange)
+	if history[0].Before == nil || history[0].After == nil ||
+		!reflect.DeepEqual(history[0].Before.GroupIDs, []string{"4918", "4974", "5041", "5042", "5043", "5044"}) ||
+		!reflect.DeepEqual(history[0].After.GroupIDs, []string{"5042"}) ||
+		history[0].ActorID != domain.Str(a["id"]) || history[0].ChangedAt == "" ||
+		history[1].Before != nil || history[1].After == nil {
+		t.Fatal("audit must expose accurate before/after snapshots, actor and timestamp", history)
+	}
 	_, e = s.SaveScope(ctx, a, scopeBody(1, "5060"))
 	checkError(t, e, 409)
 	if e = store.Migrate(db.DB); e != nil {

@@ -3,6 +3,7 @@ package tickets
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"regexp"
 	"sort"
@@ -34,13 +35,15 @@ type TicketScopeGroup struct {
 	GroupID string `gorm:"primaryKey"`
 }
 type TicketScopeChange struct {
-	Tenant    string `gorm:"primaryKey" json:"-"`
-	Product   string `gorm:"primaryKey" json:"product"`
-	Revision  int    `gorm:"primaryKey" json:"revision"`
-	ActorID   string `json:"actorId"`
-	ActorName string `json:"actorName"`
-	ChangedAt string `json:"changedAt"`
-	Snapshot  string `json:"-"`
+	Tenant    string       `gorm:"primaryKey" json:"-"`
+	Product   string       `gorm:"primaryKey" json:"product"`
+	Revision  int          `gorm:"primaryKey" json:"revision"`
+	ActorID   string       `json:"actorId"`
+	ActorName string       `json:"actorName"`
+	ChangedAt string       `json:"changedAt"`
+	Snapshot  string       `json:"-"`
+	Before    *TicketScope `gorm:"-" json:"before,omitempty"`
+	After     *TicketScope `gorm:"-" json:"after,omitempty"`
 }
 
 var initialMorphoGroups = []string{"4918", "4974", "5041", "5042", "5043", "5044"}
@@ -129,8 +132,24 @@ func (s *Service) ScopeConfig(ctx context.Context, actor M) (M, error) {
 		groups = append(groups, M{"id": id(g["id"]), "name": g["name"]})
 	}
 	history := []TicketScopeChange{}
-	if e = s.DB.WithContext(ctx).Where("tenant=? AND product=?", s.Tenant, MorphoScope).Order("revision desc").Limit(20).Find(&history).Error; e != nil {
+	// One extra snapshot supplies the predecessor for the oldest displayed entry.
+	if e = s.DB.WithContext(ctx).Where("tenant=? AND product=?", s.Tenant, MorphoScope).Order("revision desc").Limit(21).Find(&history).Error; e != nil {
 		return nil, e
+	}
+	for i := range history {
+		var after TicketScope
+		if json.Unmarshal([]byte(history[i].Snapshot), &after) == nil {
+			history[i].After = &after
+		}
+		if i+1 < len(history) && history[i+1].Revision == history[i].Revision-1 {
+			var before TicketScope
+			if json.Unmarshal([]byte(history[i+1].Snapshot), &before) == nil {
+				history[i].Before = &before
+			}
+		}
+	}
+	if len(history) > 20 {
+		history = history[:20]
 	}
 	return M{"policy": p, "groups": groups, "groupsFetchedAt": at, "history": history}, nil
 }
