@@ -69,6 +69,10 @@ try {
     id: 17, content_format: "html", author: {nick_name:"Customer"}, created_at:"2026-10-07T00:00:00Z",
     content: '<div>Current reply</div><div>-------- Original message --------</div><div>No email headers: this is part of my reply.</div>',
   });
+  mock.state.replyOverride.push({
+    id: 18, content_format: "html", author: {nick_name:"Outlook Customer",user_type:"customer"},created_at:"2026-10-08T00:00:00Z",
+    content: '<div style="margin-top:1em;margin-bottom:1em"><span>\u200b</span><a id="OLK_Beautified_pdf" href="https://1drv.ms/example">bank statements.pdf</a>Hi Morpho Team,</div><div style="margin-top:1em;margin-bottom:1em">Please confirm the reserved price.</div><blockquote>Reserved price is $2,799</blockquote><div style="margin-top:1em;margin-bottom:1em">My new questions follow this quote.</div><ol start="2"><li>Which reward should I select?</li><li>How are my deposits applied?</li></ol><div>Best, Customer</div><hr><div id="divRplyFwdMsg"><b>From:</b> Support<br><b>Sent:</b> Yesterday<br><b>To:</b> Customer<br><b>Subject:</b> Price</div><div>Previous support pricing response</div><table><tr><th>Reward</th><th>Price</th></tr><tr><td>Pro</td><td>$2,799</td></tr></table><div>Older unsubscribe footer</div>',
+  });
   app = await startServer(join(temp, "test-workspace"), mock.env);
   browser = await chromium.launch({
     headless: true,
@@ -112,9 +116,9 @@ try {
     0,
   );
   const messages = page.locator(".ticket-conversation article");
-  assert.equal(await messages.count(), 7);
+  assert.equal(await messages.count(), 8);
   await page.getByText("Times shown in Beijing (UTC+8)",{exact:true}).waitFor();
-  await page.locator(".conversation-count").filter({hasText:"7 messages"}).waitFor();
+  await page.locator(".conversation-count").filter({hasText:"8 messages"}).waitFor();
   assert.equal(await page.getByRole("navigation",{name:"Conversation pagination",exact:true}).count(),0);
   assert.equal(await messages.nth(0).locator(".conversation-role").innerText(),"Customer");
   assert.equal(await messages.nth(1).locator(".conversation-role").innerText(),"Support agent");
@@ -163,6 +167,22 @@ try {
   assert.ok((await page.request.get(downloadURL.href)).status() >= 400);
   assert.equal(await page.getByRole("dialog",{name:"Attachment preview",exact:true}).count(),0);
   assert.equal(await messages.nth(6).locator("details").count(),0);
+  const outlook = messages.nth(7);
+  assert.equal(await outlook.getByText("Reserved price is $2,799",{exact:true}).isVisible(),true);
+  assert.equal(await outlook.getByText("My new questions follow this quote.",{exact:true}).isVisible(),true);
+  assert.equal(await outlook.locator("ol li").count(),2);
+  assert.equal(await outlook.locator("ol").getAttribute("start"),"2");
+  assert.equal(await outlook.getByText("Previous support pricing response",{exact:true}).isVisible(),false);
+  assert.ok(await outlook.locator(".mail-paragraph").first().evaluate(el=>parseFloat(getComputedStyle(el).marginBottom))>0);
+  const inline = outlook.locator(".mail-inline-files");
+  assert.equal(await inline.getByRole("link").getAttribute("href"),"https://1drv.ms/example");
+  assert.ok((await inline.innerText()).includes("OneDrive"));
+  assert.equal(await outlook.getByText("Hi Morpho Team,",{exact:true}).isVisible(),true);
+  await outlook.locator("summary").click();
+  assert.equal(await outlook.getByText("Previous support pricing response",{exact:true}).isVisible(),true);
+  assert.equal(await outlook.getByText("Older unsubscribe footer",{exact:true}).isVisible(),true);
+  assert.equal(await outlook.locator("table th").count(),2);
+  await outlook.locator("summary").click();
   await page.screenshot({
     path: "test-results/ticket-reading-en.png",
     fullPage: true,

@@ -4191,3 +4191,14 @@ td {
 .is-customer .conversation-role, .is-customer .conversation-avatar { background: #edf3f6; color: #4a6472; }
 .is-internal .conversation-role { background: #f7efdf; color: #86652f; }
 .ticket-thread > .panel-heading { align-items: center; }
+
+.mail-content .mail-paragraph { margin: 0 0 14px; }
+.mail-content ol, .mail-content ul { padding-left: 24px; margin: 12px 0 16px; }
+.mail-content li { margin: 0 0 9px; padding-left: 3px; }
+.mail-inline-files { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.mail-inline-files > span { display: block; margin-bottom: 8px; font-size: 11px; color: var(--muted); }
+.mail-inline-files a { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 12px; background: #f6f8f3; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+.mail-inline-files a > span:first-child { min-width: 0; }
+.mail-inline-files strong { overflow-wrap: anywhere; font-weight: 500; }
+.mail-inline-files small { display: block; color: var(--muted); margin-top: 3px; }
+.mail-inline-files a > span:last-child { white-space: nowrap; font-size: 11px; }

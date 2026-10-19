@@ -1276,5 +1276,7 @@
   "{count} messages": "{count} 条记录",
   "Download original email": "下载原始邮件",
   "Original email": "原始邮件",
-  "Download": "下载"
+  "Download": "下载",
+  "Files linked in this email": "邮件内文件链接",
+  "Open link": "打开链接"
 }
