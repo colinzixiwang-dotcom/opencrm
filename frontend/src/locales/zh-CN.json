@@ -1265,5 +1265,10 @@
   "Excluded": "不纳入",
   "Saved without membership changes": "保存配置，归属范围未变更",
   "Latest 20 changes · Beijing time (UTC+8)": "最近 20 次 · 北京时间（UTC+8）",
-  "System": "系统"
+  "System": "系统",
+  "View change history": "查看修改记录",
+  "Cancel changes": "取消修改",
+  "Time (Beijing, UTC+8)": "操作时间（北京时间）",
+  "Changed by": "操作人",
+  "Changes": "修改内容"
 }

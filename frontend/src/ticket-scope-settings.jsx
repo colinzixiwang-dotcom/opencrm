@@ -32,6 +32,7 @@ export function TicketScopeSettings() {
   const [preview, setPreview] = useState(null), [previewError, setPreviewError] = useState("");
   const [error, setError] = useState(""), [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false), [reload, setReload] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const isAdmin = state.currentUser.roles.includes("admin");
   const accept = (value) => { setData(value); setDraft(value.policy); };
   useEffect(() => {
@@ -78,7 +79,7 @@ export function TicketScopeSettings() {
   const count = (id) => preview?.groupCounts.find((g) => g.groupId === id)?.count || 0;
   return <Panel className="ticket-scope-settings">
     <PanelHeading title="Ticket after-sales group membership">
-      <Button disabled={busy || !data} onClick={syncGroups}><Icon name="refresh" />{tr("Update group directory")}</Button>
+      <Button title={tr("Group directory updated") + ": " + (data?.groupsFetchedAt ? timestamp(data.groupsFetchedAt) : tr("Not yet synchronized"))} disabled={busy || !data} onClick={syncGroups}><Icon name="refresh" />{tr("Update group directory")}</Button>
     </PanelHeading>
     <p className="scope-intro">{tr("Tickets in the selected groups appear in Morpho for all CRM users and can be used to create RMAs.")}</p>
     {error && <div className="scope-error" role="alert">{tr(error)} <button className="text-button" disabled={busy} onClick={() => {setError("");setReload((v) => v + 1);}}>{tr("Reload configuration")}</button></div>}
@@ -110,13 +111,20 @@ export function TicketScopeSettings() {
         <p>{previewError ? tr("Unable to calculate the preview. Please reload the configuration.") : preview?.initializing ? tr("Counts will be available after the first successful synchronization.") : tr("Based on synced tickets. Changes take effect after saving.")}</p>
       </div>
       <div className="scope-config-footer">
-        <small>{tr("Revision")} {data.policy.revision} · {tr("Updated")} {timestamp(data.policy.updatedAt)}<br />{tr("Group directory updated")}: {data.groupsFetchedAt ? timestamp(data.groupsFetchedAt) : tr("Not yet synchronized")}</small>
-        <div className="row-actions"><Button disabled={busy || !dirty} onClick={() => {setDraft(data.policy);setMessage("");}}>{tr("Discard changes")}</Button><Button kind="primary" type="submit" disabled={busy || !dirty}>{tr(busy ? "Saving…" : "Save membership")}</Button></div>
+        <button type="button" className="text-button scope-history-toggle" aria-expanded={historyOpen} aria-controls="scope-history" onClick={() => setHistoryOpen(!historyOpen)}>{tr("View change history")}</button>
+        <div className="row-actions"><Button disabled={busy || !dirty} onClick={() => {setDraft(data.policy);setMessage("");}}>{tr("Cancel changes")}</Button><Button kind="primary" type="submit" disabled={busy || !dirty}>{tr(busy ? "Saving…" : "Save configuration")}</Button></div>
       </div>
-      {data.history?.length > 0 && <details className="scope-history"><summary>{tr("Configuration history")} <span className="scope-history-zone">{tr("Latest 20 changes · Beijing time (UTC+8)")}</span></summary><ul>{data.history.map((entry) => <li key={entry.revision}>
-        <div className="scope-history-meta"><strong>{entry.actorName === "System" ? tr("System") : entry.actorName || entry.actorId}</strong><span>{tr("Revision")} {entry.revision}</span><time dateTime={entry.changedAt}>{timestamp(entry.changedAt)}</time></div>
-        <ul className="scope-change-list">{changes(entry, (id) => (groups.find((g) => String(g.id) === id && !g.missing)?.name || defaults[id] || tr("Unavailable group")) + " (" + id + ")").map((change, index) => <li key={index}>{change}</li>)}</ul>
-      </li>)}</ul></details>}
+      <div id="scope-history" className="scope-history" hidden={!historyOpen}>
+        <p className="scope-history-zone">{tr("Latest 20 changes · Beijing time (UTC+8)")}</p>
+        <div className="scope-history-table"><table>
+          <thead><tr><th>{tr("Time (Beijing, UTC+8)")}</th><th>{tr("Changed by")}</th><th>{tr("Changes")}</th></tr></thead>
+          <tbody>{(data.history || []).map((entry) => <tr key={entry.revision}>
+            <td><time dateTime={entry.changedAt}>{timestamp(entry.changedAt)}</time></td>
+            <td>{entry.actorName === "System" ? tr("System") : entry.actorName || entry.actorId}</td>
+            <td><ul className="scope-change-list">{changes(entry, (id) => (groups.find((g) => String(g.id) === id && !g.missing)?.name || defaults[id] || tr("Unavailable group")) + " (" + id + ")").map((change, index) => <li key={index}>{change}</li>)}</ul></td>
+          </tr>)}</tbody>
+        </table></div>
+      </div>
     </form>}
   </Panel>;
 }

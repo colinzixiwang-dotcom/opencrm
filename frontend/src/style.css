@@ -4156,27 +4156,27 @@ td {
 .scope-preview p { max-width: 540px; margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
 .scope-config-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
 .scope-config-footer .row-actions { max-width: none; }
-.scope-config-footer small { font-size: 11px; color: var(--muted); line-height: 1.8; }
 .scope-saved { padding: 12px 16px; background: #eff5e8; color: var(--green); border-radius: 6px; font-size: 12px; }
 .scope-error { padding: 12px 16px; background: #fff4ef; color: #934c36; border-radius: 6px; font-size: 12px; line-height: 1.8; margin-bottom: 18px; }
-.scope-history { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 18px; font-size: 12px; color: var(--muted); }
-.scope-history summary { cursor: pointer; }
-.scope-history ul { list-style: none; padding: 0; }
-.scope-history > ul > li { padding: 16px 0; border-bottom: 1px solid var(--line); }
-.scope-history > ul > li:last-child { border-bottom: 0; padding-bottom: 0; }
-.scope-history-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; }
-.scope-history-meta strong { color: var(--ink); font-weight: 600; }
-.scope-history-meta time { margin-left: auto; font-variant-numeric: tabular-nums; }
-.scope-history-zone { margin-left: 8px; font-size: 10px; }
-.scope-history .scope-change-list { margin: 8px 0 0; padding-left: 15px; list-style: disc; color: var(--ink); font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.scope-history { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 12px; font-size: 12px; color: var(--muted); }
+.scope-history[hidden] { display: none; }
+.scope-history-toggle { font-size: 12px; }
+.scope-history-zone { margin: 0 0 10px; font-size: 11px; }
+.scope-history-table { overflow-x: auto; }
+.scope-history table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.scope-history th { font-weight: 500; color: var(--muted); background: #f8faf6; }
+.scope-history th, .scope-history td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.scope-history td { color: var(--ink); }
+.scope-history time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.scope-history .scope-change-list { margin: 0; padding-left: 15px; line-height: 1.9; overflow-wrap: anywhere; }
 .scope-unassigned { background: #fafbf9; }
 .scope-unassigned .scope-group-name small { max-width: 620px; }
 @media (max-width: 700px) {
  .ticket-scope-settings { padding: 18px; }
  .ticket-scope-settings .panel-heading { gap: 16px; flex-wrap: wrap; }
  .scope-group-list { grid-template-columns: minmax(0,1fr); }
- .scope-history-meta time { margin-left: 0; width: 100%; }
- .scope-history-zone { display: block; margin: 6px 0 0; }
  .scope-preview { flex-direction: column; align-items: flex-start; gap: 12px; }
- .scope-config-footer .row-actions { width: 100%; flex-wrap: wrap; }
+ .scope-config-footer { gap: 12px; }
+ .scope-config-footer .row-actions { margin-left: auto; gap: 6px; }
+ .scope-config-footer .btn { padding: 8px 10px; font-size: 11px; }
 }
