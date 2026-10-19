@@ -4143,7 +4143,7 @@ td {
 .scope-group-fieldset legend { font-size: 14px; font-weight: 600; }
 .scope-group-fieldset > p { margin: 8px 0 16px; font-size: 12px; line-height: 1.7; }
 .scope-group-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
-.scope-group { display: flex; align-items: center; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
+.scope-group { display: flex; flex-direction: row; text-align: left; align-items: center; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
 .scope-group.is-selected { border-color: #b9cdb0; background: #f8fbf4; }
 .scope-group input { accent-color: var(--green); width: 16px; height: 16px; flex: 0 0 auto; }
 .scope-group-name { min-width: 0; flex: 1; }
@@ -4155,6 +4155,7 @@ td {
 .scope-preview strong { color: var(--green); }
 .scope-preview p { max-width: 540px; margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
 .scope-config-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+.scope-config-footer .row-actions { max-width: none; }
 .scope-config-footer small { font-size: 11px; color: var(--muted); line-height: 1.8; }
 .scope-saved { padding: 12px 16px; background: #eff5e8; color: var(--green); border-radius: 6px; font-size: 12px; }
 .scope-error { padding: 12px 16px; background: #fff4ef; color: #934c36; border-radius: 6px; font-size: 12px; line-height: 1.8; margin-bottom: 18px; }

@@ -53,6 +53,9 @@ export function TicketScopeSettings() {
   };
   const groups = [...(data?.groups || [])];
   for (const id of draft?.groupIds || []) if (!groups.some((g) => String(g.id) === id)) groups.push({ id, name: defaults[id] || tr("Unavailable group"), missing: true });
+  for (const item of preview?.groupCounts || []) {
+    if (item.groupId && !groups.some((g) => String(g.id) === item.groupId)) groups.push({ id: item.groupId, name: tr("Unavailable group"), missing: true });
+  }
   groups.sort((a, b) => String(a.id).localeCompare(String(b.id)));
   const count = (id) => preview?.groupCounts.find((g) => g.groupId === id)?.count || 0;
   return <Panel className="ticket-scope-settings">
@@ -75,7 +78,7 @@ export function TicketScopeSettings() {
           {groups.map((g) => {
             const id = String(g.id), checked = draft.groupIds.includes(id);
             return <label className={"scope-group" + (checked ? " is-selected" : "")} key={id}>
-              <input type="checkbox" aria-label={String(g.name) + " · " + id} checked={checked} onChange={(e) => {
+              <input type="checkbox" aria-label={String(g.name) + " · " + id} disabled={g.missing && !data.policy.groupIds.includes(id)} checked={checked} onChange={(e) => {
                 setMessage(""); setDraft({ ...draft, groupIds: (e.target.checked ? [...draft.groupIds, id] : draft.groupIds.filter((v) => v !== id)).sort() });
               }} />
               <span className="scope-group-name"><strong>{g.name}</strong><small>ID {id}{g.missing ? " · " + tr("Not in the current directory") : ""}</small></span>
@@ -83,7 +86,7 @@ export function TicketScopeSettings() {
             </label>;
           })}
           <label className={"scope-group scope-unassigned" + (draft.includeUnassigned ? " is-selected" : "")}>
-            <input type="checkbox" checked={draft.includeUnassigned} onChange={(e) => {setMessage("");setDraft({...draft, includeUnassigned:e.target.checked});}} />
+            <input type="checkbox" aria-label={tr("Include tickets without a handling group")} checked={draft.includeUnassigned} onChange={(e) => {setMessage("");setDraft({...draft, includeUnassigned:e.target.checked});}} />
             <span className="scope-group-name"><strong>{tr("Include tickets without a handling group")}</strong><small>{tr("Controls unassigned groups, regardless of the assigned agent.")}</small></span>
             <span className="scope-group-count">{preview && !preview.initializing ? count("") + " " + tr("tickets") : "—"}</span>
           </label>
