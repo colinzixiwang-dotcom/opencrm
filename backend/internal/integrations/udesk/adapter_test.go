@@ -92,3 +92,13 @@ func TestMetadataTranslationKeepsUnknownFieldsAndOptions(t *testing.T) {
 	}
 	var _ source.TicketReader = a
 }
+
+func TestMalformedPagesCannotPublishAnEmptyDirectoryOrIndex(t *testing.T) {
+	a := NewAdapter(adapterFixture{pages: map[string]M{"agents:1": {"meta": M{"total_pages": 1}}, "tickets:1": {"meta": M{"total_pages": 1}}}}, "tenant")
+	if _, e := a.ReadDirectory(context.Background()); e == nil {
+		t.Fatal("missing agents interpreted as complete empty directory")
+	}
+	if _, e := a.ScanTickets(context.Background(), ""); e == nil {
+		t.Fatal("missing contents interpreted as complete empty index")
+	}
+}

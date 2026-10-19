@@ -82,6 +82,9 @@ func (a *Adapter) ReadConversation(ctx context.Context, id string, page int) (so
 		}
 	}
 	out := source.ConversationPage{CurrentPage: page, TotalPages: pages, SourcePage: sourcePage, TotalCount: int(domain.N(domain.Obj(v["meta"])["total_count"])), Evidence: raw(v), Messages: []source.Message{}}
+	if items, exists := v["replies"]; !exists || items == nil {
+		return source.ConversationPage{}, invalid("Udesk returned an incomplete conversation page.")
+	}
 	list := records(v["replies"])
 	for i := len(list) - 1; i >= 0; i-- {
 		out.Messages = append(out.Messages, mapMessage(list[i]))
@@ -111,6 +114,9 @@ func (a *Adapter) ScanTickets(ctx context.Context, filter string) ([]source.Tick
 			if pages > 10000 {
 				return nil, invalid("Udesk synchronization range exceeds its page limit.")
 			}
+		}
+		if items, exists := v["contents"]; !exists || items == nil {
+			return nil, invalid("Udesk returned an incomplete ticket page.")
 		}
 		ids := []string{}
 		added := 0
@@ -155,6 +161,9 @@ func (a *Adapter) all(ctx context.Context, path, name string, q url.Values) ([]M
 		v, e := a.API.Get(ctx, path, q)
 		if e != nil {
 			return nil, e
+		}
+		if items, exists := v[name]; !exists || items == nil {
+			return nil, invalid("Udesk returned an incomplete directory response.")
 		}
 		out = append(out, records(v[name])...)
 		if page >= int(domain.N(domain.Obj(v["meta"])["total_pages"])) {
@@ -222,6 +231,11 @@ func (a *Adapter) ReadMetadata(ctx context.Context) (source.Metadata, error) {
 		v, e := a.API.Get(ctx, item.path, item.q)
 		if e != nil {
 			return source.Metadata{}, e
+		}
+		if item.kind == "fields" {
+			if fields, exists := v["fields"]; !exists || fields == nil {
+				return source.Metadata{}, invalid("Udesk returned incomplete field definitions.")
+			}
 		}
 		data[item.kind] = raw(v)
 	}

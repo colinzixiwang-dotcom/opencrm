@@ -18,6 +18,11 @@ func (ticketAPI) Get(_ context.Context, path string, q url.Values) (map[string]a
 	shared := M{"id": 3, "field_num": "#3", "subject": "OTHER-MORPHO", "assignee_id": 33, "user_group_id": 5043}
 	foreign := M{"id": 2, "field_num": "#2", "subject": "FOREIGN-TICKET", "assignee_id": 22, "user_group_id": 5060}
 	switch path {
+	case "custom_fields":
+		return M{"fields": []M{}}, nil
+	case "tickets/filters":
+		return M{"filters": []M{}}, nil
+
 	case "tickets":
 		return M{"contents": []M{own, foreign, shared}, "meta": M{"total_pages": 1}}, nil
 	case "tickets/detail":

@@ -83,6 +83,14 @@ func (s *Service) catalog() (source.Metadata, string, error) {
 	var row Metadata
 	if e := s.DB.Where("tenant=? AND kind=?", s.Tenant, "catalog").First(&row).Error; e == nil {
 		var m source.Metadata
+		if row.MappingVersion != source.MappingVersion {
+			var data map[string]json.RawMessage
+			if e = json.Unmarshal([]byte(row.Raw), &data); e != nil {
+				return m, "", e
+			}
+			m, e = s.API.DecodeMetadata(data)
+			return m, row.FetchedAt, e
+		}
 		if e = json.Unmarshal([]byte(row.Normalized), &m); e != nil {
 			return m, "", e
 		}
