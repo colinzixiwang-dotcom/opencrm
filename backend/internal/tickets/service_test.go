@@ -110,12 +110,18 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 	ctx := context.Background()
 	one := actor(t, db, "one@example.com")
 	two := actor(t, db, "two@example.com")
+	if e := s.Sync(ctx); e != nil {
+		t.Fatal(e)
+	}
 	meta, e := s.Metadata(ctx, one, true)
 	if e != nil {
 		t.Fatal(e)
 	}
 	if len(domain.Items(meta["filters"])) != 1 || len(domain.Rows(domain.Obj(meta["fields"]), "fields")) != 2 {
 		t.Fatal("metadata dedup/permissions/fidelity")
+	}
+	if e = s.Sync(ctx); e != nil {
+		t.Fatal(e)
 	}
 	page, e := s.List(ctx, one, "1", "", 20)
 	if e != nil {
@@ -149,7 +155,7 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 	}
 	var n int64
 	db.DB.Model(&tickets.Ticket{}).Count(&n)
-	if n != 1 {
+	if n != 3 {
 		t.Fatal("non-idempotent persistence", n)
 	}
 	if _, e = s.Configure(a, M{"agentId": "11", "scope": "group", "groups": []any{"7"}}); e != nil {
@@ -172,8 +178,8 @@ func TestSourceFieldsScopeAndLiveReads(t *testing.T) {
 	_, e = s.List(ctx, unmapped, "", "", 20)
 	checkError(t, e, 403)
 	f.broken = true
-	if _, e = s.List(ctx, a, "", "", 20); e == nil {
-		t.Fatal("source failure disguised as cached success")
+	if _, e = s.List(ctx, a, "", "", 20); e != nil {
+		t.Fatal("fresh index should remain readable during source outage", e)
 	}
 }
 func TestAccountsDefaultPasswordUnknownRolesAndDisable(t *testing.T) {
@@ -321,6 +327,9 @@ func TestUdeskLinkUsesInternalID(t *testing.T) {
 
 func TestTotalPagesRespectScope(t *testing.T) {
 	db, service, _, admin := fixture(t)
+	if e := service.Sync(context.Background()); e != nil {
+		t.Fatal(e)
+	}
 	result, err := service.List(context.Background(), admin, "", "", 2)
 	if err != nil {
 		t.Fatal(err)
@@ -399,6 +408,9 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 		3: {"contents": []M{old, missing}, "meta": M{"total_pages": 3}},
 	}
 	own := actor(t, db, "one@example.com")
+	if e := service.Sync(context.Background()); e != nil {
+		t.Fatal(e)
+	}
 	page, e := service.List(context.Background(), own, "", "", 2)
 	if e != nil {
 		t.Fatal(e)
@@ -439,8 +451,13 @@ func TestGlobalSortBeforePagination(t *testing.T) {
 	_, e = service.List(context.Background(), admin, "", "1:0", 2)
 	checkError(t, e, 400)
 	delete(source.listPages, 2)
-	_, e = service.List(context.Background(), admin, "", "", 2)
+	db.DB.Model(&tickets.SyncState{}).Where("tenant=?", service.Tenant).Update("last_attempt", nil)
+	e = service.Sync(context.Background())
 	if e == nil {
-		t.Fatal("failed source page must fail the complete result")
+		t.Fatal("failed source page must fail synchronization")
+	}
+	cached, err := service.List(context.Background(), admin, "", "", 2)
+	if err != nil || cached["totalCount"] != 5 {
+		t.Fatal("failed sync replaced complete index", cached, err)
 	}
 }

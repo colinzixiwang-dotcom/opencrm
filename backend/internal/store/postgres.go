@@ -31,7 +31,7 @@ func Migrate(db *gorm.DB) error {
 			return e
 		}
 		if n > 0 {
-			return nil
+			return migrateTicketIndex(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -50,7 +50,10 @@ func Migrate(db *gorm.DB) error {
 		if e := persistence.CreateStateTables(tx); e != nil {
 			return e
 		}
-		return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(1)").Error
+		if e := tx.Exec("INSERT INTO " + ledger + " (version) VALUES(1)").Error; e != nil {
+			return e
+		}
+		return migrateTicketIndex(tx, ledger)
 	})
 }
 
@@ -125,4 +128,30 @@ func (s *Store) Destroy() error {
 func (s *Store) State() (state M, err error) {
 	err = s.DB.Transaction(func(tx *gorm.DB) error { state, err = Read(tx); return err }, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	return
+}
+
+// v2 is additive. Historical ticket cache rows remain unlisted until a complete
+// background scan publishes scope membership; RMA snapshots are untouched.
+func migrateTicketIndex(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=2").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := tx.AutoMigrate(&tickets.Ticket{}, &tickets.SyncState{}, &tickets.FilterMember{}); e != nil {
+		return e
+	}
+	table := persistence.Table(tx, "tickets")
+	for _, definition := range []string{
+		"ticket_reply_query ON " + table + " (tenant, replied_time DESC NULLS LAST, external_id DESC)",
+		"ticket_assignee_query ON " + table + " (tenant, assignee, replied_time DESC NULLS LAST)",
+		"ticket_group_query ON " + table + " (tenant, group_id, replied_time DESC NULLS LAST)",
+	} {
+		if e := tx.Exec("CREATE INDEX IF NOT EXISTS " + definition).Error; e != nil {
+			return e
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(2)").Error
 }

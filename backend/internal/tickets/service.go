@@ -9,7 +9,6 @@ import (
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -158,15 +157,6 @@ func (s *Service) Metadata(ctx context.Context, actor M, refresh bool) (M, error
 	if e := s.readPermission(actor); e != nil {
 		return nil, e
 	}
-	_, at := s.metadata("fields")
-	if refresh || at == "" {
-		s.mu.Lock()
-		e := s.refreshMetadata(ctx)
-		s.mu.Unlock()
-		if e != nil {
-			return nil, e
-		}
-	}
 	out := M{}
 	for _, kind := range []string{"statuses", "templates", "fields", "filters"} {
 		v, t := s.metadata(kind)
@@ -205,10 +195,24 @@ func (s *Service) persist(t M, at string) error {
 		return fail("Udesk returned a ticket without an ID.", 502)
 	}
 	updated := id(t["updated_at"])
-	if stamp, e := time.Parse(time.RFC3339Nano, updated); e == nil {
-		updated = stamp.UTC().Format("2006-01-02T15:04:05.000000000Z")
+	if stamp := sourceTime(updated); stamp != nil {
+		updated = stamp.Format("2006-01-02T15:04:05.000000000Z")
 	}
-	return s.DB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "external_id"}}, DoUpdates: clause.AssignmentColumns([]string{"number", "assignee", "group_id", "source_updated", "fetched_at", "raw"}), Where: clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "excluded.source_updated >= tickets.source_updated OR tickets.source_updated = ''"}}}}).Create(&Ticket{Tenant: s.Tenant, ExternalID: id(t["id"]), Number: id(t["field_num"]), Assignee: id(t["assignee_id"]), GroupID: id(t["user_group_id"]), SourceUpdated: updated, FetchedAt: at, Raw: enc(t)}).Error
+	number, _ := strconv.ParseInt(strings.TrimPrefix(id(t["field_num"]), "#"), 10, 64)
+	// Search only documented content fields; masked customer contact data and
+	// attachment URLs are deliberately excluded from searchable text.
+	text := []string{id(t["field_num"]), id(t["subject"]), id(t["content"]), enc(t["custom_fields"]), enc(t["custom_fields_v2"])}
+	record := Ticket{Tenant: s.Tenant, ExternalID: id(t["id"]), Number: id(t["field_num"]), Assignee: id(t["assignee_id"]), GroupID: id(t["user_group_id"]), SourceUpdated: updated, FetchedAt: at, Raw: enc(t), Subject: id(t["subject"]), Status: id(t["status"]), Channel: id(t["platform"]), AssigneeName: id(t["assignee_name"]), NumberValue: number, CreatedTime: sourceTime(id(t["created_at"])), UpdatedTime: sourceTime(id(t["updated_at"])), RepliedTime: sourceTime(id(t["replied_at"])), SearchText: strings.Join(text, " ")}
+	return s.DB.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant"}, {Name: "external_id"}}, DoUpdates: clause.AssignmentColumns([]string{"number", "assignee", "group_id", "source_updated", "fetched_at", "raw", "subject", "status", "channel", "assignee_name", "number_value", "created_time", "updated_time", "replied_time", "search_text"}), Where: clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "excluded.source_updated >= tickets.source_updated OR tickets.source_updated = ''"}}}}).Create(&record).Error
+}
+func sourceTime(value string) *time.Time {
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02 15:04:05 -0700", "2006-01-02 15:04:05", "2006-01-02T15:04:05"} {
+		if t, e := time.Parse(layout, value); e == nil {
+			t = t.UTC()
+			return &t
+		}
+	}
+	return nil
 }
 func (s *Service) public(actor, t M, at string) M {
 	t = domain.Clone(t)
@@ -233,108 +237,13 @@ func (s *Service) public(actor, t M, at string) M {
 	return M{"source": t, "fetchedAt": at, "udeskUrl": strings.TrimRight(base, "/") + "/entry/ticket/show/" + url.PathEscape(id(t["id"])), "rmaIds": rmas}
 }
 
-// List always sorts the complete live authorized result before pagination.
+// List reads only the locally published, authorized index. Source reads belong
+// to Sync; no browser query can trigger an upstream scan.
 func (s *Service) List(ctx context.Context, actor M, filter, cursor string, size int) (M, error) {
-	return s.ListSorted(ctx, actor, filter, cursor, size, "replied_at:desc")
+	return s.Search(ctx, actor, filter, cursor, size, "replied_at:desc", "")
 }
-
-func (s *Service) ListSorted(ctx context.Context, actor M, filter, cursor string, size int, order string) (result M, err error) {
-	if e := s.readPermission(actor); e != nil {
-		return nil, e
-	}
-	if e := s.validateFilter(actor, filter); e != nil {
-		return nil, e
-	}
-	if size < 1 || size > 100 {
-		return nil, fail("Page size must be between 1 and 100.", 400)
-	}
-	if order == "" {
-		order = "replied_at:desc"
-	}
-	allowed := map[string]bool{"replied_at:desc": true, "replied_at:asc": true, "updated_at:desc": true, "updated_at:asc": true, "created_at:desc": true, "created_at:asc": true, "field_num:desc": true, "field_num:asc": true, "subject:asc": true, "assignee_name:asc": true, "status:asc": true}
-	if !allowed[order] {
-		return nil, fail("Invalid ticket sort order.", 400)
-	}
-	offset := 0
-	if cursor != "" {
-		if !strings.HasPrefix(cursor, "global:") {
-			return nil, fail("Invalid ticket cursor.", 400)
-		}
-		n, e := strconv.Atoi(strings.TrimPrefix(cursor, "global:"))
-		if e != nil || n < 0 || n > 1000000000 {
-			return nil, fail("Invalid ticket cursor.", 400)
-		}
-		offset = n
-	}
-	at := domain.Now()
-	run := Run{ID: domain.ID("SYNC"), UserID: domain.Str(actor["id"]), Kind: "tickets", Status: "running", CreatedAt: at}
-	if e := s.DB.Create(&run).Error; e != nil {
-		return nil, e
-	}
-	defer func() {
-		if err != nil {
-			s.DB.Model(&run).Updates(map[string]any{"status": "failed", "error": err.Error(), "completed_at": domain.Now()})
-		}
-	}()
-	all := []M{}
-	seen := map[string]bool{}
-	for page, pages := 1, 1; page <= pages; page++ {
-		path := "tickets"
-		params := url.Values{"page": {strconv.Itoa(page)}, "per_page": {"100"}}
-		if filter != "" {
-			path = "tickets/tickets_in_filter"
-			params.Set("filter_id", filter)
-		}
-		v, e := s.API.Get(ctx, path, params)
-		if e != nil {
-			return nil, e
-		}
-		if page == 1 {
-			pages = max(1, int(domain.N(obj(v["meta"])["total_pages"])))
-			if pages > 10000 {
-				return nil, fail("Udesk result is too large for live global sorting.", 502)
-			}
-		}
-		for _, row := range rows(v["contents"]) {
-			t := sourceTicket(row)
-			key := id(t["id"])
-			if key == "" || seen[key] {
-				continue
-			}
-			seen[key] = true
-			if s.canRead(actor, t) {
-				all = append(all, t)
-			}
-		}
-	}
-	// Udesk may repeat a source page or report a larger total_count than rows
-	// available through the API. Count only distinct, authorized source rows.
-	parts := strings.Split(order, ":")
-	sort.Slice(all, func(i, j int) bool { return ticketLess(all[i], all[j], parts[0], parts[1] == "desc") })
-	if e := s.DB.Transaction(func(tx *gorm.DB) error {
-		copyService := &Service{DB: tx, API: s.API, Tenant: s.Tenant}
-		for _, t := range all {
-			if e := copyService.persist(t, at); e != nil {
-				return e
-			}
-		}
-		return nil
-	}); e != nil {
-		return nil, e
-	}
-	items := []M{}
-	end := min(len(all), offset+size)
-	for i := offset; i < end; i++ {
-		items = append(items, s.public(actor, all[i], at))
-	}
-	next := ""
-	if end < len(all) {
-		next = fmt.Sprintf("global:%d", end)
-	}
-	if e := s.DB.Model(&run).Updates(map[string]any{"status": "completed", "count": len(all), "completed_at": domain.Now()}).Error; e != nil {
-		return nil, e
-	}
-	return M{"items": items, "nextCursor": next, "fetchedAt": at, "filterId": filter, "sort": order, "scanLimited": false, "runId": run.ID, "totalPages": max(1, (len(all)+size-1)/size), "totalCount": len(all)}, nil
+func (s *Service) ListSorted(ctx context.Context, actor M, filter, cursor string, size int, order string) (M, error) {
+	return s.Search(ctx, actor, filter, cursor, size, order, "")
 }
 
 func ticketLess(a, b M, field string, descending bool) bool {
@@ -628,13 +537,9 @@ func (s *Service) AuditRun(actor M, key string) (Run, error) {
 	return r, nil
 }
 func (s *Service) LastSync(actor M) string {
-	var r Run
-	q := s.DB.Where("status='completed' AND kind='tickets'")
-	if !admin(actor) {
-		q = q.Where("user_id=?", domain.Str(actor["id"]))
-	}
-	if q.Order("completed_at desc").First(&r).Error != nil {
+	var state SyncState
+	if s.DB.Where("tenant=? AND scope=''", s.Tenant).First(&state).Error != nil || state.LastSuccess == nil {
 		return ""
 	}
-	return r.CompletedAt
+	return state.LastSuccess.UTC().Format(time.RFC3339Nano)
 }

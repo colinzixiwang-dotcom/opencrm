@@ -31,7 +31,16 @@ func main() {
 		log.Fatal(e)
 	}
 	defer db.Close()
-	s := &http.Server{Addr: "127.0.0.1:" + port, Handler: httpapi.New(db, dist).Router(), ReadHeaderTimeout: 10 * time.Second}
+	app := httpapi.New(db, dist)
+	background, stopBackground := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if app.Tickets.API != nil && udesk.FromEnv().Configured() {
+			app.Tickets.Run(background)
+		}
+	}()
+	s := &http.Server{Addr: "127.0.0.1:" + port, Handler: app.Router(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		fmt.Printf("Harbor ERP · React + Go/Gin · RuoYi RBAC\nhttp://127.0.0.1:%s\n", port)
 		if e := s.ListenAndServe(); e != nil && e != http.ErrServerClosed {
@@ -43,5 +52,10 @@ func main() {
 	<-stop
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	stopBackground()
 	s.Shutdown(ctx)
+	select {
+	case <-done:
+	case <-ctx.Done():
+	}
 }

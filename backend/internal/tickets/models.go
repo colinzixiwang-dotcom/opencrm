@@ -4,6 +4,7 @@ import (
 	"gorm.io/gorm"
 	"harbor/internal/domain"
 	"harbor/internal/ruoyi"
+	"time"
 )
 
 type M = domain.M
@@ -20,6 +21,15 @@ type Ticket struct {
 	SourceUpdated string
 	FetchedAt     string
 	Raw           string
+	Subject       string
+	Status        string
+	Channel       string
+	AssigneeName  string
+	NumberValue   int64
+	CreatedTime   *time.Time
+	UpdatedTime   *time.Time
+	RepliedTime   *time.Time
+	SearchText    string
 }
 type Metadata struct {
 	ID        uint   `gorm:"primaryKey"`
@@ -119,4 +129,22 @@ func EnsureRoles(db *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+// SyncState publishes only complete source scopes. Lists never infer completeness
+// from the opportunistic cache left by earlier interactive requests.
+type SyncState struct {
+	ID          uint   `gorm:"primaryKey"`
+	Tenant      string `gorm:"uniqueIndex:sync_scope"`
+	Scope       string `gorm:"uniqueIndex:sync_scope"`
+	Generation  string
+	LastSuccess *time.Time
+	LastAttempt *time.Time
+	Error       string
+}
+type FilterMember struct {
+	Tenant     string `gorm:"primaryKey"`
+	Scope      string `gorm:"primaryKey"`
+	Generation string `gorm:"primaryKey"`
+	TicketID   string `gorm:"primaryKey"`
 }
