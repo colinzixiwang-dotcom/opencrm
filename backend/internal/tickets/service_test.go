@@ -196,13 +196,11 @@ func TestAccountsDefaultPasswordUnknownRolesAndDisable(t *testing.T) {
 	if strings.Contains(meta.Raw, "SIP-SECRET") {
 		t.Fatal("SIP secret persisted")
 	}
-	_, e := s.Configure(two, M{"agentId": "11", "scope": "group", "groups": []any{"5042"}})
-	checkError(t, e, 403)
 	f.data["agents"]["agents"] = domain.Items(f.data["agents"]["agents"])[1:]
-	if _, e = s.SyncAccounts(ctx, a, false); e != nil {
+	if _, e := s.SyncAccounts(ctx, a, false); e != nil {
 		t.Fatal(e)
 	}
-	_, e = s.List(ctx, actor(t, db, "one@example.com"), "", "", 20)
+	_, e := s.List(ctx, actor(t, db, "one@example.com"), "", "", 20)
 	checkError(t, e, 403)
 }
 func TestDirectorySyncPreservesRevokedRolePermissions(t *testing.T) {

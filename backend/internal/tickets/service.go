@@ -44,14 +44,6 @@ func admin(actor M) bool {
 	}
 	return false
 }
-func (s *Service) mapping(actor M) (Mapping, error) {
-	var m Mapping
-	e := s.DB.Where("tenant=? AND user_id=? AND enabled=?", s.Tenant, domain.Str(actor["id"]), true).First(&m).Error
-	if e != nil {
-		return m, fail("Your account is not mapped to an active Udesk agent.", 403)
-	}
-	return m, nil
-}
 
 // Everyone shares the configured product scope; personal agent mappings are
 // directory information, not an authorization prerequisite.
