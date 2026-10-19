@@ -156,13 +156,6 @@ export function Heading({ children, page: override, subtitle }) {
   return (
     <div className="page-heading">
       <div>
-        <div className="eyebrow">
-          {p === "home"
-            ? tr("OPERATIONS / OVERVIEW")
-            : tr("WORKSPACE") +
-              " / " +
-              tr(nav.find((x) => x[0] === p)?.[1] || p)}
-        </div>
         <h1>{tr(info[p]?.[0])}</h1>
         <p>{tr(subtitle ?? info[p]?.[1])}</p>
       </div>
