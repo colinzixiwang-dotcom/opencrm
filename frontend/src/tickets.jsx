@@ -740,7 +740,12 @@ export function TicketCenter() {
   useEffect(() => {
     const controller = new window.AbortController();
     api("/api/tickets/metadata", { signal: controller.signal })
-      .then((value) => { setMetadata(value); setMetadataError(null); })
+      .then((value) => {
+        // The first background cycle can expose a partial metadata snapshot.
+        // Wait for definitions before presenting raw keys as field labels.
+        setMetadata(Array.isArray(value.fields?.fields) ? value : null);
+        setMetadataError(null);
+      })
       .catch((e) => {
         if (e.name !== "AbortError") setMetadataError(e);
       });

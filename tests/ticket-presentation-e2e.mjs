@@ -77,6 +77,13 @@ try {
   await page.goto(app.base);
   await page.locator("[data-demo=admin]").click();
   await page.locator("#main-content h1").waitFor();
+  // A new index can return partial metadata before its first sync completes.
+  let firstMetadata = true;
+  await page.route("**/api/tickets/metadata", (route) => {
+    if (!firstMetadata) return route.continue();
+    firstMetadata = false;
+    return route.fulfill({ json: { fields: {}, templates: {}, filters: [] } });
+  });
   await page.goto(app.base + "/#service?ticket=101");
   await page
     .getByText("Initial submission shown above", { exact: true })
