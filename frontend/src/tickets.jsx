@@ -33,7 +33,7 @@ const text = (value) =>
       ? JSON.stringify(value)
       : String(value);
 const plain = (value) => messageText(value, true);
-const displayDate = (value) => {
+const displayDate = (value, timeZone) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
@@ -44,8 +44,15 @@ const displayDate = (value) => {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
+        timeZone,
       });
 };
+function conversationRole(reply) {
+  if (["internat", "internal"].includes(reply.function_type)) return "Internal note";
+  if (reply.author?.user_type === "customer") return "Customer";
+  if (reply.author?.user_type === "agent") return "Support agent";
+  return "External reply";
+}
 function Value({ value, field }) {
   if (typeof value === "boolean")
     return <span>{tr(value ? "Yes" : "No")}</span>;
@@ -557,8 +564,10 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                 <section className="ticket-thread">
                   <PanelHeading
                     title="Conversation"
-                    subtitle="Read only. Reply and edit in Udesk."
-                  />
+                    subtitle="Times shown in Beijing (UTC+8)"
+                  >
+                    {replies && <span className="conversation-count">{tr("{count} messages", {count: replies.meta?.total_count ?? (replies.replies || []).length})}</span>}
+                  </PanelHeading>
                   {replies ? (
                     <>
                       <div className="ticket-conversation">
@@ -568,7 +577,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                           </p>
                         )}
                         {(replies.replies || []).map((r) => (
-                          <article key={r.id}>
+                          <article key={r.id} className={conversationRole(r) === "Customer" ? "is-customer" : conversationRole(r) === "Internal note" ? "is-internal" : ""}>
                             <header className="conversation-header">
                               <div className="conversation-author">
                                 <span
@@ -584,19 +593,11 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                                     .toUpperCase()}
                                 </span>
                                 <strong>
-                                  {r.author?.nick_name || r.author?.user_type}
+                                  {r.author?.nick_name || tr(r.author?.user_type === "agent" ? "Support agent" : r.author?.user_type === "customer" ? "Customer" : "Unknown author")}
                                 </strong>
+                                <span className="conversation-role">{tr(conversationRole(r))}</span>
                               </div>
-                              <span>
-                                {displayDate(r.created_at)} ·{" "}
-                                {tr(
-                                  ["internat", "internal"].includes(
-                                    r.function_type,
-                                  )
-                                    ? "Internal note"
-                                    : "External reply",
-                                )}
-                              </span>
+                              <time dateTime={r.created_at}>{displayDate(r.created_at, "Asia/Shanghai")}</time>
                             </header>
                             <ConversationContent
                               reply={r}
@@ -608,13 +609,13 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                           </article>
                         ))}
                       </div>
-                      <Pagination
+                      {(replies.meta?.total_pages || 1) > 1 && <Pagination
                         label="Conversation pagination"
                         page={replyPage}
                         totalPages={replies.meta?.total_pages || 1}
                         onPrevious={() => setReplyPage((n) => n - 1)}
                         onNext={() => setReplyPage((n) => n + 1)}
-                      />
+                      />}
                     </>
                   ) : replyError ? (
                     <div className="conversation-error" role="alert">

@@ -1015,7 +1015,7 @@
   "Udesk request failed or timed out.": "Udesk 请求失败或超时。",
   "This Udesk filter is not available to your account.": "此 Udesk 过滤器对您的账号不可用。",
   "Draft is unavailable.": "草稿不可用。",
-  "Support agent": "售后客服",
+  "Support agent": "客服",
   "Support supervisor": "售后主管",
   "support_agent": "售后客服",
   "support_supervisor": "售后主管",
@@ -1270,5 +1270,8 @@
   "Cancel changes": "取消修改",
   "Time (Beijing, UTC+8)": "操作时间（北京时间）",
   "Changed by": "操作人",
-  "Changes": "修改内容"
+  "Changes": "修改内容",
+  "Unknown author": "未知发件人",
+  "Times shown in Beijing (UTC+8)": "时间均为北京时间（UTC+8）",
+  "{count} messages": "{count} 条记录"
 }

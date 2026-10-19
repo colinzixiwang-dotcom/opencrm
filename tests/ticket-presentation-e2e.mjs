@@ -35,7 +35,7 @@ try {
         ticket.content +
         "</blockquote>",
       content_format: "html",
-      author: { nick_name: "Agent One" },
+      author: { nick_name: "Agent One", user_type: "agent" },
       created_at: "2026-10-02T10:00:00Z",
     },
     {
@@ -113,6 +113,13 @@ try {
   );
   const messages = page.locator(".ticket-conversation article");
   assert.equal(await messages.count(), 7);
+  await page.getByText("Times shown in Beijing (UTC+8)",{exact:true}).waitFor();
+  await page.locator(".conversation-count").filter({hasText:"7 messages"}).waitFor();
+  assert.equal(await page.getByRole("navigation",{name:"Conversation pagination",exact:true}).count(),0);
+  assert.equal(await messages.nth(0).locator(".conversation-role").innerText(),"Customer");
+  assert.equal(await messages.nth(1).locator(".conversation-role").innerText(),"Support agent");
+  assert.equal(await messages.nth(5).locator(".conversation-header time").innerText().then(text=>text.includes("13:11")),true);
+
   assert.ok(!(await messages.nth(0).innerText()).includes("Order Number:"));
   await messages.nth(0).locator("summary").click();
   assert.ok((await messages.nth(0).innerText()).includes("Order Number:"));

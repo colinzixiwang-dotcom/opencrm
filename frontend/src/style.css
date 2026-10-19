@@ -3577,7 +3577,7 @@ td {
   font-size: 12px;
   font-weight: 600;
 }
-.conversation-header > span {
+.conversation-header > time {
   font-size: 10px;
   color: var(--muted);
 }
@@ -3602,7 +3602,7 @@ td {
   .conversation-header {
     align-items: flex-start;
   }
-  .conversation-header > span {
+  .conversation-header > time {
     width: 100%;
     padding-left: 39px;
   }
@@ -4180,3 +4180,14 @@ td {
  .scope-config-footer .row-actions { margin-left: auto; gap: 6px; }
  .scope-config-footer .btn { padding: 8px 10px; font-size: 11px; }
 }
+
+.mail-content .mail-layout { margin: 8px 0; }
+.mail-content .mail-signature { color: var(--muted); font-size: 11px; margin-top: 8px; }
+
+.conversation-count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.conversation-author { flex-wrap: wrap; }
+.conversation-author > strong { overflow-wrap: anywhere; }
+.conversation-role { padding: 3px 7px; border-radius: 4px; background: #edf2e9; color: var(--green); font-size: 10px; font-weight: 500; white-space: nowrap; }
+.is-customer .conversation-role, .is-customer .conversation-avatar { background: #edf3f6; color: #4a6472; }
+.is-internal .conversation-role { background: #f7efdf; color: #86652f; }
+.ticket-thread > .panel-heading { align-items: center; }
