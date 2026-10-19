@@ -215,8 +215,9 @@ try {
   await page.keyboard.press("Escape");
   await preview.waitFor({ state: "detached" });
   const gallery = page.locator(".ticket-sidebar .attachment-gallery").first();
-  const attachmentPager = gallery.getByRole("navigation",{name:"Attachment pagination",exact:true});
-  await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).click();
+  assert.equal(await gallery.locator(".attachment-card").count(), 4);
+  assert.equal(await gallery.getByRole("navigation",{name:"Attachment pagination",exact:true}).count(), 0);
+  for (const card of await gallery.locator(".attachment-card").all()) assert.equal(await card.isVisible(), true);
   await page
     .getByRole("button", { name: "Preview missing.jpg", exact: true })
     .click();
@@ -229,8 +230,7 @@ try {
   await page
     .getByRole("button", { name: "Close preview", exact: true })
     .click();
-  await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).click();
-  assert.equal(await attachmentPager.getByRole("button",{name:"Next attachment",exact:true}).isDisabled(),false);
+
   const pdfResponse = page.waitForResponse(
     (r) => r.url().includes("/attachment?") && r.url().includes("manual.pdf"),
   );
@@ -239,6 +239,7 @@ try {
     .click();
   assert.equal((await pdfResponse).status(), 200);
   await preview.locator('canvas[data-rendered="true"]').waitFor();
+  assert.match(await previewPager.innerText(), /3\s*\/\s*4/);
   assert.ok(
     await preview.locator("canvas").evaluate((canvas) => {
       const bytes = canvas

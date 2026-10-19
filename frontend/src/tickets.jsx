@@ -307,7 +307,7 @@ function Fields({ ticket, metadata, omitted = [] }) {
       {hasValue(ticket.attachments) && (
         <section className="ticket-field-section ticket-files">
           <PanelHeading title="Ticket attachments" />
-          <AttachmentList value={ticket.attachments} />
+          <AttachmentList value={ticket.attachments} paginate={false} />
         </section>
       )}
       {extras.length > 0 && (
