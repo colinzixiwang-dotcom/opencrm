@@ -48,7 +48,7 @@ PORT=4317
 ./start.sh
 ```
 
-migrate 使用事务/advisory lock 和 schema_migrations 版本登记。现有 ORM 表只在 migration v1 内建模，不在每次启动重新 AutoMigrate；每次启动校验迁移版本。未来新增表/列必须添加后续 migration，不能只修改 v1 后期待现有库自动变化。
+migrate 使用事务/advisory lock 和 schema_migrations 版本登记。现有 ORM 表只在 migration v1 内建模，不在每次启动重新 AutoMigrate；每次启动校验迁移版本。工单读取索引已通过后续 migration v2 增加。未来新增表/列必须添加后续 migration，不能只修改 v1 后期待现有库自动变化。
 
 空正式库不会偷偷 seed 示例数据；启动会要求先导入现有工作区。没有 PG 配置或 PG 不可用会报错，不自动切回本地数据库。健康检查实际探测 PG，失败返回 503。
 
@@ -77,7 +77,7 @@ Python 仅在明确运行迁移导出时使用标准库 SQLite，以只读事务
 
 后续功能优先新增所属上下文的类型、Repository 和 migration；热点字段按真实筛选/排序需求提取成列并建索引。逐项替换兼容命令后可以缩小锁到具体聚合，而不重写整站/再次搬库。既有 Configuration 在规则生命周期稳定后可提取 Solution/Warranty；Task 和 Approval 也按实际能力再拆。
 
-这次没有实现后台增量同步/Redis 缓存，Udesk 页面仍实时读取源接口，全局排序仍遵循此前完整读取的契约。数据库迁移不会消除上游请求和限流耗时；本地工单索引/同步属于下一项独立功能。
+2026-10-19 后续已实现工单 PG 读取索引与每分钟共享后台全量同步：列表、搜索、排序和分页不再等待源扫描，详情等仍做实时源校验。尚未引入增量接口、Redis 或事件推送；后台周期的实际新鲜度仍受上游请求和限流影响。详见工单中心文档。
 
 当前 audit 的追加限制由应用仓储保证。若需要抵御数据库应用 owner 直接执行 UPDATE/DELETE，需另行配置非 owner 运行角色与数据库权限；这次没有伪称已完成该隔离。
 
