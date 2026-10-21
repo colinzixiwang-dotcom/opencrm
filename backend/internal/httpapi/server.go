@@ -41,6 +41,13 @@ func New(s *store.Store, dist string) *Server {
 func (s *Server) Router() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+	allowedHost := os.Getenv("HOST")
+	if allowedHost == "" {
+		allowedHost = `127\.0\.0\.1|localhost`
+	} else {
+		allowedHost = regexp.QuoteMeta(allowedHost) + `|127\.0\.0\.1|localhost`
+	}
+	allowedHostPattern := regexp.MustCompile(`^(?:` + allowedHost + `)(:\d+)?$`)
 	r.Use(func(c *gin.Context) {
 		defer func() {
 			if v := recover(); v != nil {
@@ -57,7 +64,7 @@ func (s *Server) Router() *gin.Engine {
 		c.Header("Referrer-Policy", "same-origin")
 		c.Header("Cache-Control", "no-store")
 		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
-		if !regexp.MustCompile(`^(127\.0\.0\.1|localhost)(:\d+)?$`).MatchString(c.Request.Host) {
+		if !allowedHostPattern.MatchString(c.Request.Host) {
 			domain.Fail("Invalid host.", 403)
 		}
 		if c.Request.Method == "POST" {

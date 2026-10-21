@@ -26,6 +26,10 @@ func main() {
 	if port == "" {
 		port = "4317"
 	}
+	host := os.Getenv("HOST")
+	if host == "" {
+		host = "127.0.0.1"
+	}
 	db, e := store.Open(os.Getenv("PG_TEST_NAMESPACE"))
 	if e != nil {
 		log.Fatal(e)
@@ -40,9 +44,9 @@ func main() {
 			app.Tickets.Run(background)
 		}
 	}()
-	s := &http.Server{Addr: "127.0.0.1:" + port, Handler: app.Router(), ReadHeaderTimeout: 10 * time.Second}
+	s := &http.Server{Addr: host + ":" + port, Handler: app.Router(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
-		fmt.Printf("Harbor ERP · React + Go/Gin · RuoYi RBAC\nhttp://127.0.0.1:%s\n", port)
+		fmt.Printf("Harbor ERP · React + Go/Gin · RuoYi RBAC\nhttp://%s:%s\n", host, port)
 		if e := s.ListenAndServe(); e != nil && e != http.ErrServerClosed {
 			log.Fatal(e)
 		}
