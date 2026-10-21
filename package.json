@@ -24,7 +24,7 @@
     "vet": "./scripts/go.sh vet ./...",
     "lint": "eslint frontend/src",
     "test:rma": "node tests/rma-e2e.mjs",
-    "test:browser": "node tests/e2e.mjs && node tests/rma-e2e.mjs && node tests/audit-e2e.mjs && node tests/warranty-e2e.mjs && node tests/i18n-e2e.mjs && node tests/proxy-login-e2e.mjs && node tests/udesk-e2e.mjs && node tests/ticket-presentation-e2e.mjs && node tests/ticket-scope-e2e.mjs",
+    "test:browser": "node tests/e2e.mjs && node tests/rma-e2e.mjs && node tests/audit-e2e.mjs && node tests/warranty-e2e.mjs && node tests/i18n-e2e.mjs && node tests/proxy-login-e2e.mjs && node tests/udesk-e2e.mjs && node tests/ticket-presentation-e2e.mjs && node tests/ticket-scope-e2e.mjs && node tests/mabang-e2e.mjs",
     "test:proxy": "node tests/proxy-login-e2e.mjs",
     "test:audit": "node tests/audit-e2e.mjs",
     "test:all": "npm run check && npm test && npm run vet && npm run test:browser",
@@ -32,7 +32,8 @@
     "test:i18n": "node tests/i18n-e2e.mjs",
     "test:udesk": "node tests/udesk-e2e.mjs",
     "test:ticket-presentation": "node tests/ticket-presentation-e2e.mjs",
-    "test:ticket-scope": "node tests/ticket-scope-e2e.mjs"
+    "test:ticket-scope": "node tests/ticket-scope-e2e.mjs",
+    "test:mabang": "node tests/mabang-e2e.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.149",

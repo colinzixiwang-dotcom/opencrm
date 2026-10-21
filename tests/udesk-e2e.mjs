@@ -292,7 +292,7 @@ try {
     "#101",
   );
   assert.equal(
-    await d.getByLabel("Order number", { exact: true }).inputValue(),
+    await d.getByLabel("Platform order number", { exact: true }).inputValue(),
     "ORDER-101",
   );
   await d
@@ -324,12 +324,8 @@ try {
     headers: { "Idempotency-Key": "source-draft-submit" },
   };
   const created = await page.request.post(app.base + "/api/action", submission);
-  assert.equal(created.status(), 200, await created.text());
-  const rma = (await created.json()).result;
-  assert.equal(rma.ticketReference.snapshotId, saved.payload.ticketSnapshotId);
-  const replay = await page.request.post(app.base + "/api/action", submission);
-  assert.equal(replay.status(), 200, await replay.text());
-  assert.equal((await replay.json()).replayed, true);
+  assert.equal(created.status(), 422, await created.text());
+  assert.match((await created.json()).error, /only whole-unit or parts reshipment/);
   console.log(
     "PASS custom fields/options, inert HTML, conversation and saved RMA draft",
   );
