@@ -26,7 +26,14 @@ import { ColumnFilter } from "./column-filter";
 import { RMAForm } from "./support";
 
 // The UI consumes the stable CRM contract. v1 remains only for older clients.
-const crmApi = (path, options = {}) => api(path, {...options, headers: {...options.headers, Accept: "application/vnd.morpho.support.v2+json"}});
+const crmApi = (path, options = {}) =>
+  api(path, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Accept: "application/vnd.morpho.support.v2+json",
+    },
+  });
 const text = (value) =>
   value == null
     ? "—"
@@ -76,10 +83,7 @@ function Value({ value, field }) {
   }
   if (
     Array.isArray(value) &&
-    value.some(
-      (v) =>
-        v && typeof v === "object" && v.reference,
-    )
+    value.some((v) => v && typeof v === "object" && v.reference)
   )
     return <AttachmentList value={value} />;
   return <span>{text(value)}</span>;
@@ -94,42 +98,108 @@ const hasValue = (value) =>
         ? Object.values(value).some(hasValue)
         : true);
 function Fields({ ticket, metadata, omitted = [] }) {
-  if (!metadata) return <LoadingState label="Loading Udesk field definitions…" variant="compact" rows={3} />;
+  if (!metadata)
+    return (
+      <LoadingState
+        label="Loading Udesk field definitions…"
+        variant="compact"
+        rows={3}
+      />
+    );
   const custom = Object.entries(customValues(ticket))
-    .filter(([name,value]) => !omitted.includes(name) && hasValue(value))
-    .map(([name,value]) => ({name,value,...customDefinition(name,ticket,metadata)}));
+    .filter(([name, value]) => !omitted.includes(name) && hasValue(value))
+    .map(([name, value]) => ({
+      name,
+      value,
+      ...customDefinition(name, ticket, metadata),
+    }));
   const groups = [
-    {title:"Customer information"},
-    {title:"Handling information",match:/^(受理客服|客服组|优先级)$/i},
-    {title:"Order and product",match:/order|serial|product|purchase|country|region|订单|序列号|产品|购买|国家|地区|^sn$/i},
-    {title:"Issue classification",match:/category|secondary issue|tertiary|symptom|keyword|分类|次级|关键词|症状/i},
-    {title:"Other fields"},
-    {title:"System information"},
+    { title: "Customer information" },
+    { title: "Handling information", match: /^(受理客服|客服组|优先级)$/i },
+    {
+      title: "Order and product",
+      match:
+        /order|serial|product|purchase|country|region|订单|序列号|产品|购买|国家|地区|^sn$/i,
+    },
+    {
+      title: "Issue classification",
+      match:
+        /category|secondary issue|tertiary|symptom|keyword|分类|次级|关键词|症状/i,
+    },
+    { title: "Other fields" },
+    { title: "System information" },
   ];
-  const entries = new Map(groups.map(g => [g.title, []]));
+  const entries = new Map(groups.map((g) => [g.title, []]));
   for (const field of ticket.fields || []) {
-    if (hasValue(field.value)) (entries.get(field.section) || entries.get("Other fields")).push(field);
+    if (hasValue(field.value))
+      (entries.get(field.section) || entries.get("Other fields")).push(field);
   }
   for (const entry of custom) {
-    const section = /submission id/i.test(entry.label) ? "System information" : groups.find(g => g.match?.test(entry.label))?.title || "Other fields";
-    entries.get(section).push({key:entry.name,label:entry.label,value:entry.value,options:entry.field?.options,kind:entry.field?.kind});
+    const section = /submission id/i.test(entry.label)
+      ? "System information"
+      : groups.find((g) => g.match?.test(entry.label))?.title || "Other fields";
+    entries
+      .get(section)
+      .push({
+        key: entry.name,
+        label: entry.label,
+        value: entry.value,
+        options: entry.field?.options,
+        kind: entry.field?.kind,
+      });
   }
-  const render = field => <div key={field.key} className={typeof field.value === "object" || String(field.value).length > 100 ? "ticket-field-wide" : undefined}>
-    <dt>{tr(field.label)}</dt><dd><Value field={field} value={field.kind === "datetime" ? displayDate(field.value) : field.value} /></dd>
-  </div>;
-  const section = group => {
+  const render = (field) => (
+    <div
+      key={field.key}
+      className={
+        typeof field.value === "object" || String(field.value).length > 100
+          ? "ticket-field-wide"
+          : undefined
+      }
+    >
+      <dt>{tr(field.label)}</dt>
+      <dd>
+        <Value
+          field={field}
+          value={
+            field.kind === "datetime" ? displayDate(field.value) : field.value
+          }
+        />
+      </dd>
+    </div>
+  );
+  const section = (group) => {
     const values = entries.get(group.title);
     if (!values.length && group.title !== "System information") return null;
     const content = <dl className="ticket-fields">{values.map(render)}</dl>;
-    return group.title === "Other fields" || group.title === "System information"
-      ? <details className="ticket-field-section ticket-field-disclosure" key={group.title}><summary>{tr(group.title)}</summary>{content}</details>
-      : <section className="ticket-field-section" key={group.title}><PanelHeading title={group.title} />{content}</section>;
+    return group.title === "Other fields" ||
+      group.title === "System information" ? (
+      <details
+        className="ticket-field-section ticket-field-disclosure"
+        key={group.title}
+      >
+        <summary>{tr(group.title)}</summary>
+        {content}
+      </details>
+    ) : (
+      <section className="ticket-field-section" key={group.title}>
+        <PanelHeading title={group.title} />
+        {content}
+      </section>
+    );
   };
-  return <>
-    {groups.slice(0,4).map(section)}
-    {hasValue(ticket.attachments) && <section className="ticket-field-section ticket-files"><PanelHeading title="Ticket attachments" /><AttachmentList value={ticket.attachments} /></section>}
-    {groups.slice(4).map(section)}
-  </>;
+  return (
+    <>
+      {groups.slice(0, 4).map(section)}
+      {hasValue(ticket.attachments) && (
+        <section className="ticket-field-section ticket-files">
+          <PanelHeading title="Ticket attachments" />
+          <AttachmentList value={ticket.attachments} />
+        </section>
+      )}
+      {groups.slice(4).map(section)}
+    </>
+  );
 }
 function ProblemDetails({ problem, ticket }) {
   return (
@@ -245,7 +315,9 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
     setError("");
     setBusy(true);
     setData(null);
-    crmApi(`/api/tickets/${encodeURIComponent(id)}`, { signal: controller.signal })
+    crmApi(`/api/tickets/${encodeURIComponent(id)}`, {
+      signal: controller.signal,
+    })
       .then(setData)
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
@@ -290,10 +362,13 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
         const value = field && t.customValues?.[field.key];
         if (typeof value === "string") payload[key] = value;
       }
-      const draft = await crmApi(`/api/tickets/${encodeURIComponent(id)}/drafts`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const draft = await crmApi(
+        `/api/tickets/${encodeURIComponent(id)}/drafts`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
       onDraft(draft);
     } catch (e) {
       setError(e.message);
@@ -374,7 +449,15 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                     title="Conversation"
                     subtitle="Times shown in Beijing (UTC+8)"
                   >
-                    {replies && <span className="conversation-count">{tr("{count} messages", {count: replies.totalCount ?? (replies.messages || []).length})}</span>}
+                    {replies && (
+                      <span className="conversation-count">
+                        {tr("{count} messages", {
+                          count:
+                            replies.totalCount ??
+                            (replies.messages || []).length,
+                        })}
+                      </span>
+                    )}
                   </PanelHeading>
                   {replies ? (
                     <>
@@ -385,27 +468,43 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                           </p>
                         )}
                         {(replies.messages || []).map((r) => (
-                          <article key={r.id} className={conversationRole(r) === "Customer" ? "is-customer" : conversationRole(r) === "Internal note" ? "is-internal" : ""}>
+                          <article
+                            key={r.id}
+                            className={
+                              conversationRole(r) === "Customer"
+                                ? "is-customer"
+                                : conversationRole(r) === "Internal note"
+                                  ? "is-internal"
+                                  : ""
+                            }
+                          >
                             <header className="conversation-header">
                               <div className="conversation-author">
                                 <span
                                   className="conversation-avatar"
                                   aria-hidden="true"
                                 >
-                                  {(
-                                    r.author?.name ||
-                                    r.author?.kind ||
-                                    "U"
-                                  )
+                                  {(r.author?.name || r.author?.kind || "U")
                                     .slice(0, 1)
                                     .toUpperCase()}
                                 </span>
                                 <strong>
-                                  {r.author?.name || tr(r.author?.kind === "agent" ? "Support agent" : r.author?.kind === "customer" ? "Customer" : "Unknown author")}
+                                  {r.author?.name ||
+                                    tr(
+                                      r.author?.kind === "agent"
+                                        ? "Support agent"
+                                        : r.author?.kind === "customer"
+                                          ? "Customer"
+                                          : "Unknown author",
+                                    )}
                                 </strong>
-                                <span className="conversation-role">{tr(conversationRole(r))}</span>
+                                <span className="conversation-role">
+                                  {tr(conversationRole(r))}
+                                </span>
                               </div>
-                              <time dateTime={r.createdAt}>{displayDate(r.createdAt, "Asia/Shanghai")}</time>
+                              <time dateTime={r.createdAt}>
+                                {displayDate(r.createdAt, "Asia/Shanghai")}
+                              </time>
                             </header>
                             <ConversationContent
                               reply={r}
@@ -417,13 +516,15 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                           </article>
                         ))}
                       </div>
-                      {(replies.totalPages || 1) > 1 && <Pagination
-                        label="Conversation pagination"
-                        page={replyPage}
-                        totalPages={replies.totalPages || 1}
-                        onPrevious={() => setReplyPage((n) => n - 1)}
-                        onNext={() => setReplyPage((n) => n + 1)}
-                      />}
+                      {(replies.totalPages || 1) > 1 && (
+                        <Pagination
+                          label="Conversation pagination"
+                          page={replyPage}
+                          totalPages={replies.totalPages || 1}
+                          onPrevious={() => setReplyPage((n) => n - 1)}
+                          onNext={() => setReplyPage((n) => n + 1)}
+                        />
+                      )}
                     </>
                   ) : replyError ? (
                     <div className="conversation-error" role="alert">
@@ -461,42 +562,84 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
   );
 }
 function TicketHelp({ label, children, className = "" }) {
-  return <details className={"ticket-help " + className}>
-    <summary aria-label={tr(label)} title={tr(label)}><span aria-hidden="true">i</span></summary>
-    <div className="ticket-help-content">{children}</div>
-  </details>;
+  return (
+    <details className={"ticket-help " + className}>
+      <summary aria-label={tr(label)} title={tr(label)}>
+        <span aria-hidden="true">i</span>
+      </summary>
+      <div className="ticket-help-content">{children}</div>
+    </details>
+  );
 }
 function TicketSyncStatus({ data, lastSync, error, zone }) {
   const stamp = syncTimestamp(lastSync, intlLocale(), zone);
   const warning = !!(data?.stale || data?.syncError || error);
-  const label = warning ? "Sync interrupted" : stamp ? "Synced" : "Initializing";
-  return <details className={"ticket-sync-status ticket-help" + (warning ? " is-warning" : "")}>
-    <summary aria-label={tr("Synchronization details")}>
-      <span className="ticket-sync-dot" aria-hidden="true" />
-      <span>{tr(label)}</span>
-      {stamp && <><span aria-hidden="true">·</span><span>{tr("Updated")} {stamp.short}</span></>}
-    </summary>
-    <div className="ticket-help-content">
-      <strong>{tr("Automatic sync every minute")}</strong>
-      <span>{tr("Last successful sync")}: {stamp ? stamp.full : tr("Not yet synchronized")}</span>
-      <span>{tr("Time zone")}: {zone}</span>
-    </div>
-  </details>;
+  const label = warning
+    ? "Sync interrupted"
+    : stamp
+      ? "Synced"
+      : "Initializing";
+  return (
+    <details
+      className={
+        "ticket-sync-status ticket-help" + (warning ? " is-warning" : "")
+      }
+    >
+      <summary aria-label={tr("Synchronization details")}>
+        <span className="ticket-sync-dot" aria-hidden="true" />
+        <span>{tr(label)}</span>
+        {stamp && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>
+              {tr("Updated")} {stamp.short}
+            </span>
+          </>
+        )}
+      </summary>
+      <div className="ticket-help-content">
+        <strong>{tr("Automatic sync every minute")}</strong>
+        <span>
+          {tr("Last successful sync")}:{" "}
+          {stamp ? stamp.full : tr("Not yet synchronized")}
+        </span>
+        <span>
+          {tr("Time zone")}: {zone}
+        </span>
+      </div>
+    </details>
+  );
 }
 function TicketQueueState({ title, description, children }) {
-  return <div className="ticket-queue-state" role="status">
-    <span className="ticket-state-icon" aria-hidden="true"><Icon name="service" /></span>
-    <h3>{tr(title)}</h3>
-    <p>{tr(description)}</p>
-    {children}
-  </div>;
+  return (
+    <div className="ticket-queue-state" role="status">
+      <span className="ticket-state-icon" aria-hidden="true">
+        <Icon name="service" />
+      </span>
+      <h3>{tr(title)}</h3>
+      <p>{tr(description)}</p>
+      {children}
+    </div>
+  );
 }
 const queueIssues = {
-  filter: ["This filter is unavailable", "Choose another filter or view all tickets."],
-  mapping: ["Link your Udesk account", "Your Udesk account is not linked. Contact an administrator."],
-  permission: ["Ticket access is unavailable", "Contact an administrator to check your access."],
+  filter: [
+    "This filter is unavailable",
+    "Choose another filter or view all tickets.",
+  ],
+  mapping: [
+    "Link your Udesk account",
+    "Your Udesk account is not linked. Contact an administrator.",
+  ],
+  permission: [
+    "Ticket access is unavailable",
+    "Contact an administrator to check your access.",
+  ],
   session: ["Your session has expired", "Sign in again to view tickets."],
-  unavailable: ["Unable to load tickets", "Please try again later. The list will recover automatically."],
+  unavailable: [
+    "Unable to load tickets",
+    "Please try again later. The list will recover automatically.",
+  ],
 };
 export function TicketCenter() {
   const { can, state } = useWorkspace();
@@ -507,7 +650,7 @@ export function TicketCenter() {
     [metadataError, setMetadataError] = useState(null),
     [draftError, setDraftError] = useState(null),
     [busy, setBusy] = useState(false),
-    [assignment, setAssignment] = useState("mine"),
+    [assignment, setAssignment] = useState("all"),
     [status, setStatus] = useState(""),
     [cursor, setCursor] = useState(""),
     [history, setHistory] = useState([]),
@@ -516,7 +659,6 @@ export function TicketCenter() {
       new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
     ),
     [query, setQuery] = useState(""),
-
     [lookupBusy, setLookupBusy] = useState(false),
     [lookupError, setLookupError] = useState(null),
     [draft, setDraft] = useState(null),
@@ -538,7 +680,16 @@ export function TicketCenter() {
   const number = ticketNumberQuery(query);
   const issue = ticketListIssue(error || (!data && metadataError));
   const hasFilters = !!(query || status || assignment === "mine");
-  const clearFilters = () => { setQuery(""); setStatus(""); setAssignment("all"); setCursor(""); setHistory([]); setLookupError(null); lookupRequest.current?.abort(); setLookupBusy(false); };
+  const clearFilters = () => {
+    setQuery("");
+    setStatus("");
+    setAssignment("all");
+    setCursor("");
+    setHistory([]);
+    setLookupError(null);
+    lookupRequest.current?.abort();
+    setLookupBusy(false);
+  };
   const lookupRequest = useRef(null);
   useEffect(() => () => lookupRequest.current?.abort(), []);
   const lastRequest = useRef("");
@@ -574,34 +725,44 @@ export function TicketCenter() {
     if (selected) return;
     const controller = new window.AbortController();
     const version = ++latest.current;
-    const params = new URLSearchParams({ contract: "2", assignment, status, cursor, sort: "repliedAt:desc", q: query });
+    const params = new URLSearchParams({
+      contract: "2",
+      assignment,
+      status,
+      cursor,
+      sort: "repliedAt:desc",
+      q: query,
+    });
     const signature = params.toString();
     if (lastRequest.current !== signature) {
       setBusy(true);
       setData(null);
     }
     lastRequest.current = signature;
-    const timer = setTimeout(() => {
-      crmApi("/api/tickets?" + params, { signal: controller.signal })
-        .then((v) => {
-          if (version === latest.current) {
-            setData(v);
-            setError(null);
-            setLastSync(v.fetchedAt);
-          }
-        })
-        .catch((e) => {
-          if (e.name !== "AbortError" && version === latest.current) {
-            setError(e);
-            setData(null);
-            if (e.lastSyncAt) setLastSync(e.lastSyncAt);
-          }
-        })
-        .finally(() => {
-          if (!controller.signal.aborted && version === latest.current)
-            setBusy(false);
-        });
-    }, query ? 300 : 0);
+    const timer = setTimeout(
+      () => {
+        crmApi("/api/tickets?" + params, { signal: controller.signal })
+          .then((v) => {
+            if (version === latest.current) {
+              setData(v);
+              setError(null);
+              setLastSync(v.fetchedAt);
+            }
+          })
+          .catch((e) => {
+            if (e.name !== "AbortError" && version === latest.current) {
+              setError(e);
+              setData(null);
+              if (e.lastSyncAt) setLastSync(e.lastSyncAt);
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted && version === latest.current)
+              setBusy(false);
+          });
+      },
+      query ? 300 : 0,
+    );
     return () => {
       clearTimeout(timer);
       controller.abort();
@@ -662,25 +823,47 @@ export function TicketCenter() {
           <div className="ticket-queue-heading">
             <div className="ticket-queue-title">
               <h2>{tr("Ticket queue")}</h2>
-              {data && !data.initializing && !data.stale && <span className="ticket-result-count">
-                {query ? tr("Found") + " " : ""}{data.totalCount} {tr("tickets")}
-              </span>}
+              {data && !data.initializing && !data.stale && (
+                <span className="ticket-result-count">
+                  {query ? tr("Found") + " " : ""}
+                  {data.totalCount} {tr("tickets")}
+                </span>
+              )}
             </div>
-            <TicketSyncStatus data={data} lastSync={lastSync} error={error || metadataError} zone={zone} />
+            <TicketSyncStatus
+              data={data}
+              lastSync={lastSync}
+              error={error || metadataError}
+              zone={zone}
+            />
           </div>
           <ListToolbar
             actions={
-              data && items.length > 0 && !issue ? <a
-                className="btn secondary"
-                download
-                href={
-                  "/api/export/tickets?" +
-                  new URLSearchParams({ contract: "2", assignment, status, cursor, sort: "repliedAt:desc", q: query })
-                }
-              >
-                <Icon name="download" />
-                {tr("Export page")}
-              </a> : <button className="btn secondary" disabled><Icon name="download" />{tr("Export page")}</button>
+              data && items.length > 0 && !issue ? (
+                <a
+                  className="btn secondary"
+                  download
+                  href={
+                    "/api/export/tickets?" +
+                    new URLSearchParams({
+                      contract: "2",
+                      assignment,
+                      status,
+                      cursor,
+                      sort: "repliedAt:desc",
+                      q: query,
+                    })
+                  }
+                >
+                  <Icon name="download" />
+                  {tr("Export page")}
+                </a>
+              ) : (
+                <button className="btn secondary" disabled>
+                  <Icon name="download" />
+                  {tr("Export page")}
+                </button>
+              )
             }
           >
             <form className="ticket-search" onSubmit={lookup}>
@@ -697,29 +880,92 @@ export function TicketCenter() {
                   setHistory([]);
                 }}
               />
-              {number && <button className="ticket-number-action" type="submit" disabled={lookupBusy}>
-                {tr(lookupBusy ? "Looking up…" : "Open ticket")} {!lookupBusy && "#" + number}
-                {!lookupBusy && <Icon name="arrow" />}
-              </button>}
+              {number && (
+                <button
+                  className="ticket-number-action"
+                  type="submit"
+                  disabled={lookupBusy}
+                >
+                  {tr(lookupBusy ? "Looking up…" : "Open ticket")}{" "}
+                  {!lookupBusy && "#" + number}
+                  {!lookupBusy && <Icon name="arrow" />}
+                </button>
+              )}
             </form>
-            <TicketHelp label="Search help"><p>{tr("Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.")}</p></TicketHelp>
+            <TicketHelp label="Search help">
+              <p>
+                {tr(
+                  "Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.",
+                )}
+              </p>
+            </TicketHelp>
           </ListToolbar>
-          {lookupError && <div className="ticket-inline-notice" role="alert">
-            {tr(lookupError.status === 404 ? "Ticket not found or not available to your account." : lookupError.status === 403 ? "Your Udesk account is not linked. Contact an administrator." : "Unable to look up this ticket. Please try again later.")}
-          </div>}
+          {lookupError && (
+            <div className="ticket-inline-notice" role="alert">
+              {tr(
+                lookupError.status === 404
+                  ? "Ticket not found or not available to your account."
+                  : lookupError.status === 403
+                    ? "Your Udesk account is not linked. Contact an administrator."
+                    : "Unable to look up this ticket. Please try again later.",
+              )}
+            </div>
+          )}
           {busy && <LoadingState label="Loading tickets…" rows={5} />}
-          {!busy && issue && <TicketQueueState title={queueIssues[issue][0]} description={queueIssues[issue][1]}>
-            {issue === "filter" && <button className="btn secondary" onClick={clearFilters}>{tr("View all tickets")}</button>}
-          </TicketQueueState>}
-          {!busy && !issue && data?.initializing && !data.syncError && <LoadingState label="Ticket data is initializing" rows={3} />}
-          {!busy && !issue && data?.initializing && data.syncError && <TicketQueueState title="Ticket initialization is paused" description="Automatic synchronization will retry. No complete ticket list is available yet." />}
-          {!busy && !issue && data?.syncError && !data.initializing && !data.stale && <div className="ticket-inline-notice" role="status">
-            {tr("Synchronization is temporarily interrupted. Showing previously synced data; automatic retries will continue.")}
-          </div>}
-          {!busy && !issue && data?.stale && <div className="ticket-inline-notice" role="status">
-            {items.length > 0 ? tr("Synchronization is delayed. You are viewing older data.") : tr("Ticket data is out of date. The list is paused to protect access permissions.")}
-          </div>}
-          {!busy && !issue && data && assignment === "mine" && !data.initializing && !data.stale && data.myAccountLinked === false && <div className="ticket-inline-notice" role="status">{tr("Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.")}</div>}
+          {!busy && issue && (
+            <TicketQueueState
+              title={queueIssues[issue][0]}
+              description={queueIssues[issue][1]}
+            >
+              {issue === "filter" && (
+                <button className="btn secondary" onClick={clearFilters}>
+                  {tr("View all tickets")}
+                </button>
+              )}
+            </TicketQueueState>
+          )}
+          {!busy && !issue && data?.initializing && !data.syncError && (
+            <LoadingState label="Ticket data is initializing" rows={3} />
+          )}
+          {!busy && !issue && data?.initializing && data.syncError && (
+            <TicketQueueState
+              title="Ticket initialization is paused"
+              description="Automatic synchronization will retry. No complete ticket list is available yet."
+            />
+          )}
+          {!busy &&
+            !issue &&
+            data?.syncError &&
+            !data.initializing &&
+            !data.stale && (
+              <div className="ticket-inline-notice" role="status">
+                {tr(
+                  "Synchronization is temporarily interrupted. Showing previously synced data; automatic retries will continue.",
+                )}
+              </div>
+            )}
+          {!busy && !issue && data?.stale && (
+            <div className="ticket-inline-notice" role="status">
+              {items.length > 0
+                ? tr("Synchronization is delayed. You are viewing older data.")
+                : tr(
+                    "Ticket data is out of date. The list is paused to protect access permissions.",
+                  )}
+            </div>
+          )}
+          {!busy &&
+            !issue &&
+            data &&
+            assignment === "mine" &&
+            !data.initializing &&
+            !data.stale &&
+            data.myAccountLinked === false && (
+              <div className="ticket-inline-notice" role="status">
+                {tr(
+                  "Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.",
+                )}
+              </div>
+            )}
           {!busy && !issue && data && !data.initializing && (
             <>
               <div className="table-scroll ticket-table">
@@ -737,20 +983,88 @@ export function TicketCenter() {
                         "Linked RMAs",
                       ].map((label) => (
                         <th key={label}>
-                          {label === "Assignee / group" || label === "Status" ? <ColumnFilter
-                            label={label}
-                            accessibleLabel={label === "Status" ? "Filter by ticket status" : "Filter by ticket assignment"}
-                            value={label === "Status" ? status : assignment}
-                            summary={label === "Status" ? status : assignment === "mine" ? "Mine" : "All"}
-                            options={label === "Status" ? [{value:"",label:"All statuses"}, ...[...new Set([...(data.availableStatuses || []), ...(status ? [status] : [])])].map(value => ({value,label:value}))] : [{value:"mine",label:"My tickets"},{value:"all",label:"All tickets"}]}
-                            onChange={value => {if(label === "Status") setStatus(value); else setAssignment(value); setCursor(""); setHistory([]);}}
-                          /> : tr(label)}
+                          {label === "Assignee / group" ||
+                          label === "Status" ? (
+                            <ColumnFilter
+                              label={label}
+                              accessibleLabel={
+                                label === "Status"
+                                  ? "Filter by ticket status"
+                                  : "Filter by ticket assignment"
+                              }
+                              value={label === "Status" ? status : assignment}
+                              summary={
+                                label === "Status"
+                                  ? status
+                                  : assignment === "mine"
+                                    ? "Mine"
+                                    : "All"
+                              }
+                              options={
+                                label === "Status"
+                                  ? [
+                                      { value: "", label: "All statuses" },
+                                      ...[
+                                        ...new Set([
+                                          ...(data.availableStatuses || []),
+                                          ...(status ? [status] : []),
+                                        ]),
+                                      ].map((value) => ({
+                                        value,
+                                        label: value,
+                                      })),
+                                    ]
+                                  : [
+                                      { value: "mine", label: "My tickets" },
+                                      { value: "all", label: "All tickets" },
+                                    ]
+                              }
+                              onChange={(value) => {
+                                if (label === "Status") setStatus(value);
+                                else setAssignment(value);
+                                setCursor("");
+                                setHistory([]);
+                              }}
+                            />
+                          ) : (
+                            tr(label)
+                          )}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {items.length === 0 && <tr><td colSpan="8" className="ticket-empty-cell"><TicketQueueState title={data.stale ? "Waiting for synchronization" : hasFilters ? "No matching tickets" : "No tickets to show"} description={data.stale ? "The list will return automatically when synchronization recovers." : hasFilters ? "Try another keyword or adjust your filters." : "New tickets will appear here after synchronization."}>{!data.stale && hasFilters && <button className="btn secondary" onClick={clearFilters}>{tr("Clear filters")}</button>}</TicketQueueState></td></tr>}
+                    {items.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="ticket-empty-cell">
+                          <TicketQueueState
+                            title={
+                              data.stale
+                                ? "Waiting for synchronization"
+                                : hasFilters
+                                  ? "No matching tickets"
+                                  : "No tickets to show"
+                            }
+                            description={
+                              data.stale
+                                ? "The list will return automatically when synchronization recovers."
+                                : hasFilters
+                                  ? "Try another keyword or adjust your filters."
+                                  : "New tickets will appear here after synchronization."
+                            }
+                          >
+                            {!data.stale && hasFilters && (
+                              <button
+                                className="btn secondary"
+                                onClick={clearFilters}
+                              >
+                                {tr("Clear filters")}
+                              </button>
+                            )}
+                          </TicketQueueState>
+                        </td>
+                      </tr>
+                    )}
                     {items.map((item) => {
                       const t = item.ticket;
                       return (
@@ -784,9 +1098,7 @@ export function TicketCenter() {
                           </td>
                           <td data-label={tr("Assignee / group")}>
                             {t.assigneeName || "—"}
-                            <small className="cell-sub">
-                              {t.groupName}
-                            </small>
+                            <small className="cell-sub">{t.groupName}</small>
                           </td>
                           <td data-label={tr("Status")}>
                             <span className="ticket-status">{t.status}</span>
@@ -808,24 +1120,26 @@ export function TicketCenter() {
                   </tbody>
                 </table>
               </div>
-              {items.length > 0 && <Pagination
-                label="Ticket pagination"
-                page={data.currentPage || history.length + 1}
-                totalPages={
-                  data.totalPages ??
-                  (!data.nextCursor ? history.length + 1 : null)
-                }
-                hasNext={!!data.nextCursor}
-                disabled={busy}
-                onPrevious={() => {
-                  setCursor(history.at(-1));
-                  setHistory(history.slice(0, -1));
-                }}
-                onNext={() => {
-                  setHistory([...history, cursor]);
-                  setCursor(data.nextCursor);
-                }}
-              />}
+              {items.length > 0 && (
+                <Pagination
+                  label="Ticket pagination"
+                  page={data.currentPage || history.length + 1}
+                  totalPages={
+                    data.totalPages ??
+                    (!data.nextCursor ? history.length + 1 : null)
+                  }
+                  hasNext={!!data.nextCursor}
+                  disabled={busy}
+                  onPrevious={() => {
+                    setCursor(history.at(-1));
+                    setHistory(history.slice(0, -1));
+                  }}
+                  onNext={() => {
+                    setHistory([...history, cursor]);
+                    setCursor(data.nextCursor);
+                  }}
+                />
+              )}
             </>
           )}
         </Panel>
@@ -833,7 +1147,13 @@ export function TicketCenter() {
       {can("rma.create") && drafts.length > 0 && (
         <Panel>
           <PanelHeading title="Your RMA drafts" />
-          {draftError && <div className="ticket-inline-notice" role="alert">{tr("Unable to open this draft. It may no longer be available to your account.")}</div>}
+          {draftError && (
+            <div className="ticket-inline-notice" role="alert">
+              {tr(
+                "Unable to open this draft. It may no longer be available to your account.",
+              )}
+            </div>
+          )}
           <div className="ticket-toolbar">
             {drafts.map(({ draft: d }) => (
               <Button key={d.id} onClick={() => resume(d.id)}>
@@ -927,7 +1247,16 @@ export function UdeskAccounts() {
                   <td>{m.agentId}</td>
                   <td>{m.sourceRole}</td>
                   <td>{tr(m.enabled ? "Active" : "Disabled")}</td>
-                  <td>{JSON.parse(m.sourceGroups || "[]").map((id) => (data.groups || []).find((g) => String(g.id) === String(id))?.name || id).join(" / ") || "—"}</td>
+                  <td>
+                    {JSON.parse(m.sourceGroups || "[]")
+                      .map(
+                        (id) =>
+                          (data.groups || []).find(
+                            (g) => String(g.id) === String(id),
+                          )?.name || id,
+                      )
+                      .join(" / ") || "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
