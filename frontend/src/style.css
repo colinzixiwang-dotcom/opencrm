@@ -4211,12 +4211,14 @@ td {
 .attachment-gallery .attachment-card { width: 100%; }
 .attachment-preview footer .pagination-compact { padding: 0; }
 
-/* Ticket queue filters live with the columns they affect. */
-.ticket-column-filter {display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:116px;}
-.ticket-column-filter > span {font-size:11px;}
-.ticket-column-filter select {width:auto;max-width:200px;min-width:112px;margin:0;padding:5px 25px 5px 9px;border:1px solid #dbe4dc;border-radius:6px;background-color:#fff;color:var(--ink,#173e3d);font:inherit;font-size:12px;font-weight:500;line-height:1.45;cursor:pointer;}
-.ticket-column-filter select:hover {border-color:#9cad9c;}
-.ticket-column-filter select:focus-visible {outline:2px solid #7c9a7b;outline-offset:2px;}
+/* Compact native column filters: labels align with the rest of the table header. */
+.ticket-column-filter {position:relative;display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;min-height:30px;margin:-5px -5px;padding:5px;border-radius:5px;transition:background .15s;}
+.ticket-column-filter:hover {background:#eef3e9;}
+.ticket-column-label {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ticket-column-value {flex-shrink:1;min-width:0;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 5px;border-radius:4px;color:#49684c;background:#e8efdf;font-size:10px;font-weight:500;line-height:1.4;}
+.ticket-column-filter > .icon {flex:none;width:12px;height:12px;color:#839581;stroke-width:1.6;}
+.ticket-column-filter select {position:absolute;inset:0;z-index:1;opacity:0;width:100%;height:100%;min-width:0;margin:0;padding:0;cursor:pointer;}
+.ticket-column-filter:focus-within {outline:2px solid #8aa287;outline-offset:2px;}
 .ticket-table .ticket-empty-cell {padding:20px;white-space:normal;}
 .ticket-empty-cell .ticket-queue-state {border:0;}
 @media (max-width:700px) {
@@ -4224,6 +4226,7 @@ td {
   .ticket-table thead tr {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px;}
   .ticket-table thead th {display:none;}
   .ticket-table thead th:nth-child(3), .ticket-table thead th:nth-child(4) {display:block;width:auto;min-width:0;padding:0;border:0;background:transparent;}
-  .ticket-column-filter {min-width:0;}
-  .ticket-column-filter select {width:100%;max-width:none;min-width:0;}
+  .ticket-column-filter {margin:0;padding:9px 10px;background:#fff;border:1px solid var(--line);border-radius:7px;}
+  .ticket-column-filter > .icon {margin-left:auto;}
+  .ticket-column-label {font-size:11px;}
 }

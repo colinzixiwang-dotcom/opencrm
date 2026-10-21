@@ -1289,5 +1289,6 @@
   "My tickets": "我的工单",
   "Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.": "你的 CRM 账号尚未关联 Udesk 客服，可切换到“全部工单”查看 Morpho 工单。",
   "Invalid ticket assignment filter.": "工单范围筛选无效。",
-  "Invalid ticket status filter.": "工单状态筛选无效。"
+  "Invalid ticket status filter.": "工单状态筛选无效。",
+  "Mine": "我的"
 }

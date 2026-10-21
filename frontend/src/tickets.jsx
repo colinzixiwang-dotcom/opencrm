@@ -737,7 +737,9 @@ export function TicketCenter() {
                       ].map((label) => (
                         <th key={label}>
                           {label === "Assignee / group" || label === "Status" ? <div className="ticket-column-filter">
-                            <span>{tr(label)}</span>
+                            <span className="ticket-column-label">{tr(label)}</span>
+                            {(label === "Assignee / group" || status) && <span className="ticket-column-value" title={label === "Status" ? status : tr(assignment === "mine" ? "My tickets" : "All tickets")}>{label === "Status" ? status : tr(assignment === "mine" ? "Mine" : "All")}</span>}
+                            <Icon name="filter" />
                             <select aria-label={tr(label === "Status" ? "Filter by ticket status" : "Filter by ticket assignment")} value={label === "Status" ? status : assignment} onChange={e => {
                               if(label === "Status") setStatus(e.target.value); else setAssignment(e.target.value);
                               setCursor(""); setHistory([]);
