@@ -1,3 +1,4 @@
+import {selectColumnFilter} from "./column-filter-helpers.mjs";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -43,11 +44,11 @@ try {
   await page.locator('a.nav-item[href="#home"]').click();
   await page.locator('a.nav-item[href="#service"]').click();
   await page.locator("tbody tr").first().waitFor();
-  assert.equal(await page.getByLabel("Filter by ticket assignment",{exact:true}).inputValue(),"mine");
+  assert.equal(await page.getByLabel("Filter by ticket assignment",{exact:true}).getAttribute("data-value"),"mine");
   assert.equal(await page.getByLabel("Sort all authorized tickets",{exact:true}).count(),0);
   assert.equal(await page.getByLabel("Udesk filter",{exact:true}).count(),0);
   const sortedResponse=page.waitForResponse(r=>new URL(r.url()).pathname==="/api/tickets"&&new URL(r.url()).searchParams.get("assignment")==="all");
-  await page.getByLabel("Filter by ticket assignment",{exact:true}).selectOption("all");
+  await selectColumnFilter(page,"Filter by ticket assignment","all");
   assert.equal((await(await sortedResponse).json()).sort,"repliedAt:desc");
   await page.locator("tbody .ticket-subject").first().waitFor();
   assert.equal(await page.locator("nav a.nav-item").count(),13);
@@ -81,7 +82,7 @@ try {
     await listGate;
     await route.continue();
   });
-  await page.getByLabel("Filter by ticket assignment", { exact: true }).selectOption("mine");
+  await selectColumnFilter(page,"Filter by ticket assignment","mine");
   await page
     .getByRole("status", { name: "Loading tickets…", exact: true })
     .waitFor();
@@ -92,7 +93,7 @@ try {
   const before = mock.state.requests.filter((p) => p === "tickets").length;
   assert.equal(await page.getByRole("button", { name: "Refresh", exact: true }).count(), 0);
   const queried = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets");
-  await page.getByLabel("Filter by ticket assignment", { exact: true }).selectOption("all");
+  await selectColumnFilter(page,"Filter by ticket assignment","all");
   await queried;
   await page.locator("tbody tr").first().waitFor();
   assert.equal(mock.state.requests.filter((p) => p === "tickets").length, before);

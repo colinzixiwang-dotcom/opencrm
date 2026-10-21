@@ -22,6 +22,7 @@ import {
 } from "./ticket-presentation";
 import { syncTimestamp, ticketNumberQuery, ticketListIssue } from "./ticket-ui";
 import { MailContent } from "./mail-content";
+import { ColumnFilter } from "./column-filter";
 import { RMAForm } from "./support";
 
 // The UI consumes the stable CRM contract. v1 remains only for older clients.
@@ -736,17 +737,14 @@ export function TicketCenter() {
                         "Linked RMAs",
                       ].map((label) => (
                         <th key={label}>
-                          {label === "Assignee / group" || label === "Status" ? <div className="ticket-column-filter">
-                            <span className="ticket-column-label">{tr(label)}</span>
-                            {(label === "Assignee / group" || status) && <span className="ticket-column-value" title={label === "Status" ? status : tr(assignment === "mine" ? "My tickets" : "All tickets")}>{label === "Status" ? status : tr(assignment === "mine" ? "Mine" : "All")}</span>}
-                            <Icon name="filter" />
-                            <select aria-label={tr(label === "Status" ? "Filter by ticket status" : "Filter by ticket assignment")} value={label === "Status" ? status : assignment} onChange={e => {
-                              if(label === "Status") setStatus(e.target.value); else setAssignment(e.target.value);
-                              setCursor(""); setHistory([]);
-                            }}>
-                              {label === "Status" ? <><option value="">{tr("All statuses")}</option>{[...new Set([...(data.availableStatuses || []), ...(status ? [status] : [])])].map(value => <option key={value} value={value}>{value}</option>)}</> : <><option value="mine">{tr("My tickets")}</option><option value="all">{tr("All tickets")}</option></>}
-                            </select>
-                          </div> : tr(label)}
+                          {label === "Assignee / group" || label === "Status" ? <ColumnFilter
+                            label={label}
+                            accessibleLabel={label === "Status" ? "Filter by ticket status" : "Filter by ticket assignment"}
+                            value={label === "Status" ? status : assignment}
+                            summary={label === "Status" ? status : assignment === "mine" ? "Mine" : "All"}
+                            options={label === "Status" ? [{value:"",label:"All statuses"}, ...[...new Set([...(data.availableStatuses || []), ...(status ? [status] : [])])].map(value => ({value,label:value}))] : [{value:"mine",label:"My tickets"},{value:"all",label:"All tickets"}]}
+                            onChange={value => {if(label === "Status") setStatus(value); else setAssignment(value); setCursor(""); setHistory([]);}}
+                          /> : tr(label)}
                         </th>
                       ))}
                     </tr>

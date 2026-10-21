@@ -1,3 +1,4 @@
+import {selectColumnFilter} from "./column-filter-helpers.mjs";
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {mkdtempSync,rmSync} from 'node:fs';
@@ -24,7 +25,7 @@ try {
   assert.deepEqual(initial.groupIds,['4918','4974','5041','5042','5043','5044']);
   assert.ok(!mock.state.requests.includes('agents'));
   await page.locator('a.nav-item[href="#service"]').click();
-  await page.getByLabel('Filter by ticket assignment',{exact:true}).selectOption('all');
+  await selectColumnFilter(page,"Filter by ticket assignment",'all');
   await page.locator('tbody tr').first().waitFor();
   assert.equal(await page.locator('.page-heading .eyebrow').count(),0);
   await page.locator('.topbar .breadcrumb').filter({hasText:'Ticket center'}).waitFor();

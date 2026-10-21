@@ -4211,13 +4211,13 @@ td {
 .attachment-gallery .attachment-card { width: 100%; }
 .attachment-preview footer .pagination-compact { padding: 0; }
 
-/* Compact native column filters: labels align with the rest of the table header. */
-.ticket-column-filter {position:relative;display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;min-height:30px;margin:-5px -5px;padding:5px;border-radius:5px;transition:background .15s;}
+/* Compact column filters: labels align with the rest of the table header. */
+.ticket-column-filter {appearance:none;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;min-height:30px;margin:-5px -5px;padding:5px;border-radius:5px;transition:background .15s;}
 .ticket-column-filter:hover {background:#eef3e9;}
 .ticket-column-label {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ticket-column-value {flex-shrink:1;min-width:0;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 5px;border-radius:4px;color:#49684c;background:#e8efdf;font-size:10px;font-weight:500;line-height:1.4;}
 .ticket-column-filter > .icon {flex:none;width:12px;height:12px;color:#839581;stroke-width:1.6;}
-.ticket-column-filter select {position:absolute;inset:0;z-index:1;opacity:0;width:100%;height:100%;min-width:0;margin:0;padding:0;cursor:pointer;}
+
 .ticket-column-filter:focus-within {outline:2px solid #8aa287;outline-offset:2px;}
 .ticket-table .ticket-empty-cell {padding:20px;white-space:normal;}
 .ticket-empty-cell .ticket-queue-state {border:0;}
@@ -4230,3 +4230,14 @@ td {
   .ticket-column-filter > .icon {margin-left:auto;}
   .ticket-column-label {font-size:11px;}
 }
+
+.ticket-column-filter.is-open {background:#eaf0e4;}
+.column-filter-menu {position:fixed;z-index:1000;overflow:auto;padding:6px;background:#fff;border:1px solid var(--line,#dbe4dc);border-radius:10px;box-shadow:0 6px 24px #173e3d1c,0 2px 5px #173e3d0a;}
+.column-filter-menu-label {padding:6px 10px 8px;color:var(--muted);font-size:11px;font-weight:500;border-bottom:1px solid #edf1e9;margin-bottom:4px;}
+.column-filter-option {appearance:none;display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:38px;padding:9px 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);text-align:left;font:inherit;font-size:13px;line-height:1.5;cursor:pointer;}
+.column-filter-option > span {min-width:0;overflow-wrap:anywhere;}
+.column-filter-option:hover,.column-filter-option:focus-visible {background:#f2f5ed;outline:none;}
+.column-filter-option.is-selected {background:#eaf1e2;color:#315c40;font-weight:500;}
+.column-filter-option.is-selected:focus-visible {outline:2px solid #9eb791;outline-offset:-2px;}
+.column-filter-option .icon {width:15px;height:15px;flex:none;stroke-width:2;}
+@media (max-width:700px) {.ticket-column-filter {width:100%;}.column-filter-option {min-height:42px;}}
