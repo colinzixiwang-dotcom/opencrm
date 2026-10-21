@@ -75,7 +75,7 @@ func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
 	}
 	// Avoid importing the ticket context's ORM model: it owns its draft validation at HTTP boundary.
 	var old OrderEvidence
-	e := s.DB.Where("tenant=? AND platform_number=?", s.Tenant, number).Order("created_at desc").First(&old).Error
+	e := s.DB.Where("tenant=? AND platform_number=? AND source_number<>?", s.Tenant, number, "").Order("created_at desc").First(&old).Error
 	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
 		return nil, e
 	}
@@ -186,5 +186,12 @@ func Bind(tx *gorm.DB, actor, state, b M) error {
 		return fail("Original item is not mapped to a supported Morpho device SKU. Ask an administrator to check the product catalog.", 422)
 	}
 	b["originalOrder"] = M{"confirmationId": r.ID, "candidateId": r.ParentID, "order": o, "itemId": r.ItemID, "productId": r.ProductID, "confirmedAt": r.CreatedAt, "confirmedBy": r.ActorName, "confirmedById": actor["id"]}
+	if o.Provider == "manual" {
+		var evidence M
+		if e := json.Unmarshal([]byte(r.Raw), &evidence); e != nil {
+			return e
+		}
+		domain.Obj(b["originalOrder"])["manualEvidence"] = evidence
+	}
 	return nil
 }

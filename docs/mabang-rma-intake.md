@@ -98,3 +98,26 @@ Future replacements must receive a new Mabang platformOrderId; shipment commands
 when implemented, must target that new replacement order only. A future mapping
 version must preserve existing confirmation snapshots and add contract fixtures
 before switching the adapter. No current RMA evidence is rewritten on source change.
+
+## Two-step intake and manual original orders
+
+Ticket RMA entry uses two steps: **Order information** and **Solution and warranty**.
+Step 2 remains unavailable until the server returns an original-order confirmation.
+Both steps can save a draft. Back/forward retains entered solution inputs; editing an
+order invalidates its confirmation and clears the previous solution/warranty inputs.
+Only the current step is mounted, so hidden required fields cannot block order entry.
+The footer keeps Save draft / Back / Next or Create RMA available while content scrolls.
+
+`POST /api/original-orders/manual` accepts an owned, live-authorized ticket draft,
+platform order number, enabled platform, original device product ID, positive whole
+quantity, payment date, optional shop, purchase-evidence reference and entry reason.
+It stores a new immutable confirmation using `provider=manual`, never Mabang. The
+actor name/ID and timestamp are recorded. The record has no ERP ID, ERP number or
+verified shipping status; the manual purchase evidence appears in RMA details.
+These entries never supply a platform-to-ERP identifier mapping for historical lookup.
+
+Manual entry is an explicit business input path, not an override of catalog matching,
+ColorBox exclusion, solution validation or warranty coverage. Warranty evidence is
+still provided and evaluated separately in step 2. Imported ERP originals continue
+to require shipped/completed source status. No new database table or migration is
+needed: the existing order-reference evidence table already owns these snapshots.

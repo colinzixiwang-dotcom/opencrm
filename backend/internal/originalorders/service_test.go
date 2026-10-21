@@ -104,3 +104,57 @@ func TestConfirmationBindingAndWarrantyGates(t *testing.T) {
 		t.Fatal("confirmed snapshot changed")
 	}
 }
+
+func TestManualOrderEvidenceAndCatalogGates(t *testing.T) {
+	if e := udesk.LoadEnv("../../../.env"); e != nil {
+		t.Fatal(e)
+	}
+	db, e := store.Open(filepath.Join(t.TempDir(), "manual-order"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer db.Destroy()
+	state, _ := db.State()
+	p := domain.Find(state, "products", "PRD-1")
+	p["productType"] = "device"
+	actor := domain.M{"id": "USR-ADMIN", "name": "Administrator"}
+	svc := originalorders.Service{DB: db.DB, Tenant: "tenant"}
+	input := domain.M{"draftId": "draft", "orderNumber": "MANUAL-1", "platform": "Amazon", "productId": "PRD-1", "quantity": float64(2), "paidDate": "2026-01-01", "evidenceReference": "Receipt INV-123", "entryReason": "Legacy order missing from ERP"}
+	for _, patch := range []domain.M{{"quantity": 1.5}, {"quantity": 0}, {"evidenceReference": ""}, {"entryReason": ""}, {"paidDate": "2099-01-01"}, {"platform": "UNKNOWN"}, {"productId": "PRD-2"}, {"draftId": ""}, {"orderNumber": "ONE,TWO"}} {
+		bad := domain.Clone(input)
+		for k, v := range patch {
+			bad[k] = v
+		}
+		if _, e = svc.Manual(actor, state, bad); e == nil {
+			t.Fatalf("invalid manual order accepted: %v", patch)
+		}
+	}
+	result, e := svc.Manual(actor, state, input)
+	if e != nil {
+		t.Fatal(e)
+	}
+	bound := domain.Clone(input)
+	bound["solutionId"] = "reship_device"
+	bound["orderConfirmationId"] = result["confirmationId"]
+	if e = originalorders.Bind(db.DB, actor, state, bound); e != nil {
+		t.Fatal(e)
+	}
+	original := domain.Obj(bound["originalOrder"])
+	order := original["order"].(source.Order)
+	if order.Provider != "manual" || order.SourceNumber != "" || order.Status != "" {
+		t.Fatal("manual evidence falsely marked as ERP/shipping verification", order)
+	}
+	proof := domain.Obj(original["manualEvidence"])
+	if proof["reference"] != input["evidenceReference"] || proof["recordedById"] != actor["id"] {
+		t.Fatal("manual provenance missing", proof)
+	}
+	foreign := domain.Clone(actor)
+	foreign["id"] = "other"
+	if e = originalorders.Bind(db.DB, foreign, state, bound); e == nil {
+		t.Fatal("foreign manual confirmation accepted")
+	}
+	p["sku"] = "ColorBox_2Base_StarterKit_Vivid"
+	if _, e = svc.Manual(actor, state, input); e == nil {
+		t.Fatal("manual ColorBox bypass accepted")
+	}
+}

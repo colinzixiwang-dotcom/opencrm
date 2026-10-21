@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Server) orderRoutes(api *gin.RouterGroup) {
-	for _, operation := range []string{"lookup", "confirm"} {
+	for _, operation := range []string{"lookup", "confirm", "manual"} {
 		op := operation
 		api.POST("/original-orders/"+op, func(c *gin.Context) {
 			s.require(c, ruoyi.Permission("rma.create"))
@@ -35,6 +35,8 @@ func (s *Server) orderRoutes(api *gin.RouterGroup) {
 				ctx, cancel := context.WithTimeout(c.Request.Context(), 45*time.Second)
 				defer cancel()
 				result, e = svc.Lookup(ctx, actor, state, b)
+			} else if op == "manual" {
+				result, e = svc.Manual(actor, state, b)
 			} else {
 				result, e = svc.Confirm(actor, state, b)
 			}
