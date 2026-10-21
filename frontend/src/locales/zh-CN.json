@@ -1283,5 +1283,11 @@
   "Attachment preview navigation": "附件预览切换",
   "Previous attachment": "上一个附件",
   "Next attachment": "下一个附件",
-  "Download this email to view it in your email application.": "下载原始邮件后，可使用邮件客户端查看。"
+  "Download this email to view it in your email application.": "下载原始邮件后，可使用邮件客户端查看。",
+  "Filter by ticket status": "筛选工单状态",
+  "Filter by ticket assignment": "筛选工单范围",
+  "My tickets": "我的工单",
+  "Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.": "你的 CRM 账号尚未关联 Udesk 客服，可切换到“全部工单”查看 Morpho 工单。",
+  "Invalid ticket assignment filter.": "工单范围筛选无效。",
+  "Invalid ticket status filter.": "工单状态筛选无效。"
 }

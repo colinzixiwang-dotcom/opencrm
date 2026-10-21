@@ -32,7 +32,8 @@
     "test:i18n": "node tests/i18n-e2e.mjs",
     "test:udesk": "node tests/udesk-e2e.mjs",
     "test:ticket-presentation": "node tests/ticket-presentation-e2e.mjs",
-    "test:ticket-scope": "node tests/ticket-scope-e2e.mjs"
+    "test:ticket-scope": "node tests/ticket-scope-e2e.mjs",
+    "test:ticket-filters": "node tests/ticket-column-filters-e2e.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.149",

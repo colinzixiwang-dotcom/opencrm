@@ -8,8 +8,6 @@ import {
   PanelHeading,
   ListToolbar,
   SearchControl,
-  FilterControl,
-  SortControl,
   Icon,
   Pagination,
   LoadingState,
@@ -508,7 +506,8 @@ export function TicketCenter() {
     [metadataError, setMetadataError] = useState(null),
     [draftError, setDraftError] = useState(null),
     [busy, setBusy] = useState(false),
-    [filter, setFilter] = useState(""),
+    [assignment, setAssignment] = useState("mine"),
+    [status, setStatus] = useState(""),
     [cursor, setCursor] = useState(""),
     [history, setHistory] = useState([]),
     [refresh, setRefresh] = useState(0),
@@ -516,7 +515,7 @@ export function TicketCenter() {
       new URLSearchParams(location.hash.split("?")[1]).get("ticket"),
     ),
     [query, setQuery] = useState(""),
-    [sort, setSort] = useState("repliedAt:desc"),
+
     [lookupBusy, setLookupBusy] = useState(false),
     [lookupError, setLookupError] = useState(null),
     [draft, setDraft] = useState(null),
@@ -537,8 +536,8 @@ export function TicketCenter() {
   const items = data?.items || [];
   const number = ticketNumberQuery(query);
   const issue = ticketListIssue(error || (!data && metadataError));
-  const hasFilters = !!(query || filter);
-  const clearFilters = () => { setQuery(""); setFilter(""); setCursor(""); setHistory([]); setLookupError(null); lookupRequest.current?.abort(); setLookupBusy(false); };
+  const hasFilters = !!(query || status || assignment === "mine");
+  const clearFilters = () => { setQuery(""); setStatus(""); setAssignment("all"); setCursor(""); setHistory([]); setLookupError(null); lookupRequest.current?.abort(); setLookupBusy(false); };
   const lookupRequest = useRef(null);
   useEffect(() => () => lookupRequest.current?.abort(), []);
   const lastRequest = useRef("");
@@ -574,7 +573,7 @@ export function TicketCenter() {
     if (selected) return;
     const controller = new window.AbortController();
     const version = ++latest.current;
-    const params = new URLSearchParams({ contract: "2", filterId: filter, cursor, sort, q: query });
+    const params = new URLSearchParams({ contract: "2", assignment, status, cursor, sort: "repliedAt:desc", q: query });
     const signature = params.toString();
     if (lastRequest.current !== signature) {
       setBusy(true);
@@ -606,7 +605,7 @@ export function TicketCenter() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [filter, cursor, sort, query, refresh, selected]);
+  }, [assignment, status, cursor, query, refresh, selected]);
   useEffect(() => {
     const update = () => {
       setSelected(null);
@@ -675,7 +674,7 @@ export function TicketCenter() {
                 download
                 href={
                   "/api/export/tickets?" +
-                  new URLSearchParams({ contract: "2", filterId: filter, cursor, sort, q: query })
+                  new URLSearchParams({ contract: "2", assignment, status, cursor, sort: "repliedAt:desc", q: query })
                 }
               >
                 <Icon name="download" />
@@ -703,53 +702,6 @@ export function TicketCenter() {
               </button>}
             </form>
             <TicketHelp label="Search help"><p>{tr("Search covers authorized ticket titles, descriptions and custom fields. Conversation history is not included.")}</p></TicketHelp>
-            <FilterControl
-              label="Udesk filter"
-              value={filter}
-              disabled={!metadata || busy}
-              onChange={(v) => {
-                setFilter(v);
-                setCursor("");
-                setHistory([]);
-                setQuery("");
-              }}
-              options={[
-                { value: "", label: "All Morpho tickets" },
-                ...(metadata?.filters || []).map((f) => ({
-                  value: f.id,
-                  label: f.name,
-                })),
-              ]}
-            />
-            <TicketHelp label="About Udesk filters"><p>{tr("Filters use the Udesk integration account. Results always stay within the configured Morpho groups.")}</p></TicketHelp>
-            <SortControl
-              label="Sort all authorized tickets"
-              value={sort}
-              onChange={(value) => {
-                setSort(value);
-                setCursor("");
-                setHistory([]);
-              }}
-              options={[
-                {
-                  value: "repliedAt:desc",
-                  label: "Last reply: newest first",
-                },
-                { value: "repliedAt:asc", label: "Last reply: oldest first" },
-                { value: "updatedAt:desc", label: "Updated · newest first" },
-                { value: "updatedAt:asc", label: "Updated · oldest first" },
-                { value: "createdAt:desc", label: "Created · newest first" },
-                { value: "createdAt:asc", label: "Created · oldest first" },
-                {
-                  value: "number:desc",
-                  label: "Ticket number · descending",
-                },
-                { value: "number:asc", label: "Ticket number · ascending" },
-                { value: "subject:asc", label: "Subject · A–Z" },
-                { value: "assigneeName:asc", label: "Assignee · A–Z" },
-                { value: "status:asc", label: "Status · A–Z" },
-              ]}
-            />
           </ListToolbar>
           {lookupError && <div className="ticket-inline-notice" role="alert">
             {tr(lookupError.status === 404 ? "Ticket not found or not available to your account." : lookupError.status === 403 ? "Your Udesk account is not linked. Contact an administrator." : "Unable to look up this ticket. Please try again later.")}
@@ -766,13 +718,8 @@ export function TicketCenter() {
           {!busy && !issue && data?.stale && <div className="ticket-inline-notice" role="status">
             {items.length > 0 ? tr("Synchronization is delayed. You are viewing older data.") : tr("Ticket data is out of date. The list is paused to protect access permissions.")}
           </div>}
-          {!busy && !issue && data && !data.initializing && items.length === 0 && <TicketQueueState
-            title={data.stale ? "Waiting for synchronization" : hasFilters ? "No matching tickets" : "No tickets to show"}
-            description={data.stale ? "The list will return automatically when synchronization recovers." : hasFilters ? "Try another keyword or adjust your filters." : "New tickets will appear here after synchronization."}
-          >
-            {!data.stale && hasFilters && <button className="btn secondary" onClick={clearFilters}>{tr("Clear filters")}</button>}
-          </TicketQueueState>}
-          {!busy && !issue && data && !data.initializing && items.length > 0 && (
+          {!busy && !issue && data && assignment === "mine" && !data.initializing && !data.stale && data.myAccountLinked === false && <div className="ticket-inline-notice" role="status">{tr("Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.")}</div>}
+          {!busy && !issue && data && !data.initializing && (
             <>
               <div className="table-scroll ticket-table">
                 <table>
@@ -788,11 +735,22 @@ export function TicketCenter() {
                         "Last reply",
                         "Linked RMAs",
                       ].map((label) => (
-                        <th key={label}>{tr(label)}</th>
+                        <th key={label}>
+                          {label === "Assignee / group" || label === "Status" ? <div className="ticket-column-filter">
+                            <span>{tr(label)}</span>
+                            <select aria-label={tr(label === "Status" ? "Filter by ticket status" : "Filter by ticket assignment")} value={label === "Status" ? status : assignment} onChange={e => {
+                              if(label === "Status") setStatus(e.target.value); else setAssignment(e.target.value);
+                              setCursor(""); setHistory([]);
+                            }}>
+                              {label === "Status" ? <><option value="">{tr("All statuses")}</option>{[...new Set([...(data.availableStatuses || []), ...(status ? [status] : [])])].map(value => <option key={value} value={value}>{value}</option>)}</> : <><option value="mine">{tr("My tickets")}</option><option value="all">{tr("All tickets")}</option></>}
+                            </select>
+                          </div> : tr(label)}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
+                    {items.length === 0 && <tr><td colSpan="8" className="ticket-empty-cell"><TicketQueueState title={data.stale ? "Waiting for synchronization" : hasFilters ? "No matching tickets" : "No tickets to show"} description={data.stale ? "The list will return automatically when synchronization recovers." : hasFilters ? "Try another keyword or adjust your filters." : "New tickets will appear here after synchronization."}>{!data.stale && hasFilters && <button className="btn secondary" onClick={clearFilters}>{tr("Clear filters")}</button>}</TicketQueueState></td></tr>}
                     {items.map((item) => {
                       const t = item.ticket;
                       return (
@@ -850,7 +808,7 @@ export function TicketCenter() {
                   </tbody>
                 </table>
               </div>
-              <Pagination
+              {items.length > 0 && <Pagination
                 label="Ticket pagination"
                 page={data.currentPage || history.length + 1}
                 totalPages={
@@ -867,7 +825,7 @@ export function TicketCenter() {
                   setHistory([...history, cursor]);
                   setCursor(data.nextCursor);
                 }}
-              />
+              />}
             </>
           )}
         </Panel>
