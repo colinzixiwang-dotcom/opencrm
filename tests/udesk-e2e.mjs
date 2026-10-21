@@ -1,3 +1,4 @@
+import {selectColumnFilter} from "./column-filter-helpers.mjs";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -43,32 +44,15 @@ try {
   await page.locator('a.nav-item[href="#home"]').click();
   await page.locator('a.nav-item[href="#service"]').click();
   await page.locator("tbody tr").first().waitFor();
-  await page
-    .locator("select option[value='10']")
-    .waitFor({ state: "attached" });
-  assert.equal(await page.locator("select option[value='10']").count(), 1);
-  assert.equal(await page.locator("nav a.nav-item").count(), 13);
-  console.log("PASS source metadata, navigation and filter deduplication");
-  assert.equal(
-    await page
-      .getByLabel("Sort all authorized tickets", { exact: true })
-      .inputValue(),
-    "repliedAt:desc",
-  );
-  const sortedResponse = page.waitForResponse(
-    (r) =>
-      new URL(r.url()).pathname === "/api/tickets" &&
-      new URL(r.url()).searchParams.get("sort") === "number:desc",
-  );
-  await page
-    .getByLabel("Sort all authorized tickets", { exact: true })
-    .selectOption("number:desc");
-  assert.equal((await (await sortedResponse).json()).sort, "number:desc");
-  await page.locator("tbody tr .text-button").first().waitFor();
-  assert.equal(
-    await page.locator("tbody tr .text-button").first().innerText(),
-    "#104",
-  );
+  assert.equal(await page.getByLabel("Filter by ticket assignment",{exact:true}).getAttribute("data-value"),"mine");
+  assert.equal(await page.getByLabel("Sort all authorized tickets",{exact:true}).count(),0);
+  assert.equal(await page.getByLabel("Udesk filter",{exact:true}).count(),0);
+  const sortedResponse=page.waitForResponse(r=>new URL(r.url()).pathname==="/api/tickets"&&new URL(r.url()).searchParams.get("assignment")==="all");
+  await selectColumnFilter(page,"Filter by ticket assignment","all");
+  assert.equal((await(await sortedResponse).json()).sort,"repliedAt:desc");
+  await page.locator("tbody .ticket-subject").first().waitFor();
+  assert.equal(await page.locator("nav a.nav-item").count(),13);
+  console.log("PASS shared scope selector and fixed reply-time order");
   await page
     .getByLabel("Search ticket content", { exact: true })
     .fill("Second own ticket");
@@ -98,7 +82,7 @@ try {
     await listGate;
     await route.continue();
   });
-  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("createdAt:desc");
+  await selectColumnFilter(page,"Filter by ticket assignment","mine");
   await page
     .getByRole("status", { name: "Loading tickets…", exact: true })
     .waitFor();
@@ -109,17 +93,13 @@ try {
   const before = mock.state.requests.filter((p) => p === "tickets").length;
   assert.equal(await page.getByRole("button", { name: "Refresh", exact: true }).count(), 0);
   const queried = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/tickets");
-  await page.getByLabel("Sort all authorized tickets", { exact: true }).selectOption("number:desc");
+  await selectColumnFilter(page,"Filter by ticket assignment","all");
   await queried;
   await page.locator("tbody tr").first().waitFor();
   assert.equal(mock.state.requests.filter((p) => p === "tickets").length, before);
-  const filtered = page.waitForResponse((r) => r.url().includes("filterId=11"));
-  await page.getByLabel("Udesk filter", { exact: true }).selectOption("11");
-  await filtered;
-  await page.locator("tbody tr").first().waitFor();
-  assert.equal(await page.locator("tbody tr").count(), 1);
-  assert.ok(mock.state.filterIds.includes("11"));
-  await page.locator("tbody tr .ticket-subject").first().click();
+  const filtered=await page.request.get(app.base+"/api/tickets?filterId=11");
+  assert.equal(filtered.status(),200);assert.equal((await filtered.json()).totalCount,1);
+  await page.locator('tbody tr .ticket-subject[href="#service?ticket=101"]').click();
   assert.ok(page.url().endsWith("#service?ticket=101"));
   await page
     .getByRole("heading", { name: "Order and product", exact: true })

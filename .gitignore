@@ -7,4 +7,6 @@ test-results/
 frontend/dist/
 .bin/
 
+/node_modules
+
 .firecrawl/

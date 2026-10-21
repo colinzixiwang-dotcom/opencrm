@@ -10,6 +10,7 @@ import (
 	"harbor/internal/integrations/udesk"
 	"harbor/internal/ruoyi"
 	source "harbor/internal/supportsource"
+	"harbor/internal/tickets"
 	"net/http"
 	"strconv"
 	"strings"
@@ -80,7 +81,7 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 			}
 			size = n
 		}
-		v, e := s.Tickets.Search(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), size, c.Query("sort"), c.Query("q"))
+		v, e := s.Tickets.Search(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), size, c.Query("sort"), c.Query("q"), tickets.ListSelection{Assignment: c.Query("assignment"), Status: c.Query("status")})
 		s.ticketResponse(c, v, e)
 	})
 	t.GET("/metadata", func(c *gin.Context) {
@@ -141,7 +142,7 @@ func (s *Server) ticketRoutes(api *gin.RouterGroup) {
 }
 func (s *Server) exportTickets(c *gin.Context) {
 	s.require(c, ruoyi.ViewPermission("service"))
-	v, e := s.Tickets.Search(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), 100, c.Query("sort"), c.Query("q"))
+	v, e := s.Tickets.Search(c.Request.Context(), s.actor(c), c.Query("filterId"), c.Query("cursor"), 100, c.Query("sort"), c.Query("q"), tickets.ListSelection{Assignment: c.Query("assignment"), Status: c.Query("status")})
 	if e != nil {
 		s.ticketResponse(c, nil, e)
 		return

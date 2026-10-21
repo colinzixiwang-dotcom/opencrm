@@ -137,3 +137,82 @@ func TestPrematureRepeatedSourcePageCannotPublish(t *testing.T) {
 		t.Fatal(fmt.Sprint(got), e)
 	}
 }
+
+func TestColumnFiltersApplyBeforePagingAndNeverExpandMorphoScope(t *testing.T) {
+	db, s, f, admin := fixture(t)
+	ctx := context.Background()
+	mine := actor(t, db, "one@example.com")
+	f.tickets = []M{}
+	for i := 1; i <= 48; i++ {
+		agent := 11
+		if i%2 == 0 {
+			agent = 22
+		}
+		status := "开启"
+		if i%3 == 0 {
+			status = "等待客户"
+		}
+		group := 5042
+		if i == 48 {
+			group = 5060
+		}
+		f.tickets = append(f.tickets, M{"id": i, "field_num": fmt.Sprint("#", i), "subject": fmt.Sprint("Ticket ", i), "assignee_id": agent, "user_group_id": group, "status": status, "replied_at": fmt.Sprintf("2026-10-%02dT10:00:00+08:00", i%28+1)})
+	}
+	if e := s.Sync(ctx); e != nil {
+		t.Fatal(e)
+	}
+	calls := len(f.calls)
+	query := func(who M, assignment, status, cursor string) M {
+		t.Helper()
+		r, e := s.Search(ctx, who, "", cursor, 5, "repliedAt:desc", "", tickets.ListSelection{Assignment: assignment, Status: status})
+		if e != nil {
+			t.Fatal(e)
+		}
+		return r
+	}
+	all := query(mine, "all", "", "")
+	if all["totalCount"] != 47 {
+		t.Fatal(all)
+	}
+	first := query(mine, "mine", "等待客户", "")
+	if first["totalCount"] != 8 || first["totalPages"] != 2 {
+		t.Fatal(first)
+	}
+	second := query(mine, "mine", "等待客户", domain.Str(first["nextCursor"]))
+	if len(domain.Rows(second, "items")) != 3 {
+		t.Fatal(second)
+	}
+	for _, page := range []M{first, second} {
+		for _, item := range domain.Rows(page, "items") {
+			ticket := legacyTicket(item)
+			if fmt.Sprint(ticket["assignee_id"]) != "11" || ticket["status"] != "等待客户" {
+				t.Fatal("filter applied after pagination", ticket)
+			}
+		}
+	}
+	if len(first["availableStatuses"].([]string)) != 2 {
+		t.Fatal("statuses lost after filtering")
+	}
+	// A missing/disabled mapping returns no personal results, never the shared list.
+	unlinked := query(admin, "mine", "", "")
+	if unlinked["totalCount"] != 0 || unlinked["myAccountLinked"] != false {
+		t.Fatal(unlinked)
+	}
+	if e := db.DB.Model(&tickets.Mapping{}).Where("user_id=?", mine["id"]).Update("enabled", false).Error; e != nil {
+		t.Fatal(e)
+	}
+	disabled := query(mine, "mine", "", "")
+	if disabled["totalCount"] != 0 {
+		t.Fatal(disabled)
+	}
+	shared := query(mine, "all", "", "")
+	if shared["totalCount"] != 47 {
+		t.Fatal("personal filter changed authorization", shared)
+	}
+	if len(f.calls) != calls {
+		t.Fatal("local filters called Udesk")
+	}
+	if _, e := s.Search(ctx, mine, "", "", 20, "", "", tickets.ListSelection{Assignment: "other-user"}); e == nil {
+		t.Fatal("arbitrary assignee selection accepted")
+	}
+}
