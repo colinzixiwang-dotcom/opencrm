@@ -103,6 +103,10 @@ func (s *Server) Router() *gin.Engine {
 			s.respond(c, e)
 			return
 		}
+		if e := s.assessOriginalOrder(c, b, state); e != nil {
+			s.respond(c, e)
+			return
+		}
 		c.JSON(200, support.Assess(state, b, time.Now()))
 	})
 	api.GET("/report", s.report)

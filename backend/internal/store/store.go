@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
+	"harbor/internal/originalorders"
 	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
 	"harbor/internal/support"
@@ -26,6 +27,7 @@ func Digest(v string) string           { b := sha256.Sum256([]byte(v)); return h
 func (s *Store) Apply(uid, action string, b M, key string) (response M, err error) {
 	payload, _ := json.Marshal(M{"action": action, "payload": b})
 	hash := Digest(string(payload))
+	b = domain.Clone(b)
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if e := persistence.Lock(tx); e != nil {
 			return e
@@ -93,6 +95,11 @@ func (s *Store) Apply(uid, action string, b M, key string) (response M, err erro
 							return &domain.Error{Message: "At least one active administrator is required.", Status: 409}
 						}
 					}
+				}
+			}
+			if action == "rma.create" {
+				if e := originalorders.Bind(tx, actor, state, b); e != nil {
+					return e
 				}
 			}
 			if _, ok := supportActions[action]; ok {

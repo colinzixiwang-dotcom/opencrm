@@ -34,6 +34,7 @@ func active(rows []M, id string) M {
 }
 func Ensure(s M) {
 	defer normalize(s)
+	defer ensureReship(s)
 	defer ensureWarranty(s)
 	for _, k := range []string{"rmas", "rmaTasks", "supportOrders", "serials", "benefitHistory"} {
 		if s[k] == nil {
@@ -369,7 +370,40 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 			domain.Fail("This root cause does not apply to the selected SKU.")
 		}
 		solution := active(domain.Rows(c, "solutions"), domain.Str(b["solutionId"]))
+		if domain.Str(b["draftId"]) != "" || solution["id"] == "reship_device" {
+			if !domain.In(domain.Str(solution["id"]), "reship_device", "parts") {
+				domain.Fail("Ticket RMAs support only whole-unit or parts reshipment.", 422)
+			}
+			if len(domain.Obj(b["originalOrder"])) == 0 {
+				domain.Fail("Confirm the original order and affected item before creating the RMA.", 422)
+			}
+			domain.Required(b["solutionReason"], "Solution reason", 2000)
+			domain.Required(domain.Obj(b["warrantyEvidence"])["evidenceReference"], "Delivery evidence reference", 1000)
+			for _, n := range domain.Rows(solution, "nodes") {
+				expected := "send_device"
+				if solution["id"] == "parts" {
+					expected = "send_parts"
+				}
+				if n["typeId"] != expected {
+					domain.Fail("Reship solution configuration is invalid.", 422)
+				}
+				input := domain.Obj(domain.Obj(b["taskInputs"])[domain.Str(n["key"])])
+				if solution["id"] == "reship_device" && domain.Str(input["productId"]) != "" && input["productId"] != b["productId"] {
+					domain.Fail("Replacement device must match the original device SKU.", 422)
+				}
+				if solution["id"] == "parts" {
+					domain.Required(input["productId"], "Replacement part", 160)
+					domain.Int(input["qty"], "Quantity", 1, 1000000)
+				}
+			}
+		}
 		assessment := Assess(s, b, time.Now())
+		if domain.Str(b["draftId"]) != "" || solution["id"] == "reship_device" {
+			if assessment["status"] != "covered" && domain.Bool(assessment["eligible"]) {
+				domain.Fail("Warranty coverage must be confirmed before creating this RMA.", 422)
+			}
+			assessment["evidenceProvenance"] = M{"source": "agent_entered", "reference": domain.Obj(b["warrantyEvidence"])["evidenceReference"], "recordedById": u["id"], "recordedBy": u["name"], "recordedAt": domain.Now()}
+		}
 		if !domain.Bool(assessment["eligible"]) {
 			domain.Fail(domain.Str(assessment["reason"]), 422)
 		}
@@ -389,6 +423,8 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 			}
 		}
 		result = M{"id": domain.ID("RMA"), "ownerId": u["id"], "ownerName": u["name"], "ticketNumber": domain.Required(b["ticketNumber"], "Support ticket number", 160), "orderNumber": domain.Required(b["orderNumber"], "Order number", 160), "platform": platform["id"], "platformName": platform["name"], "productId": product["id"], "sn": sn, "rootCauseId": root["id"], "rootCauseName": root["name"], "primaryCause": root["primary"], "description": domain.Required(b["description"], "Description", 4000), "solutionId": solution["id"], "solutionName": solution["name"], "eligibilityAssessment": assessment, "solutionSnapshot": domain.Clone(solution), "configRevision": c["revision"], "customFields": custom(c, "rma", "", b["customFields"]), "createdAt": domain.Now(), "updatedAt": domain.Now()}
+		result["originalOrder"] = b["originalOrder"]
+		result["solutionReason"] = domain.Text(b["solutionReason"], 2000)
 		inputs := domain.Obj(b["taskInputs"])
 		taskIDs := map[string]string{}
 		for _, n := range domain.Rows(solution, "nodes") {
@@ -829,4 +865,26 @@ func validateProduct(s, t M, p string) {
 		}
 	}
 
+}
+
+func ensureReship(s M) {
+	c := Config(s)
+	foundPlatform := false
+	for _, p := range domain.Rows(c, "platforms") {
+		if p["id"] == "TikTokShop" {
+			foundPlatform = true
+		}
+	}
+	if !foundPlatform {
+		c["platforms"] = append(domain.Rows(c, "platforms"), M{"id": "TikTokShop", "name": "TikTok Shop", "enabled": true})
+		c["revision"] = domain.N(c["revision"]) + 1
+	}
+	for _, sol := range domain.Rows(c, "solutions") {
+		if sol["id"] == "reship_device" {
+			return
+		}
+	}
+	rows := domain.Rows(c, "solutions")
+	c["solutions"] = append(rows, M{"id": "reship_device", "name": "Send replacement device", "enabled": true, "requiresWarranty": true, "nodes": []M{{"key": "device", "typeId": "send_device", "dependsOn": []string{}, "amountCents": int64(0), "qty": int64(1), "productId": ""}}})
+	c["revision"] = domain.N(c["revision"]) + 1
 }

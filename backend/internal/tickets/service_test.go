@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
+	orders "harbor/internal/ordersource"
+	"harbor/internal/originalorders"
 	"harbor/internal/ruoyi"
 	"harbor/internal/store"
 	source "harbor/internal/supportsource"
@@ -15,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 type M = domain.M
@@ -245,6 +248,24 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 	for k, v := range (M{"orderNumber": "ORDER-1", "platform": "Amazon", "productId": "PRD-1", "rootCauseId": "device_fault", "solutionId": "goodwill", "taskInputs": M{"gift": M{"amountCents": 15000}}}) {
 		input[k] = v
 	}
+	// New ticket intake requires confirmed order evidence and an in-warranty reshipment.
+	state, _ := db.State()
+	product := domain.Find(state, "products", "PRD-1")
+	product["productType"] = "device"
+	if e = store.Write(db.DB, state); e != nil {
+		t.Fatal(e)
+	}
+	order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: "ORDER-1", Platform: "Amazon", Status: "3", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
+	encoded, _ := json.Marshal(order)
+	evidence := originalorders.OrderEvidence{ID: "confirmed", UserID: domain.Str(one["id"]), DraftID: domain.Str(p["draftId"]), Kind: "confirmed", ItemID: "item", ProductID: "PRD-1", Normalized: string(encoded), Raw: "{}", CreatedAt: time.Now()}
+	if e = db.DB.Create(&evidence).Error; e != nil {
+		t.Fatal(e)
+	}
+	input["solutionId"] = "reship_device"
+	input["orderConfirmationId"] = evidence.ID
+	input["solutionReason"] = "Device failed"
+	input["warrantyEvidence"] = M{"deliveredAt": time.Now().AddDate(0, 0, -30).Format("2006-01-02"), "evidenceReference": "Delivery receipt"}
+	input["taskInputs"] = M{}
 	// Invalid eligibility must leave draft unsubmitted and create no linkage.
 	bad := domain.Clone(input)
 	bad["solutionId"] = "replacement"
@@ -274,7 +295,7 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 	if links != 1 {
 		t.Fatal("duplicate links", links)
 	}
-	state, e := db.State()
+	state, e = db.State()
 	if e != nil {
 		t.Fatal(e)
 	}

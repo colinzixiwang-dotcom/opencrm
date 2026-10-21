@@ -2,13 +2,17 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
+	orders "harbor/internal/ordersource"
+	"harbor/internal/originalorders"
 	"harbor/internal/ruoyi"
 	"harbor/internal/tickets"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 type ticketAPI struct{}
@@ -124,6 +128,18 @@ func TestEveryActiveRoleCanReadSharedMorphoAndCreateRMA(t *testing.T) {
 		input["ticketNumber"] = "#3"
 		input["draftId"] = domain.Obj(draft["draft"])["id"]
 		input["ticketSnapshotId"] = domain.Obj(draft["payload"])["ticketSnapshotId"]
+		input["solutionId"] = "reship_device"
+		input["solutionReason"] = "Device failed"
+		input["warrantyEvidence"] = M{"deliveredAt": time.Now().AddDate(0, 0, -30).Format("2006-01-02"), "evidenceReference": "Receipt"}
+		input["taskInputs"] = M{}
+		product := domain.Find(state, "products", domain.Str(input["productId"]))
+		order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: domain.Str(input["orderNumber"]), Platform: domain.Str(input["platform"]), Status: "3", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
+		encoded, _ := json.Marshal(order)
+		evidence := originalorders.OrderEvidence{ID: domain.ID("CONF"), UserID: domain.Str(actor["id"]), DraftID: domain.Str(input["draftId"]), Kind: "confirmed", ItemID: "item", ProductID: domain.Str(input["productId"]), Normalized: string(encoded), Raw: "{}", CreatedAt: time.Now()}
+		if e := x.s.DB.Create(&evidence).Error; e != nil {
+			t.Fatal(e)
+		}
+		input["orderConfirmationId"] = evidence.ID
 		result := x.action(token, "rma.create", input, 200)
 		if domain.Obj(result["ticketReference"])["id"] != "3" {
 			t.Fatal(result)

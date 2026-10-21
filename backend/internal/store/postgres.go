@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
+	"harbor/internal/originalorders"
 	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
 	"harbor/internal/support"
@@ -44,7 +45,13 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateBuiltinRoleNames(tx, ledger); e != nil {
 				return e
 			}
-			return migrateSourceProjection(tx, ledger)
+			if e := migrateSourceProjection(tx, ledger); e != nil {
+				return e
+			}
+			if e := migrateOrderEvidence(tx, ledger); e != nil {
+				return e
+			}
+			return migrateReshipConfig(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -78,7 +85,13 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateBuiltinRoleNames(tx, ledger); e != nil {
 			return e
 		}
-		return migrateSourceProjection(tx, ledger)
+		if e := migrateSourceProjection(tx, ledger); e != nil {
+			return e
+		}
+		if e := migrateOrderEvidence(tx, ledger); e != nil {
+			return e
+		}
+		return migrateReshipConfig(tx, ledger)
 	})
 }
 
@@ -308,4 +321,54 @@ func migrateSourceProjection(tx *gorm.DB, ledger string) error {
 		return e
 	}
 	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(6)").Error
+}
+
+func migrateOrderEvidence(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=7").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := originalorders.Init(tx); e != nil {
+		return e
+	}
+	state, e := Read(tx)
+	if e != nil {
+		return e
+	}
+	if state["supportConfig"] != nil {
+		support.Ensure(state)
+		if e = Write(tx, state); e != nil {
+			return e
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(7)").Error
+}
+
+// v8 seeds the independent reship solution and supported TikTok platform without
+// overwriting any existing solution, disabled platform, policy or historical RMA.
+func migrateReshipConfig(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=8").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := originalorders.Init(tx); e != nil {
+		return e
+	}
+	state, e := Read(tx)
+	if e != nil {
+		return e
+	}
+	if state["supportConfig"] != nil {
+		support.Ensure(state)
+		if e = Write(tx, state); e != nil {
+			return e
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(8)").Error
 }

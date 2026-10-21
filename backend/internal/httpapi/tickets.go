@@ -51,6 +51,7 @@ func (s *Server) ticketResponse(c *gin.Context, v any, e error) {
 	}
 }
 func (s *Server) ticketRoutes(api *gin.RouterGroup) {
+	s.orderRoutes(api)
 	api.GET("/integrations/udesk/ticket-scope", func(c *gin.Context) {
 		v, e := s.Tickets.ScopeConfig(c.Request.Context(), s.actor(c))
 		s.ticketResponse(c, v, e)

@@ -28,7 +28,12 @@ var rateMu sync.Mutex
 var lastRequest time.Time
 
 func FromEnv() *Client {
-	return &Client{URL: "https://gwapi.mabangerp.com/api/v2", Key: os.Getenv("MABANG_APPKEY"), Token: os.Getenv("MABANG_APPTOKEN"), HTTP: &http.Client{Timeout: 25 * time.Second}}
+	endpoint := "https://gwapi.mabangerp.com/api/v2"
+	// Fixture routing is available only in isolated PostgreSQL test namespaces.
+	if os.Getenv("PG_TEST_NAMESPACE") != "" && os.Getenv("MABANG_TEST_URL") != "" {
+		endpoint = os.Getenv("MABANG_TEST_URL")
+	}
+	return &Client{URL: endpoint, Key: os.Getenv("MABANG_APPKEY"), Token: os.Getenv("MABANG_APPTOKEN"), HTTP: &http.Client{Timeout: 25 * time.Second}}
 }
 func failure(code, msg string, status int) error {
 	return &source.Error{Code: code, Message: msg, Status: status}
@@ -93,6 +98,9 @@ func (c *Client) call(ctx context.Context, api string, params map[string]string)
 	data, ok := envelope["data"].(map[string]any)
 	if !ok {
 		return nil, failure("malformed", "Mabang returned an invalid order response.", 502)
+	}
+	if code := str(data["code"]); code != "" && code != "000" && code != "200" {
+		return nil, failure("rejected", "Mabang rejected the lookup request.", 502)
 	}
 	return data, nil
 }
