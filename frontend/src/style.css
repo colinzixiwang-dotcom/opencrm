@@ -3082,13 +3082,13 @@ td {
   width: 65px;
 }
 .ticket-table th:nth-child(2) {
-  width: 30%;
+  width: 27%;
 }
 .ticket-table th:nth-child(3) {
-  width: 16%;
+  width: 18%;
 }
 .ticket-table th:nth-child(4) {
-  width: 9%;
+  width: 12%;
 }
 .ticket-table th:nth-child(5) {
   width: 7%;
@@ -4214,8 +4214,9 @@ td {
 /* Compact column filters: labels align with the rest of the table header. */
 .ticket-column-filter {appearance:none;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;min-height:30px;margin:-5px -5px;padding:5px;border-radius:5px;transition:background .15s;}
 .ticket-column-filter:hover {background:#eef3e9;}
-.ticket-column-label {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ticket-column-value {flex-shrink:1;min-width:0;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 5px;border-radius:4px;color:#49684c;background:#e8efdf;font-size:10px;font-weight:500;line-height:1.4;}
+.ticket-column-label {flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ticket-column-value {flex:0 1 auto;min-width:0;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 5px;border-radius:4px;color:#49684c;background:#e8efdf;font-size:10px;font-weight:500;line-height:1.4;}
+.ticket-table th:nth-child(4) .ticket-column-value {max-width:72px;}
 .ticket-column-filter > .icon {flex:none;width:12px;height:12px;color:#839581;stroke-width:1.6;}
 
 .ticket-column-filter:focus-within {outline:2px solid #8aa287;outline-offset:2px;}
