@@ -13,8 +13,24 @@ import (
 
 const MaxListAge = 15 * time.Minute
 
-func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, size int, order, search string) (result M, err error) {
+// ListSelection is a local presentation filter, never an authorization grant.
+type ListSelection struct{ Assignment, Status string }
 
+func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, size int, order, search string, selections ...ListSelection) (result M, err error) {
+
+	selection := ListSelection{Assignment: "all"}
+	if len(selections) > 0 {
+		selection = selections[0]
+	}
+	if selection.Assignment == "" {
+		selection.Assignment = "all"
+	}
+	if selection.Assignment != "all" && selection.Assignment != "mine" {
+		return nil, fail("Invalid ticket assignment filter.", 400)
+	}
+	if len(selection.Status) > 160 {
+		return nil, fail("Invalid ticket status filter.", 400)
+	}
 	if err = s.readPermission(actor); err != nil {
 		return nil, err
 	}
@@ -68,7 +84,7 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 		if initialized {
 			at = state.LastSuccess.UTC().Format(time.RFC3339Nano)
 		}
-		result = M{"items": []M{}, "nextCursor": "", "fetchedAt": at, "filterId": filter, "sort": order, "query": search, "scanLimited": false, "totalPages": 1, "totalCount": 0, "initializing": !initialized, "stale": stale, "syncError": state.Error, "syncIntervalSeconds": 60, "searchIncludesReplies": false}
+		result = M{"assignment": selection.Assignment, "status": selection.Status, "availableStatuses": []string{}, "myAccountLinked": false, "items": []M{}, "nextCursor": "", "fetchedAt": at, "filterId": filter, "sort": order, "query": search, "scanLimited": false, "totalPages": 1, "totalCount": 0, "initializing": !initialized, "stale": stale, "syncError": state.Error, "syncIntervalSeconds": 60, "searchIncludesReplies": false}
 		if !initialized || (stale) {
 			return nil
 		}
@@ -80,10 +96,35 @@ func (s *Service) Search(ctx context.Context, actor M, filter, cursor string, si
 		result["scopeRevision"] = policy.Revision
 		result["product"] = MorphoScope
 		members := persistence.Table(tx, "filter_members")
-		base := func() *gorm.DB {
+		agentIDs := []string{}
+		if selection.Assignment == "mine" {
+			if e := tx.Model(&Mapping{}).Where("tenant=? AND user_id=? AND enabled=true", s.Tenant, actor["id"]).Pluck("agent_id", &agentIDs).Error; e != nil {
+				return e
+			}
+		}
+		result["myAccountLinked"] = len(agentIDs) > 0
+		scoped := func() *gorm.DB {
 			q := tx.Model(&Ticket{}).Where("tenant=?", s.Tenant).Where("external_id IN (SELECT ticket_id FROM "+members+" WHERE tenant=? AND scope=? AND generation=?)", s.Tenant, filter, state.Generation)
 			q = policy.apply(q)
-
+			return q
+		}
+		statuses := []string{}
+		if e := scoped().Where("status <> ''").Distinct().Order("status").Pluck("status", &statuses).Error; e != nil {
+			return e
+		}
+		result["availableStatuses"] = statuses
+		base := func() *gorm.DB {
+			q := scoped()
+			if selection.Assignment == "mine" {
+				if len(agentIDs) == 0 {
+					q = q.Where("1=0")
+				} else {
+					q = q.Where("assignee IN ?", agentIDs)
+				}
+			}
+			if selection.Status != "" {
+				q = q.Where("status=?", selection.Status)
+			}
 			if search != "" {
 				escaped := strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(search)
 				q = q.Where("search_text ILIKE ?", "%"+escaped+"%")
