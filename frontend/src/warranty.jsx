@@ -102,6 +102,17 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
                 </select>
               </label>
             )}
+            {payload.draftId && (
+              <label>
+                {tr("Delivery evidence reference")}
+                <input
+                  required
+                  maxLength="1000"
+                  value={value.evidenceReference || ""}
+                  onChange={(e) => set("evidenceReference", e.target.value)}
+                />
+              </label>
+            )}
             <label>
               {tr("Delivery date")}
               <input

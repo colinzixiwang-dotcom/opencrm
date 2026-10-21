@@ -1,3 +1,4 @@
+import { OriginalOrderLookup, OriginalOrderSummary } from "./original-order";
 import { LanguageSwitcher } from "./language";
 import { TicketScopeSettings } from "./ticket-scope-settings";
 import { tr } from "./i18n";
@@ -460,6 +461,11 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
       draftId: initial.draftId || "",
       ticketSnapshotId: initial.ticketSnapshotId || "",
       orderNumber: initial.orderNumber || "",
+      orderConfirmationId: initial.orderConfirmationId || "",
+      orderConfirmation: initial.orderConfirmation || null,
+      orderPaidDate: initial.orderPaidDate || "",
+      orderShop: initial.orderShop || "",
+      solutionReason: initial.solutionReason || "",
       platform: initial.platform || "",
       productId: initial.productId || "",
       rootCauseId: initial.rootCauseId || "",
@@ -514,7 +520,8 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!assessment?.eligible) return;
+          if (!assessment?.eligible || (v.draftId && !v.orderConfirmationId))
+            return;
           const taskInputs = {};
           for (const [k, x] of Object.entries(inputs)) {
             taskInputs[k] = {
@@ -536,6 +543,20 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
         }}
       >
         <div className="modal-body">
+          {v.draftId && (
+            <OriginalOrderLookup
+              value={v}
+              onChange={(next) => {
+                setV(next);
+                setAssessment(null);
+              }}
+            />
+          )}
+          {v.draftId && (
+            <div className="support-section-title">
+              <h3>{tr("2. Solution and warranty")}</h3>
+            </div>
+          )}
           <div className="form-grid">
             <Input
               label={tr("Support ticket number")}
@@ -546,33 +567,35 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
               required
               maxLength="160"
             />
-            <Input
-              label={tr("Order number")}
-              name="orderNumber"
-              list="support-order-options"
-              value={v.orderNumber}
-              onChange={(x) => {
-                const o = orders.find((o) => o.orderNumber === x);
-                const changedProduct =
-                  o?.productId && o.productId !== v.productId;
-                setV({
-                  ...v,
-                  orderNumber: x,
-                  ...(o
-                    ? {
-                        platform: o.platform,
-                        productId: o.productId || v.productId,
-                      }
-                    : {}),
-                  ...(changedProduct
-                    ? { rootCauseId: "", sn: "", solutionId: "" }
-                    : {}),
-                });
-                if (changedProduct) setInputs({});
-              }}
-              required
-              maxLength="160"
-            />
+            {!v.draftId && (
+              <Input
+                label={tr("Order number")}
+                name="orderNumber"
+                list="support-order-options"
+                value={v.orderNumber}
+                onChange={(x) => {
+                  const o = orders.find((o) => o.orderNumber === x);
+                  const changedProduct =
+                    o?.productId && o.productId !== v.productId;
+                  setV({
+                    ...v,
+                    orderNumber: x,
+                    ...(o
+                      ? {
+                          platform: o.platform,
+                          productId: o.productId || v.productId,
+                        }
+                      : {}),
+                    ...(changedProduct
+                      ? { rootCauseId: "", sn: "", solutionId: "" }
+                      : {}),
+                  });
+                  if (changedProduct) setInputs({});
+                }}
+                required
+                maxLength="160"
+              />
+            )}
             <datalist id="support-order-options">
               {orders.map((o) => (
                 <option key={o.id} value={o.orderNumber}>
@@ -580,34 +603,50 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                 </option>
               ))}
             </datalist>
-            <Select
-              label={tr("Purchased platform")}
-              value={v.platform}
-              onChange={(x) => set("platform", x)}
-              items={options(cfg.platforms.filter((x) => x.enabled))}
-              empty={tr("Choose platform…")}
-              required
-            />
-            <Select
-              label={tr("Affected device / part SKU")}
-              value={v.productId}
-              onChange={(x) => {
-                setV({
-                  ...v,
-                  productId: x,
-                  rootCauseId: "",
-                  sn: "",
-                  solutionId: "",
-                });
-                setInputs({});
-              }}
-              items={s.products.map((p) => ({
-                value: p.id,
-                label: sku(s, p.id),
-              }))}
-              empty={tr("Choose SKU…")}
-              required
-            />
+            {v.draftId ? (
+              <Input
+                label={tr("Purchased platform")}
+                value={v.platform}
+                readOnly
+              />
+            ) : (
+              <Select
+                label={tr("Purchased platform")}
+                value={v.platform}
+                onChange={(x) => set("platform", x)}
+                items={options(cfg.platforms.filter((x) => x.enabled))}
+                empty={tr("Choose platform…")}
+                required
+              />
+            )}
+            {v.draftId ? (
+              <Input
+                label={tr("Affected device / part SKU")}
+                value={v.productId ? sku(s, v.productId) : ""}
+                readOnly
+              />
+            ) : (
+              <Select
+                label={tr("Affected device / part SKU")}
+                value={v.productId}
+                onChange={(x) => {
+                  setV({
+                    ...v,
+                    productId: x,
+                    rootCauseId: "",
+                    sn: "",
+                    solutionId: "",
+                  });
+                  setInputs({});
+                }}
+                items={s.products.map((p) => ({
+                  value: p.id,
+                  label: sku(s, p.id),
+                }))}
+                empty={tr("Choose SKU…")}
+                required
+              />
+            )}
             <Input
               label={tr("Serial number (optional)")}
               value={v.sn}
@@ -640,6 +679,7 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                 cfg.solutions.filter(
                   (x) =>
                     x.enabled &&
+                    (!v.draftId || ["reship_device", "parts"].includes(x.id)) &&
                     x.nodes.every((n) =>
                       cfg.taskTypes.some((t) => t.id === n.typeId && t.enabled),
                     ),
@@ -648,13 +688,22 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
               empty={tr("Choose solution…")}
               required
             />
+            {v.draftId && (
+              <TextArea
+                label={tr("Solution reason")}
+                value={v.solutionReason}
+                onChange={(x) => set("solutionReason", x)}
+                required
+                maxLength="2000"
+              />
+            )}
             <CustomFields
               scope="rma"
               value={v.customFields}
               onChange={(x) => set("customFields", x)}
             />
           </div>
-          {solution && (
+          {solution && (!v.draftId || v.orderConfirmationId) && (
             <WarrantyEvidence
               value={v.warrantyEvidence}
               onChange={(x) => set("warrantyEvidence", x)}
@@ -663,6 +712,13 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                 solutionId: v.solutionId,
                 platform: v.platform,
                 warrantyEvidence: v.warrantyEvidence,
+                ...(v.draftId
+                  ? {
+                      draftId: v.draftId,
+                      orderNumber: v.orderNumber,
+                      orderConfirmationId: v.orderConfirmationId,
+                    }
+                  : {}),
               }}
               onAssessment={setAssessment}
             />
@@ -755,7 +811,9 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
           error={tr(error)}
           onClose={onClose}
           label={tr("Create RMA")}
-          disabled={!assessment?.eligible}
+          disabled={
+            !assessment?.eligible || (!!v.draftId && !v.orderConfirmationId)
+          }
         />
       </form>
     </Dialog>
@@ -931,6 +989,28 @@ function RMADetail({ id, onClose }) {
             ))}
             <FieldValues value={r.customFields} />
           </div>
+          {r.originalOrder && (
+            <>
+              <div className="support-section-title">
+                <h3>{tr("Original order snapshot")}</h3>
+              </div>
+              <OriginalOrderSummary confirmation={r.originalOrder} />
+            </>
+          )}
+          {r.solutionReason && (
+            <div className="support-description">
+              <small>{tr("Solution reason")}</small>
+              <p>{r.solutionReason}</p>
+            </div>
+          )}
+          {r.eligibilityAssessment?.evidenceProvenance && (
+            <p className="help-text">
+              {tr("Manual warranty evidence")}:{" "}
+              {r.eligibilityAssessment.evidenceProvenance.reference} ·{" "}
+              {r.eligibilityAssessment.evidenceProvenance.recordedBy} ·{" "}
+              {r.eligibilityAssessment.evidenceProvenance.recordedAt}
+            </p>
+          )}
           <AssessmentSummary assessment={r.eligibilityAssessment} />
           <div className="support-description">
             <small>{tr("Description")}</small>
@@ -2043,7 +2123,10 @@ export function SupportConfig() {
     );
   const navigation = (
     <Tabs
-      items={[...configTabs, ["ticket-scope", "Ticket after-sales group membership"]]}
+      items={[
+        ...configTabs,
+        ["ticket-scope", "Ticket after-sales group membership"],
+      ]}
       value={tab}
       onChange={(x) => {
         setTab(x);

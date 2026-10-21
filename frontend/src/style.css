@@ -4210,3 +4210,19 @@ td {
 .attachment-gallery { min-width: 0; }
 .attachment-gallery .attachment-card { width: 100%; }
 .attachment-preview footer .pagination-compact { padding: 0; }
+
+.original-order-lookup {border:1px solid var(--border,#e2e8e5);border-radius:12px;padding:20px;margin-bottom:24px;background:#fff;}
+.original-order-lookup .support-section-title {margin-top:0;}
+.original-order-lookup details {margin:12px 0;color:var(--muted,#66756e);font-size:13px;}
+.original-order-lookup summary {cursor:pointer;margin-bottom:12px;}
+.original-order-search {display:flex;align-items:end;padding-bottom:2px;}
+.original-order-candidate {border:1px solid var(--border,#e2e8e5);border-radius:8px;padding:16px;margin:16px 0;}
+.original-order-summary {margin:16px 0;}
+.original-order-summary .detail-grid {gap:12px;}
+.original-order-items {display:grid;gap:8px;margin:14px 0;}
+.original-order-items div {display:grid;gap:4px;font-size:13px;overflow-wrap:anywhere;}
+.original-order-items span {color:var(--muted,#66756e);}
+.original-item-choice {display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border,#e2e8e5);}
+.original-item-choice input {width:16px;height:16px;flex:none;}
+.original-item-choice small {display:block;color:#9b5146;margin-top:4px;}
+.original-order-confirmed {font-size:12px;color:#35745b;}
