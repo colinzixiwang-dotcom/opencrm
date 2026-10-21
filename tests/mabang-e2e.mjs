@@ -69,6 +69,16 @@ try {
     .click();
   const d = page.getByRole("dialog");
   assert.equal(
+    await d.getByLabel("Proposed solution", { exact: true }).count(),
+    0,
+  );
+  assert.equal(
+    await d
+      .getByRole("button", { name: "Next: solution and warranty", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
     await d.getByLabel("Platform order number", { exact: true }).inputValue(),
     "ORDER-101",
   );
@@ -94,6 +104,15 @@ try {
     fullPage: true,
   });
   await d.locator(".language-switcher select").selectOption("en");
+  await d
+    .getByRole("button", { name: "Next: solution and warranty", exact: true })
+    .click();
+  assert.equal(
+    await d
+      .getByRole("button", { name: "Look up original order", exact: true })
+      .count(),
+    0,
+  );
   assert.equal(
     await d.getByLabel("Purchased platform", { exact: true }).inputValue(),
     "Amazon",
@@ -113,6 +132,18 @@ try {
   await d
     .getByLabel("Solution reason", { exact: true })
     .fill("Confirmed original device motor failure");
+  await d.getByRole("button", { name: "Back", exact: true }).click();
+  assert.equal(
+    await d.getByLabel("Proposed solution", { exact: true }).count(),
+    0,
+  );
+  await d
+    .getByRole("button", { name: "Next: solution and warranty", exact: true })
+    .click();
+  assert.equal(
+    await d.getByLabel("Solution reason", { exact: true }).inputValue(),
+    "Confirmed original device motor failure",
+  );
   const delivered = new Date();
   delivered.setUTCDate(delivered.getUTCDate() - 30);
   const date = delivered.toISOString().slice(0, 10);
@@ -236,6 +267,79 @@ try {
     },
     taskInputs: { parts: { productId: part.id, qty: 2 } },
   });
+  await page.locator('a.nav-item[href="#service"]').click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Device support 中文" })
+    .click();
+  await page
+    .getByRole("button", { name: "Create RMA draft", exact: true })
+    .click();
+  await d
+    .getByRole("button", { name: "Enter order manually", exact: true })
+    .click();
+  await d.getByLabel("Platform order number", { exact: true }).fill("MANUAL-1");
+  await d
+    .getByLabel("Purchased platform", { exact: true })
+    .selectOption("Amazon");
+  await d
+    .getByLabel("Original device SKU", { exact: true })
+    .selectOption(device.id);
+  await d.getByLabel("Order quantity", { exact: true }).fill("1");
+  await d.getByLabel("Payment date", { exact: true }).fill(date);
+  await d
+    .getByLabel("Manual purchase evidence", { exact: true })
+    .fill("Receipt provided by customer, reference INV-123");
+  await d
+    .getByLabel("Manual entry reason", { exact: true })
+    .fill("Legacy order cannot be resolved in ERP");
+  await d
+    .getByRole("button", { name: "Confirm manual order", exact: true })
+    .click();
+  await d.getByText("Original order confirmed", { exact: true }).waitFor();
+  await page.screenshot({ path: "test-results/rma-manual-order-en.png" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await d.locator(".language-switcher select").selectOption("zh-CN");
+  await page.screenshot({ path: "test-results/rma-order-step-mobile-zh.png" });
+  await d.locator(".language-switcher select").selectOption("en");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await d
+    .getByRole("button", { name: "Next: solution and warranty", exact: true })
+    .click();
+  await d
+    .getByLabel("Proposed solution", { exact: true })
+    .selectOption("reship_device");
+  await d
+    .getByLabel("Root cause", { exact: true })
+    .selectOption("device_fault");
+  await d
+    .getByLabel("Solution reason", { exact: true })
+    .fill("Manual order confirmed; replace faulty unit");
+  await d.getByLabel("Delivery date", { exact: true }).fill(date);
+  await d
+    .getByLabel("Delivery evidence reference", { exact: true })
+    .fill("Delivery proof DEL-123");
+  await d.getByRole("button", { name: "Save draft", exact: true }).click();
+  await d.getByText("Draft saved", { exact: true }).waitFor();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('dialog[open] button[type="submit"]')?.disabled ===
+      false,
+  );
+  await page.screenshot({ path: "test-results/rma-solution-step-en.png" });
+  await d.getByRole("button", { name: "Create RMA", exact: true }).click();
+  await d.waitFor({ state: "hidden" });
+  const manualState = await (
+    await page.request.get(app.base + "/api/bootstrap")
+  ).json();
+  const manual = manualState.rmas.find((r) => r.orderNumber === "MANUAL-1");
+  assert(manual);
+  assert.equal(manual.originalOrder.order.provider, "manual");
+  assert.equal(manual.originalOrder.order.sourceNumber, "");
+  assert.equal(
+    manual.originalOrder.manualEvidence.reference,
+    "Receipt provided by customer, reference INV-123",
+  );
   assert(
     mabang.calls.every((c) =>
       ["order-get-order-list-new", "get-history-order-list"].includes(c.api),

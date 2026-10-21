@@ -287,17 +287,12 @@ try {
     .click();
   const d = page.getByRole("dialog");
   await d.waitFor();
-  assert.equal(
-    await d.getByLabel("Support ticket number", { exact: true }).inputValue(),
-    "#101",
-  );
+  assert.match(await d.locator(".rma-steps").innerText(), /#101/);
   assert.equal(
     await d.getByLabel("Platform order number", { exact: true }).inputValue(),
     "ORDER-101",
   );
-  await d
-    .getByLabel("Description", { exact: true })
-    .fill("Saved draft explanation");
+  assert.equal(await d.getByLabel("Description", { exact: true }).count(), 0);
   await d.getByRole("button", { name: "Save draft", exact: true }).click();
   await d.getByText("Draft saved", { exact: true }).waitFor();
   await d.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -310,7 +305,7 @@ try {
       app.base + "/api/intake-drafts/" + drafts.items[0].draft.id,
     )
   ).json();
-  assert.equal(saved.payload.description, "Saved draft explanation");
+  assert(saved.payload.description.includes("Device stops printing"));
   const submitPayload = {
     ...saved.payload,
     platform: "Amazon",

@@ -129,14 +129,21 @@ function Toggle({ label, checked, onChange }) {
     </label>
   );
 }
-function Dialog({ title: heading, subtitle, children, onClose, wide = false }) {
+function Dialog({
+  title: heading,
+  subtitle,
+  children,
+  onClose,
+  wide = false,
+  className = "",
+}) {
   const ref = useRef();
   useEffect(() => {
     ref.current.showModal();
   }, []);
   return (
     <dialog
-      className={"modal support-dialog " + (wide ? "wide" : "")}
+      className={"modal support-dialog " + (wide ? "wide " : "") + className}
       ref={ref}
       aria-label={tr(heading)}
       onCancel={(e) => {
@@ -465,6 +472,12 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
       orderConfirmation: initial.orderConfirmation || null,
       orderPaidDate: initial.orderPaidDate || "",
       orderShop: initial.orderShop || "",
+      orderMode:
+        initial.orderMode ||
+        (initial.orderConfirmation?.order?.provider === "manual"
+          ? "manual"
+          : "lookup"),
+      manualOrder: initial.manualOrder || {},
       solutionReason: initial.solutionReason || "",
       platform: initial.platform || "",
       productId: initial.productId || "",
@@ -477,6 +490,33 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
     }),
     [inputs, setInputs] = useState(initial.taskInputs || {});
   const [draftMessage, setDraftMessage] = useState("");
+  const [step, setStep] = useState(1);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [orderBusy, setOrderBusy] = useState(false);
+  const bodyRef = useRef(null);
+  const goStep = (next) => {
+    if (next === 2 && !v.orderConfirmationId) return;
+    setStep(next);
+    setAssessment(null);
+    setError("");
+    bodyRef.current?.scrollTo({ top: 0 });
+  };
+  const saveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      setError("");
+      const saved = await api(
+        `/api/tickets/${encodeURIComponent(initial.ticketId || initial.sourceTicketId || "")}/drafts`,
+        { method: "POST", body: JSON.stringify({ ...v, taskInputs: inputs }) },
+      );
+      setV({ ...v, ...saved.payload });
+      setDraftMessage(tr("Draft saved"));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
   const [configRevision] = useState(cfg.revision);
   const [warrantyRevision] = useState(cfg.warrantyPolicy.revision);
   const [assessment, setAssessment] = useState(null);
@@ -511,8 +551,11 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
   return (
     <Dialog
       title={tr("Create RMA")}
+      className={v.draftId ? "rma-wizard-dialog" : ""}
       subtitle={tr(
-        "Choose one solution. Its configured tasks and dependencies are generated automatically.",
+        v.draftId
+          ? "Confirm the original order, then choose a solution and assess warranty."
+          : "Choose one solution. Its configured tasks and dependencies are generated automatically.",
       )}
       onClose={onClose}
       wide
@@ -520,6 +563,10 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (v.draftId && step === 1) {
+            goStep(2);
+            return;
+          }
           if (!assessment?.eligible || (v.draftId && !v.orderConfirmationId))
             return;
           const taskInputs = {};
@@ -542,279 +589,390 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
           );
         }}
       >
-        <div className="modal-body">
-          {v.draftId && (
-            <OriginalOrderLookup
-              value={v}
-              onChange={(next) => {
-                setV(next);
-                setAssessment(null);
-              }}
-            />
-          )}
-          {v.draftId && (
-            <div className="support-section-title">
-              <h3>{tr("2. Solution and warranty")}</h3>
-            </div>
-          )}
-          <div className="form-grid">
-            <Input
-              label={tr("Support ticket number")}
-              name="ticketNumber"
-              value={v.ticketNumber}
-              readOnly={!!v.draftId}
-              onChange={(x) => set("ticketNumber", x)}
-              required
-              maxLength="160"
-            />
-            {!v.draftId && (
-              <Input
-                label={tr("Order number")}
-                name="orderNumber"
-                list="support-order-options"
-                value={v.orderNumber}
-                onChange={(x) => {
-                  const o = orders.find((o) => o.orderNumber === x);
-                  const changedProduct =
-                    o?.productId && o.productId !== v.productId;
-                  setV({
-                    ...v,
-                    orderNumber: x,
-                    ...(o
-                      ? {
-                          platform: o.platform,
-                          productId: o.productId || v.productId,
-                        }
-                      : {}),
-                    ...(changedProduct
-                      ? { rootCauseId: "", sn: "", solutionId: "" }
-                      : {}),
-                  });
-                  if (changedProduct) setInputs({});
-                }}
-                required
-                maxLength="160"
-              />
-            )}
-            <datalist id="support-order-options">
-              {orders.map((o) => (
-                <option key={o.id} value={o.orderNumber}>
-                  {o.platform} · {o.customer}
-                </option>
-              ))}
-            </datalist>
-            {v.draftId ? (
-              <Input
-                label={tr("Purchased platform")}
-                value={v.platform}
-                readOnly
-              />
-            ) : (
-              <Select
-                label={tr("Purchased platform")}
-                value={v.platform}
-                onChange={(x) => set("platform", x)}
-                items={options(cfg.platforms.filter((x) => x.enabled))}
-                empty={tr("Choose platform…")}
-                required
-              />
-            )}
-            {v.draftId ? (
-              <Input
-                label={tr("Affected device / part SKU")}
-                value={v.productId ? sku(s, v.productId) : ""}
-                readOnly
-              />
-            ) : (
-              <Select
-                label={tr("Affected device / part SKU")}
-                value={v.productId}
-                onChange={(x) => {
-                  setV({
-                    ...v,
-                    productId: x,
-                    rootCauseId: "",
-                    sn: "",
-                    solutionId: "",
-                  });
-                  setInputs({});
-                }}
-                items={s.products.map((p) => ({
-                  value: p.id,
-                  label: sku(s, p.id),
-                }))}
-                empty={tr("Choose SKU…")}
-                required
-              />
-            )}
-            <Input
-              label={tr("Serial number (optional)")}
-              value={v.sn}
-              onChange={(x) => set("sn", x)}
-              maxLength="120"
-            />
-            <Select
-              label={tr("Root cause")}
-              value={v.rootCauseId}
-              onChange={(x) => set("rootCauseId", x)}
-              items={causes.map((x) => ({
-                value: x.id,
-                label: tr(labels[x.primary]) + " / " + tr(x.name),
-              }))}
-              empty={tr("Choose root cause…")}
-              required
-            />
-            <TextArea
-              label={tr("Description")}
-              value={v.description}
-              onChange={(x) => set("description", x)}
-              required
-              maxLength="4000"
-            />
-            <Select
-              label={tr("Proposed solution")}
-              value={v.solutionId}
-              onChange={selectSolution}
-              items={options(
-                cfg.solutions.filter(
-                  (x) =>
-                    x.enabled &&
-                    (!v.draftId || ["reship_device", "parts"].includes(x.id)) &&
-                    x.nodes.every((n) =>
-                      cfg.taskTypes.some((t) => t.id === n.typeId && t.enabled),
-                    ),
+        {v.draftId && (
+          <nav className="rma-steps" aria-label={tr("RMA creation steps")}>
+            <ol>
+              {["Order information", "Solution and warranty"].map(
+                (label, index) => (
+                  <li
+                    key={label}
+                    className={
+                      step === index + 1
+                        ? "active"
+                        : step > index + 1
+                          ? "complete"
+                          : ""
+                    }
+                  >
+                    <button
+                      type="button"
+                      aria-current={step === index + 1 ? "step" : undefined}
+                      disabled={
+                        busy ||
+                        savingDraft ||
+                        orderBusy ||
+                        (index === 1 && !v.orderConfirmationId)
+                      }
+                      onClick={() => goStep(index + 1)}
+                    >
+                      <span>{index + 1}</span>
+                      {tr(label)}
+                    </button>
+                  </li>
                 ),
               )}
-              empty={tr("Choose solution…")}
-              required
-            />
-            {v.draftId && (
-              <TextArea
-                label={tr("Solution reason")}
-                value={v.solutionReason}
-                onChange={(x) => set("solutionReason", x)}
-                required
-                maxLength="2000"
-              />
-            )}
-            <CustomFields
-              scope="rma"
-              value={v.customFields}
-              onChange={(x) => set("customFields", x)}
-            />
-          </div>
-          {solution && (!v.draftId || v.orderConfirmationId) && (
-            <WarrantyEvidence
-              value={v.warrantyEvidence}
-              onChange={(x) => set("warrantyEvidence", x)}
-              payload={{
-                productId: v.productId,
-                solutionId: v.solutionId,
-                platform: v.platform,
-                warrantyEvidence: v.warrantyEvidence,
-                ...(v.draftId
-                  ? {
-                      draftId: v.draftId,
-                      orderNumber: v.orderNumber,
-                      orderConfirmationId: v.orderConfirmationId,
-                    }
-                  : {}),
+            </ol>
+            <small>
+              {tr("Support ticket")} {v.ticketNumber}
+            </small>
+          </nav>
+        )}
+        <div className="modal-body" ref={bodyRef}>
+          {v.draftId && step === 1 && (
+            <p className="help-text">
+              {tr(
+                "Find a recent or historical order, or enter the original order manually. Confirm it before continuing.",
+              )}
+            </p>
+          )}
+          {v.draftId && step === 1 && (
+            <OriginalOrderLookup
+              value={v}
+              locked={busy || savingDraft}
+              onBusyChange={setOrderBusy}
+              onChange={(next) => {
+                const changed =
+                  next.orderConfirmationId !== v.orderConfirmationId ||
+                  next.productId !== v.productId;
+                setV(
+                  changed
+                    ? {
+                        ...next,
+                        solutionId: "",
+                        rootCauseId: "",
+                        warrantyEvidence: {},
+                      }
+                    : next,
+                );
+                if (changed) {
+                  setInputs({});
+                  setAssessment(null);
+                }
+                setDraftMessage("");
               }}
-              onAssessment={setAssessment}
             />
           )}
-          {solution && (
+          {(!v.draftId || step === 2) && (
             <>
-              <div className="support-section-title">
-                <h3>{tr("Solution tasks")}</h3>
-                <small>
-                  {tr(
-                    "Task types are fixed by this solution. Each approval is reviewed separately.",
-                  )}
-                </small>
-              </div>
-              <div className="workflow-preview">
-                {solution.nodes.map((n) => {
-                  const type = cfg.taskTypes.find((t) => t.id === n.typeId);
-                  return (
-                    <section className="workflow-node" key={n.key}>
-                      <div className="workflow-node-heading">
-                        <span className="count-circle">
-                          {solution.nodes.indexOf(n) + 1}
-                        </span>
-                        <div>
-                          <strong>{tr(type?.name || n.typeId)}</strong>
-                          <small>
-                            {(n.dependsOn || []).length
-                              ? tr("After ") + (n.dependsOn || []).join(", ")
-                              : tr("Independent task")}{" "}
-                            ·{" "}
-                            {["refund", "return_device"].includes(n.typeId)
-                              ? tr("Approval always required")
-                              : tr("Approval rules evaluated on submission")}
-                          </small>
-                        </div>
-                      </div>
-                      {type && (
-                        <TaskParameters
-                          type={type}
-                          node={n}
-                          value={inputs[n.key] || {}}
-                          onChange={(x) => setInputs({ ...inputs, [n.key]: x })}
-                          rmaProductId={v.productId}
-                        />
+              {v.draftId && (
+                <div className="rma-order-context">
+                  <div>
+                    <small>
+                      {tr(
+                        v.orderConfirmation?.order?.provider === "manual"
+                          ? "Manually entered order"
+                          : "Original order confirmed",
                       )}
-                    </section>
-                  );
-                })}
+                    </small>
+                    <strong>
+                      {v.orderNumber} · {v.platform}
+                    </strong>
+                  </div>
+                  <Button onClick={() => goStep(1)}>Edit order</Button>
+                </div>
+              )}
+              <div className="form-grid">
+                {!v.draftId && (
+                  <Input
+                    label={tr("Support ticket number")}
+                    name="ticketNumber"
+                    value={v.ticketNumber}
+                    readOnly={!!v.draftId}
+                    onChange={(x) => set("ticketNumber", x)}
+                    required
+                    maxLength="160"
+                  />
+                )}
+                {!v.draftId && (
+                  <Input
+                    label={tr("Order number")}
+                    name="orderNumber"
+                    list="support-order-options"
+                    value={v.orderNumber}
+                    onChange={(x) => {
+                      const o = orders.find((o) => o.orderNumber === x);
+                      const changedProduct =
+                        o?.productId && o.productId !== v.productId;
+                      setV({
+                        ...v,
+                        orderNumber: x,
+                        ...(o
+                          ? {
+                              platform: o.platform,
+                              productId: o.productId || v.productId,
+                            }
+                          : {}),
+                        ...(changedProduct
+                          ? { rootCauseId: "", sn: "", solutionId: "" }
+                          : {}),
+                      });
+                      if (changedProduct) setInputs({});
+                    }}
+                    required
+                    maxLength="160"
+                  />
+                )}
+                <datalist id="support-order-options">
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.orderNumber}>
+                      {o.platform} · {o.customer}
+                    </option>
+                  ))}
+                </datalist>
+                {v.draftId ? (
+                  <Input
+                    label={tr("Purchased platform")}
+                    value={v.platform}
+                    readOnly
+                  />
+                ) : (
+                  <Select
+                    label={tr("Purchased platform")}
+                    value={v.platform}
+                    onChange={(x) => set("platform", x)}
+                    items={options(cfg.platforms.filter((x) => x.enabled))}
+                    empty={tr("Choose platform…")}
+                    required
+                  />
+                )}
+                {v.draftId ? (
+                  <Input
+                    label={tr("Affected device / part SKU")}
+                    value={v.productId ? sku(s, v.productId) : ""}
+                    readOnly
+                  />
+                ) : (
+                  <Select
+                    label={tr("Affected device / part SKU")}
+                    value={v.productId}
+                    onChange={(x) => {
+                      setV({
+                        ...v,
+                        productId: x,
+                        rootCauseId: "",
+                        sn: "",
+                        solutionId: "",
+                      });
+                      setInputs({});
+                    }}
+                    items={s.products.map((p) => ({
+                      value: p.id,
+                      label: sku(s, p.id),
+                    }))}
+                    empty={tr("Choose SKU…")}
+                    required
+                  />
+                )}
+                <Input
+                  label={tr("Serial number (optional)")}
+                  value={v.sn}
+                  onChange={(x) => set("sn", x)}
+                  maxLength="120"
+                />
+                <Select
+                  label={tr("Root cause")}
+                  value={v.rootCauseId}
+                  onChange={(x) => set("rootCauseId", x)}
+                  items={causes.map((x) => ({
+                    value: x.id,
+                    label: tr(labels[x.primary]) + " / " + tr(x.name),
+                  }))}
+                  empty={tr("Choose root cause…")}
+                  required
+                />
+                <TextArea
+                  label={tr("Description")}
+                  value={v.description}
+                  onChange={(x) => set("description", x)}
+                  required
+                  maxLength="4000"
+                />
+                <Select
+                  label={tr("Proposed solution")}
+                  value={v.solutionId}
+                  onChange={selectSolution}
+                  items={options(
+                    cfg.solutions.filter(
+                      (x) =>
+                        x.enabled &&
+                        (!v.draftId ||
+                          ["reship_device", "parts"].includes(x.id)) &&
+                        x.nodes.every((n) =>
+                          cfg.taskTypes.some(
+                            (t) => t.id === n.typeId && t.enabled,
+                          ),
+                        ),
+                    ),
+                  )}
+                  empty={tr("Choose solution…")}
+                  required
+                />
+                {v.draftId && (
+                  <TextArea
+                    label={tr("Solution reason")}
+                    value={v.solutionReason}
+                    onChange={(x) => set("solutionReason", x)}
+                    required
+                    maxLength="2000"
+                  />
+                )}
+                <CustomFields
+                  scope="rma"
+                  value={v.customFields}
+                  onChange={(x) => set("customFields", x)}
+                />
               </div>
+              {solution && (!v.draftId || v.orderConfirmationId) && (
+                <WarrantyEvidence
+                  value={v.warrantyEvidence}
+                  onChange={(x) => set("warrantyEvidence", x)}
+                  payload={{
+                    productId: v.productId,
+                    solutionId: v.solutionId,
+                    platform: v.platform,
+                    warrantyEvidence: v.warrantyEvidence,
+                    ...(v.draftId
+                      ? {
+                          draftId: v.draftId,
+                          orderNumber: v.orderNumber,
+                          orderConfirmationId: v.orderConfirmationId,
+                        }
+                      : {}),
+                  }}
+                  onAssessment={setAssessment}
+                />
+              )}
+              {solution && (
+                <>
+                  <div className="support-section-title">
+                    <h3>{tr("Solution tasks")}</h3>
+                    <small>
+                      {tr(
+                        "Task types are fixed by this solution. Each approval is reviewed separately.",
+                      )}
+                    </small>
+                  </div>
+                  <div className="workflow-preview">
+                    {solution.nodes.map((n) => {
+                      const type = cfg.taskTypes.find((t) => t.id === n.typeId);
+                      return (
+                        <section className="workflow-node" key={n.key}>
+                          <div className="workflow-node-heading">
+                            <span className="count-circle">
+                              {solution.nodes.indexOf(n) + 1}
+                            </span>
+                            <div>
+                              <strong>{tr(type?.name || n.typeId)}</strong>
+                              <small>
+                                {(n.dependsOn || []).length
+                                  ? tr("After ") +
+                                    (n.dependsOn || []).join(", ")
+                                  : tr("Independent task")}{" "}
+                                ·{" "}
+                                {["refund", "return_device"].includes(n.typeId)
+                                  ? tr("Approval always required")
+                                  : tr(
+                                      "Approval rules evaluated on submission",
+                                    )}
+                              </small>
+                            </div>
+                          </div>
+                          {type && (
+                            <TaskParameters
+                              type={type}
+                              node={n}
+                              value={inputs[n.key] || {}}
+                              onChange={(x) =>
+                                setInputs({ ...inputs, [n.key]: x })
+                              }
+                              rmaProductId={v.productId}
+                            />
+                          )}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </>
           )}
-        </div>
-        {v.draftId && (
-          <div className="ticket-draft-actions">
-            <p className="muted">
-              {tr("Udesk source snapshot")}: {v.ticketSnapshotId}
+          {v.draftId && step === 1 && duplicateRmaIds.length > 0 && (
+            <p className="help-text">
+              {tr("Existing RMAs for this ticket")}:{" "}
+              {duplicateRmaIds.join(", ")}
             </p>
-            {duplicateRmaIds.length > 0 && (
-              <p role="status">
-                {tr("Existing RMAs for this ticket")}:{" "}
-                {duplicateRmaIds.join(", ")}
+          )}
+        </div>
+        {v.draftId ? (
+          <>
+            {error && (
+              <p className="form-error support-error" role="alert">
+                {tr(error)}
               </p>
             )}
-            <Button
-              disabled={busy}
-              onClick={async () => {
-                try {
-                  setError("");
-                  const saved = await api(
-                    `/api/tickets/${encodeURIComponent(initial.ticketId || initial.sourceTicketId || "")}/drafts`,
-                    {
-                      method: "POST",
-                      body: JSON.stringify({ ...v, taskInputs: inputs }),
-                    },
-                  );
-                  setV({ ...v, ...saved.payload });
-                  setDraftMessage(tr("Draft saved"));
-                } catch (e) {
-                  setError(e.message);
-                }
-              }}
-            >
-              Save draft
-            </Button>
-            {draftMessage && <span role="status">{draftMessage}</span>}
-          </div>
+            <div className="modal-footer rma-wizard-footer">
+              <div className="rma-draft-save">
+                <Button
+                  disabled={busy || savingDraft || orderBusy}
+                  onClick={saveDraft}
+                >
+                  {savingDraft ? "Saving…" : "Save draft"}
+                </Button>
+                {draftMessage && <small role="status">{draftMessage}</small>}
+              </div>
+              <div className="rma-step-actions">
+                <Button
+                  disabled={busy || savingDraft || orderBusy}
+                  onClick={step === 1 ? onClose : () => goStep(1)}
+                >
+                  {step === 1 ? "Cancel" : "Back"}
+                </Button>
+                {step === 1 ? (
+                  <Button
+                    kind="primary"
+                    disabled={
+                      !v.orderConfirmationId || busy || savingDraft || orderBusy
+                    }
+                    onClick={() => goStep(2)}
+                  >
+                    Next: solution and warranty
+                  </Button>
+                ) : (
+                  <button
+                    className="btn primary"
+                    type="submit"
+                    disabled={
+                      busy ||
+                      savingDraft ||
+                      !assessment?.eligible ||
+                      !v.orderConfirmationId
+                    }
+                  >
+                    {tr(busy ? "Saving…" : "Create RMA")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <Footer
+            busy={busy}
+            error={tr(error)}
+            onClose={onClose}
+            label={tr("Create RMA")}
+            disabled={!assessment?.eligible}
+          />
         )}
-        <Footer
-          busy={busy}
-          error={tr(error)}
-          onClose={onClose}
-          label={tr("Create RMA")}
-          disabled={
-            !assessment?.eligible || (!!v.draftId && !v.orderConfirmationId)
-          }
-        />
       </form>
     </Dialog>
   );
