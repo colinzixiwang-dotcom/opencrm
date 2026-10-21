@@ -138,15 +138,13 @@ function Fields({ ticket, metadata, omitted = [] }) {
     const section = /submission id/i.test(entry.label)
       ? "System information"
       : groups.find((g) => g.match?.test(entry.label))?.title || "Other fields";
-    entries
-      .get(section)
-      .push({
-        key: entry.name,
-        label: entry.label,
-        value: entry.value,
-        options: entry.field?.options,
-        kind: entry.field?.kind,
-      });
+    entries.get(section).push({
+      key: entry.name,
+      label: entry.label,
+      value: entry.value,
+      options: entry.field?.options,
+      kind: entry.field?.kind,
+    });
   }
   const render = (field) => (
     <div
@@ -650,7 +648,7 @@ export function TicketCenter() {
     [metadataError, setMetadataError] = useState(null),
     [draftError, setDraftError] = useState(null),
     [busy, setBusy] = useState(false),
-    [assignment, setAssignment] = useState("all"),
+    [assignment, setAssignment] = useState("mine"),
     [status, setStatus] = useState(""),
     [cursor, setCursor] = useState(""),
     [history, setHistory] = useState([]),

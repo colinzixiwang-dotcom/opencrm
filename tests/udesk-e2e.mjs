@@ -60,7 +60,7 @@ try {
     await page
       .getByLabel("Filter by ticket assignment", { exact: true })
       .getAttribute("data-value"),
-    "all",
+    "mine",
   );
   assert.equal(
     await page
@@ -72,7 +72,6 @@ try {
     await page.getByLabel("Udesk filter", { exact: true }).count(),
     0,
   );
-  await selectColumnFilter(page, "Filter by ticket assignment", "mine");
   const sortedResponse = page.waitForResponse(
     (r) =>
       new URL(r.url()).pathname === "/api/tickets" &&

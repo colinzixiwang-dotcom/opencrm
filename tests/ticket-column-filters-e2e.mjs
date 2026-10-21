@@ -56,7 +56,7 @@ try {
     }),
     status = page.getByLabel("Filter by ticket status", { exact: true });
   await assignment.waitFor();
-  assert.equal(await assignment.getAttribute("data-value"), "all");
+  assert.equal(await assignment.getAttribute("data-value"), "mine");
   assert.equal(await status.getAttribute("data-value"), "");
   assert.equal(
     await page.getByLabel("Udesk filter", { exact: true }).count(),
@@ -74,22 +74,14 @@ try {
       .getByRole("listbox")
       .getByRole("option", { selected: true })
       .getAttribute("data-value"),
-    "all",
+    "mine",
   );
   await page.keyboard.press("Escape");
   assert.equal(await page.getByRole("listbox").count(), 0);
   assert(await assignment.evaluate((el) => el === document.activeElement));
   await assignment.press("ArrowDown");
-  await page.keyboard.press("Home");
+  await page.keyboard.press("End");
   await page.keyboard.press("Enter");
-  assert.equal(await assignment.getAttribute("data-value"), "mine");
-  await page
-    .getByText(
-      "Your CRM account is not linked to a Udesk agent. Switch to all tickets to browse Morpho tickets.",
-      { exact: true },
-    )
-    .waitFor();
-  await selectColumnFilter(page, "Filter by ticket assignment", "all");
   assert.equal(await assignment.getAttribute("data-value"), "all");
   await page.locator("tbody .ticket-subject").first().waitFor();
   assert.equal(await page.locator("tbody .ticket-subject").count(), 20);
@@ -135,7 +127,7 @@ try {
   await agent.locator('a.nav-item[href="#service"]').click();
   const mine = agent.getByLabel("Filter by ticket assignment", { exact: true });
   await mine.waitFor();
-  assert.equal(await mine.getAttribute("data-value"), "all");
+  assert.equal(await mine.getAttribute("data-value"), "mine");
   await agent.locator("tbody .ticket-subject").first().waitFor();
   await selectColumnFilter(agent, "Filter by ticket assignment", "mine");
   await agent.locator("tbody .ticket-subject").first().waitFor();
