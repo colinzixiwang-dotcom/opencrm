@@ -93,11 +93,16 @@ export function OriginalOrderLookup({
     onBusyChange?.(value);
   };
   const reset = (patch) => {
+    const newSearch =
+      (patch.orderNumber !== undefined && patch.orderNumber !== v.orderNumber) ||
+      (patch.orderMode !== undefined && patch.orderMode !== v.orderMode);
+    if (newSearch) setHistory(false);
     setCandidates([]);
     setSelected("");
     setError("");
     onChange({
       ...v,
+      ...(newSearch ? { orderPaidDate: "", orderShop: "" } : {}),
       ...patch,
       orderConfirmationId: "",
       orderConfirmation: null,
@@ -129,6 +134,7 @@ export function OriginalOrderLookup({
           }),
         });
         setCandidates(r.items);
+        setHistory(false);
       } else {
         const [candidateId, itemId] = JSON.parse(selected);
         const r = await api("/api/original-orders/confirm", {

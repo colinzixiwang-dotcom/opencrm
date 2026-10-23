@@ -124,9 +124,37 @@ try {
     .getByRole("button", { name: "Create RMA draft", exact: true })
     .click();
   const d = page.getByRole("dialog");
-  await d
-    .getByRole("button", { name: "Look up original order", exact: true })
-    .click();
+  const numberInput = d.getByLabel("Platform order number", { exact: true });
+  const originalNumber = await numberInput.inputValue();
+  const lookupButton = d.getByRole("button", { name: "Look up original order", exact: true });
+  const historyDate = d.getByLabel("Payment date (for historical lookup)", { exact: true });
+  await numberInput.fill("UNINDEXED-OLD-ORDER");
+  await lookupButton.click();
+  await historyDate.waitFor();
+  await historyDate.fill("2020-01-01");
+  await d.getByLabel("Shop (optional)", { exact: true }).fill("Old shop");
+  await numberInput.fill(originalNumber);
+  assert.equal(await historyDate.count(), 0, "Changing order number hides old history assistance");
+  let nextLookup;
+  const captureLookup = request => {
+    if (request.url().endsWith("/api/original-orders/lookup")) nextLookup = request.postDataJSON();
+  };
+  page.on("request", captureLookup);
+  await lookupButton.click();
+  await d.getByRole("radio").waitFor();
+  page.off("request", captureLookup);
+  assert.equal(nextLookup.paidDate, "", "Do not carry a previous order's date");
+  assert.equal(nextLookup.shop, "", "Do not carry a previous order's shop");
+  assert.equal(await historyDate.count(), 0);
+  await page.route("**/api/original-orders/lookup", route => route.fulfill({
+    status: 422,
+    json: { code: "history_identifier_required", error: "Historical lookup needs payment date" },
+  }), { times: 1 });
+  await lookupButton.click();
+  await historyDate.waitFor();
+  await lookupButton.click();
+  await d.getByRole("radio").waitFor();
+  assert.equal(await historyDate.count(), 0, "Successful retry hides historical assistance even without editing the number");
   await d.getByRole("radio").check();
   await d
     .getByRole("button", {
