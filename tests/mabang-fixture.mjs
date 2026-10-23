@@ -16,6 +16,86 @@ export async function startMabangMock() {
     const b = JSON.parse(raw);
     calls.push(b);
     res.setHeader("Content-Type", "application/json");
+    if (b.api === "stock-do-search-sku-list-new") {
+      res.end(
+        JSON.stringify({
+          code: 200,
+          data: {
+            data: [
+              {
+                id: "1",
+                stockSku: "MORPHO-TEST",
+                nameCN: "Original unit A",
+                nameEN: "Original unit A",
+                status: "5",
+                salesSku: "DEVICES",
+                virtualSku: ["OLD-ALIAS"],
+                warehouse: [],
+              },
+              {
+                id: "2",
+                stockSku: "REPLACEMENT-B",
+                nameCN: "Replacement unit B",
+                status: "3",
+                virtualSku: [],
+                warehouse: [],
+              },
+              {
+                id: "3",
+                stockSku: "PART-B",
+                nameCN: "Replacement part B",
+                status: "3",
+                virtualSku: [],
+                warehouse: [],
+              },
+              {
+                id: "4",
+                stockSku: "PART-C",
+                nameCN: "Replacement part C",
+                status: "3",
+                virtualSku: [],
+                warehouse: [],
+              },
+              {
+                id: "5",
+                stockSku: "SHIPPING-FEE",
+                nameCN: "Shipping fee",
+                status: "3",
+                virtualSku: [],
+                warehouse: [],
+              },
+            ],
+            nextCursor: "",
+          },
+        }),
+      );
+      return;
+    }
+    if (b.api === "stock-get-stock-quantity") {
+      const data = b.data.stockSkus
+        .split(",")
+        .map((stockSku) => ({
+          stockSku,
+          warehouse: [
+            {
+              warehouseId: "1",
+              warehouseName: "Main warehouse",
+              stockQuantity: 12,
+              availableStockQuantity: 10,
+              waitingQuantity: 2,
+              shippingQuantity: 3,
+              allotShippingQuantity: 0,
+            },
+          ],
+        }));
+      res.end(
+        JSON.stringify({
+          code: 200,
+          data: { data, count: data.length, page: 1 },
+        }),
+      );
+      return;
+    }
     const number = b.data.salesRecordNumbers;
     const order = (platformNumber, sku = "MORPHO-TEST") => ({
       erpOrderId: "source-1",

@@ -1,3 +1,4 @@
+import { selectColumnFilter } from "./column-filter-helpers.mjs";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -60,6 +61,7 @@ try {
   );
   assert.equal(synced.status(), 200, await synced.text());
   await page.locator('a.nav-item[href="#service"]').click();
+  await selectColumnFilter(page, "Filter by ticket assignment", "all");
   await page
     .getByRole("row")
     .filter({ hasText: "Device support 中文" })
@@ -189,6 +191,7 @@ try {
     {
       solutionId: "parts",
       taskInputs: { parts: { productId: part.id, qty: 0 } },
+      reshipItems: [{ productId: part.id, qty: 0 }],
     },
   ]) {
     const r = await page.request.post(app.base + "/api/action", {
@@ -268,6 +271,7 @@ try {
     taskInputs: { parts: { productId: part.id, qty: 2 } },
   });
   await page.locator('a.nav-item[href="#service"]').click();
+  await selectColumnFilter(page, "Filter by ticket assignment", "all");
   await page
     .getByRole("row")
     .filter({ hasText: "Device support 中文" })
@@ -283,7 +287,7 @@ try {
     .getByLabel("Purchased platform", { exact: true })
     .selectOption("Amazon");
   await d
-    .getByLabel("Original device SKU", { exact: true })
+    .getByLabel("Original order SKU", { exact: true })
     .selectOption(device.id);
   await d.getByLabel("Order quantity", { exact: true }).fill("1");
   await d.getByLabel("Payment date", { exact: true }).fill(date);
