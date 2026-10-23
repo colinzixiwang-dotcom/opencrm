@@ -5,7 +5,6 @@ package originalorders
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
 	source "harbor/internal/ordersource"
@@ -42,19 +41,25 @@ func fail(msg string, status int) error { return &domain.Error{Message: msg, Sta
 func encode(v any) string               { b, _ := json.Marshal(v); return string(b) }
 func decode(v string) source.Order      { var o source.Order; json.Unmarshal([]byte(v), &o); return o }
 func Match(state M, item source.Item) M {
-	// Exact catalog SKU identity is required. Names or a Morpho ticket group are not product proof.
-	if strings.Contains(strings.ToLower(item.SKU+" "+item.Name), "colorbox") {
-		return nil
-	}
+	// Identity and business eligibility are separate. Retired catalog SKUs remain identifiable.
 	var found M
 	for _, p := range domain.Rows(state, "products") {
-		if strings.EqualFold(domain.Str(p["sku"]), item.SKU) && item.SKU != "" && p["productType"] == "device" {
+		matches := strings.EqualFold(domain.Str(p["sku"]), item.SKU)
+		for _, alias := range domain.Strings(p["aliases"]) {
+			matches = matches || strings.EqualFold(alias, item.SKU)
+		}
+		allowed := p["productType"] == "device"
+		if p["source"] == "mabang" {
+			allowed = domain.Bool(p["allowOriginal"])
+		}
+		if matches && item.SKU != "" && allowed {
 			if found != nil {
 				return nil
 			}
 			found = p
 		}
 	}
+
 	return found
 }
 func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
@@ -74,12 +79,27 @@ func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
 		return nil, fail("Create a ticket RMA draft before looking up an order.", 422)
 	}
 	// Avoid importing the ticket context's ORM model: it owns its draft validation at HTTP boundary.
-	var old OrderEvidence
-	e := s.DB.Where("tenant=? AND platform_number=? AND source_number<>?", s.Tenant, number, "").Order("created_at desc").First(&old).Error
-	if e != nil && !errors.Is(e, gorm.ErrRecordNotFound) {
+	var refs []OrderEvidence
+	e := s.DB.Where("tenant=? AND platform_number=? AND source_number<>?", s.Tenant, number, "").Order("created_at desc").Find(&refs).Error
+	if e != nil {
 		return nil, e
 	}
-	orders, e := s.Source.Lookup(ctx, source.Query{PlatformNumber: number, SourceNumber: old.SourceNumber, PaidDate: date, Shop: strings.TrimSpace(domain.Str(b["shop"]))})
+	sourceNumber := ""
+	identities := map[string]bool{}
+	shop := strings.TrimSpace(domain.Str(b["shop"]))
+	for _, r := range refs {
+		o := decode(r.Normalized)
+		if shop != "" && o.Shop != shop {
+			continue
+		}
+		identities[r.SourceNumber] = true
+	}
+	if len(identities) == 1 {
+		for id := range identities {
+			sourceNumber = id
+		}
+	}
+	orders, e := s.Source.Lookup(ctx, source.Query{PlatformNumber: number, SourceNumber: sourceNumber, PaidDate: date, Shop: shop})
 	if e != nil {
 		return nil, e
 	}
@@ -131,7 +151,7 @@ func (s Service) Confirm(actor, state, b M) (M, error) {
 	}
 	p := Match(state, *selected)
 	if p == nil {
-		return nil, fail("Original item is not mapped to a supported Morpho device SKU. Ask an administrator to check the product catalog.", 422)
+		return nil, fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
 	}
 	if !domain.In(o.Status, "3", "4") {
 		return nil, fail("Only shipped or completed original orders can be used for this RMA.", 422)
@@ -183,7 +203,7 @@ func Bind(tx *gorm.DB, actor, state, b M) error {
 		}
 	}
 	if !matched {
-		return fail("Original item is not mapped to a supported Morpho device SKU. Ask an administrator to check the product catalog.", 422)
+		return fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
 	}
 	b["originalOrder"] = M{"confirmationId": r.ID, "candidateId": r.ParentID, "order": o, "itemId": r.ItemID, "productId": r.ProductID, "confirmedAt": r.CreatedAt, "confirmedBy": r.ActorName, "confirmedById": actor["id"]}
 	if o.Provider == "manual" {

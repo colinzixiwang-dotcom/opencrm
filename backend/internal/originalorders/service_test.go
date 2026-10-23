@@ -88,13 +88,15 @@ func TestConfirmationBindingAndWarrantyGates(t *testing.T) {
 	f.orders[0].Items[0].SKU = "ColorBox_2Base_StarterKit_Vivid"
 	f.orders[0].Items[0].Name = "ColorBox"
 	p["sku"] = "ColorBox_2Base_StarterKit_Vivid"
+	p["source"] = "mabang"
+	p["allowOriginal"] = false
 	result, e = svc.Lookup(context.Background(), actor, state, query)
 	if e != nil {
 		t.Fatal(e)
 	}
 	confirm["candidateId"] = domain.Rows(result, "items")[0]["id"]
 	if _, e = svc.Confirm(actor, state, confirm); e == nil {
-		t.Fatal("ColorBox order accepted")
+		t.Fatal("catalog-disabled order accepted")
 	}
 	var stored originalorders.OrderEvidence
 	db.DB.First(&stored, "id=?", confirmed["confirmationId"])
@@ -154,7 +156,9 @@ func TestManualOrderEvidenceAndCatalogGates(t *testing.T) {
 		t.Fatal("foreign manual confirmation accepted")
 	}
 	p["sku"] = "ColorBox_2Base_StarterKit_Vivid"
+	p["source"] = "mabang"
+	p["allowOriginal"] = false
 	if _, e = svc.Manual(actor, state, input); e == nil {
-		t.Fatal("manual ColorBox bypass accepted")
+		t.Fatal("manual catalog policy bypass accepted")
 	}
 }

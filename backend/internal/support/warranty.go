@@ -32,6 +32,13 @@ func requiresWarranty(solution M) bool {
 }
 
 func coverage(p M) string {
+	if p["source"] == "mabang" {
+		kind := domain.Str(p["warrantyClass"])
+		if domain.In(kind, "device", "printhead_1080", "printhead_3200") {
+			return kind
+		}
+		return "none"
+	}
 	if p["productType"] == "device" {
 		return "device"
 	}

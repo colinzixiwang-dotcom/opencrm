@@ -53,7 +53,7 @@ func (s Service) Manual(actor, state, b M) (M, error) {
 	}
 	item := source.Item{ID: "manual-item", SKU: domain.Str(product["sku"]), Name: domain.Str(product["name"]), Quantity: strconv.Itoa(quantity)}
 	if p := Match(state, item); p == nil || p["id"] != values["productId"] {
-		return nil, fail("Original item is not mapped to a supported Morpho device SKU. Ask an administrator to check the product catalog.", 422)
+		return nil, fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
 	}
 	now := time.Now().UTC()
 	id := domain.ID("OCONF")

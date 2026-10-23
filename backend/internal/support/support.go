@@ -388,13 +388,55 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 					domain.Fail("Reship solution configuration is invalid.", 422)
 				}
 				input := domain.Obj(domain.Obj(b["taskInputs"])[domain.Str(n["key"])])
-				if solution["id"] == "reship_device" && domain.Str(input["productId"]) != "" && input["productId"] != b["productId"] {
-					domain.Fail("Replacement device must match the original device SKU.", 422)
-				}
-				if solution["id"] == "parts" {
+
+				if solution["id"] == "parts" && b["reshipItems"] == nil {
 					domain.Required(input["productId"], "Replacement part", 160)
 					domain.Int(input["qty"], "Quantity", 1, 1000000)
 				}
+			}
+		}
+		// Ticket reship requests own explicit lines, independent of the purchased item.
+		lines := []M{}
+		if domain.Str(b["draftId"]) != "" || solution["id"] == "reship_device" {
+			if raw, exists := b["reshipItems"]; exists {
+				rows, ok := raw.([]any)
+				if !ok || len(rows) == 0 || len(rows) > 50 {
+					domain.Fail("Add between 1 and 50 reshipment lines.", 422)
+				}
+				if len(domain.Rows(solution, "nodes")) != 1 {
+					domain.Fail("Reship solution configuration is invalid.", 422)
+				}
+				template := domain.Rows(solution, "nodes")[0]
+				nodes := []M{}
+				inputs := M{}
+				seen := map[string]bool{}
+				for i, v := range rows {
+					line, ok := v.(map[string]any)
+					if !ok {
+						domain.Fail("Invalid reshipment line.", 422)
+					}
+					id := domain.Required(line["productId"], "Reship SKU", 160)
+					if seen[id] {
+						domain.Fail("Duplicate reship SKU. Combine quantities.", 422)
+					}
+					seen[id] = true
+					p := domain.Find(s, "products", id)
+					if p["source"] == "mabang" && (!domain.Bool(p["allowReship"]) || p["sourcePresent"] == false) {
+						domain.Fail("This SKU is not enabled for reshipment.", 422)
+					}
+					qty := domain.Int(line["qty"], "Quantity", 1, 1000000)
+					node := domain.Clone(template)
+					key := fmt.Sprintf("%s-%d", domain.Str(template["key"]), i+1)
+					node["key"] = key
+					node["productId"] = id
+					node["qty"] = qty
+					nodes = append(nodes, node)
+					inputs[key] = M{"productId": id, "qty": qty}
+					lines = append(lines, M{"productId": id, "sku": p["sku"], "name": p["name"], "qty": qty, "productType": p["productType"], "policyRevision": p["policyRevision"]})
+				}
+				solution = domain.Clone(solution)
+				solution["nodes"] = nodes
+				b["taskInputs"] = inputs
 			}
 		}
 		assessment := Assess(s, b, time.Now())
@@ -425,6 +467,8 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 		result = M{"id": domain.ID("RMA"), "ownerId": u["id"], "ownerName": u["name"], "ticketNumber": domain.Required(b["ticketNumber"], "Support ticket number", 160), "orderNumber": domain.Required(b["orderNumber"], "Order number", 160), "platform": platform["id"], "platformName": platform["name"], "productId": product["id"], "sn": sn, "rootCauseId": root["id"], "rootCauseName": root["name"], "primaryCause": root["primary"], "description": domain.Required(b["description"], "Description", 4000), "solutionId": solution["id"], "solutionName": solution["name"], "eligibilityAssessment": assessment, "solutionSnapshot": domain.Clone(solution), "configRevision": c["revision"], "customFields": custom(c, "rma", "", b["customFields"]), "createdAt": domain.Now(), "updatedAt": domain.Now()}
 		result["originalOrder"] = b["originalOrder"]
 		result["solutionReason"] = domain.Text(b["solutionReason"], 2000)
+		result["reshipItems"] = lines
+		result["originalProductSnapshot"] = M{"id": product["id"], "sku": product["sku"], "name": product["name"], "policyRevision": product["policyRevision"]}
 		inputs := domain.Obj(b["taskInputs"])
 		taskIDs := map[string]string{}
 		for _, n := range domain.Rows(solution, "nodes") {
@@ -850,6 +894,9 @@ func normalize(s M) {
 func validateProduct(s, t M, p string) {
 	if p != "" {
 		prod := domain.Find(s, "products", p)
+		if domain.In(domain.Str(t["typeId"]), "send_device", "send_parts") && prod["source"] == "mabang" && (!domain.Bool(prod["allowReship"]) || prod["sourcePresent"] == false) {
+			domain.Fail("This SKU is not enabled for reshipment.", 422)
+		}
 		if t["typeId"] == "send_parts" && prod["productType"] != "part" {
 			domain.Fail("Choose a support part SKU.")
 		}
