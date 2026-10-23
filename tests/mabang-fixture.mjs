@@ -72,22 +72,20 @@ export async function startMabangMock() {
       return;
     }
     if (b.api === "stock-get-stock-quantity") {
-      const data = b.data.stockSkus
-        .split(",")
-        .map((stockSku) => ({
-          stockSku,
-          warehouse: [
-            {
-              warehouseId: "1",
-              warehouseName: "Main warehouse",
-              stockQuantity: 12,
-              availableStockQuantity: 10,
-              waitingQuantity: 2,
-              shippingQuantity: 3,
-              allotShippingQuantity: 0,
-            },
-          ],
-        }));
+      const data = b.data.stockSkus.split(",").map((stockSku) => ({
+        stockSku,
+        warehouse: [
+          {
+            warehouseId: "1",
+            warehouseName: "Main warehouse",
+            stockQuantity: 12,
+            availableStockQuantity: 10,
+            waitingQuantity: 2,
+            shippingQuantity: 3,
+            allotShippingQuantity: 0,
+          },
+        ],
+      }));
       res.end(
         JSON.stringify({
           code: 200,
@@ -109,6 +107,9 @@ export async function startMabangMock() {
       currencyId: "USD",
       itemTotalOrigin: "159.00",
       countryCode: "US",
+      buyerEmail: "fixture@example.com",
+      buyerAddress1: "100 Test Road",
+      remark: "<script>unsafe</script>",
       orderItem: [
         {
           orderItemId: "item-1",
@@ -148,9 +149,20 @@ export async function startMabangMock() {
       JSON.stringify({
         code: 200,
         data: {
+          hasNext: false,
+          nextCursor: "terminal-cursor",
           list:
-            b.data.paidTime === "2025-01-01" && b.data.canSend === "1"
-              ? [order("HISTORY-1")]
+            (b.data.paidTime === "2025-01-01" ||
+              b.data.platformOrderId === "ERP-HISTORY") &&
+            b.data.canSend === "1"
+              ? [
+                  {
+                    ...order("HISTORY-1"),
+                    erpOrderId: "source-history",
+                    platformOrderId: "ERP-HISTORY",
+                    paidTime: "2025-01-01 10:00:00",
+                  },
+                ]
               : [],
         },
       }),

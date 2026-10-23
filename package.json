@@ -35,7 +35,8 @@
     "test:ticket-scope": "node tests/ticket-scope-e2e.mjs",
     "test:ticket-filters": "node tests/ticket-column-filters-e2e.mjs",
     "test:catalog": "node tests/catalog-e2e.mjs",
-    "test:mabang": "node tests/mabang-e2e.mjs"
+    "test:mabang": "node tests/mabang-e2e.mjs",
+    "test:orders": "node tests/order-center-e2e.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.149",
