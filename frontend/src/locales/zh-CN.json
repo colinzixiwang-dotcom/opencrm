@@ -1435,5 +1435,7 @@
   "Catalog synchronization is already running.": "目录同步已在进行中。",
   "Add between 1 and 50 reshipment lines.": "请添加 1 至 50 条补发明细。",
   "Duplicate reship SKU. Combine quantities.": "补发 SKU 重复，请合并数量。",
-  "Warranty class": "质保类别"
+  "Warranty class": "质保类别",
+  "Select the original order item": "选择本次售后的原订单商品",
+  "Back": "上一步"
 }

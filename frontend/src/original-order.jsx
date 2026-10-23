@@ -3,7 +3,7 @@ import { api, useWorkspace } from "./context";
 import { tr, intlLocale } from "./i18n";
 import { Button, Note } from "./components";
 
-export function OriginalOrderSummary({ confirmation }) {
+export function OriginalOrderSummary({ confirmation, showItems = true }) {
   const { state: s } = useWorkspace();
   if (!confirmation?.order) return null;
   const { order: o } = confirmation;
@@ -40,18 +40,20 @@ export function OriginalOrderSummary({ confirmation }) {
             </div>
           ))}
       </div>
-      <div className="original-order-items">
-        {o.items
-          ?.filter((i) => !confirmation.itemId || i.id === confirmation.itemId)
-          .map((i) => (
-            <div key={i.id}>
-              <strong>{i.sku}</strong>
-              <span>
-                {i.name} × {i.quantity}
-              </span>
-            </div>
-          ))}
-      </div>
+      {showItems && (
+        <div className="original-order-items">
+          {o.items
+            ?.filter((i) => !confirmation.itemId || i.id === confirmation.itemId)
+            .map((i) => (
+              <div key={i.id}>
+                <strong>{i.sku}</strong>
+                <span>
+                  {i.name} × {i.quantity}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
       {confirmation.manualEvidence && (
         <div className="manual-order-evidence">
           <strong>{tr("Manual purchase evidence")}</strong>
@@ -232,7 +234,7 @@ export function OriginalOrderLookup({
               "Use the platform order number. Recent orders are checked first, then historical orders. The original order is never modified.",
             )}
           </p>
-          <div className="form-grid">
+          <div className="form-grid original-order-query">
             <label>
               {tr("Platform order number")}
               <input
@@ -296,7 +298,10 @@ export function OriginalOrderLookup({
       {v.orderMode !== "manual" &&
         candidates.map((c) => (
           <section key={c.id} className="original-order-candidate">
-            <OriginalOrderSummary confirmation={c} />
+            <OriginalOrderSummary confirmation={c} showItems={false} />
+            <h4 className="original-choice-heading">
+              {tr("Select the original order item")}
+            </h4>
             {c.items.map((i) => (
               <label className="original-item-choice" key={i.id}>
                 <input
@@ -307,13 +312,15 @@ export function OriginalOrderLookup({
                   onChange={() => setSelected(JSON.stringify([c.id, i.id]))}
                 />
                 <span>
-                  {i.sku} × {i.quantity}
+                  <strong>{i.sku}</strong>
+                  <span className="original-item-name">{i.name}</span>
                   {!i.matched && (
                     <small>
                       {tr("Original SKU is not enabled in the catalog")}
                     </small>
                   )}
                 </span>
+                <span className="original-item-quantity">× {i.quantity}</span>
               </label>
             ))}
           </section>

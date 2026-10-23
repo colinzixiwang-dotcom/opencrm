@@ -733,13 +733,6 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
         )}
         <div className="modal-body" ref={bodyRef}>
           {v.draftId && step === 1 && (
-            <p className="help-text">
-              {tr(
-                "Find a recent or historical order, or enter the original order manually. Confirm it before continuing.",
-              )}
-            </p>
-          )}
-          {v.draftId && step === 1 && (
             <OriginalOrderLookup
               value={v}
               locked={busy || savingDraft}
