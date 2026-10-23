@@ -7,10 +7,8 @@ import { nav, disabledModules, Icon, Button, LoadingState } from "./components";
 import { TicketCenter } from "./tickets";
 import {
   Overview,
-  Products,
   Purchasing,
   Sales,
-  Inventory,
   Logistics,
   FBA,
   Advertising,
@@ -27,6 +25,10 @@ import {
   Benefits,
   SupportConfig,
 } from "./support";
+import {
+  CatalogProducts as Products,
+  CatalogInventory as Inventory,
+} from "./catalog";
 import { Settings } from "./settings";
 import { ModalHost } from "./forms";
 import "./style.css";
