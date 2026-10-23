@@ -41,7 +41,7 @@ func TestSignedRecentThenHistoryAndExactPlatformIdentity(t *testing.T) {
 		if p["canSend"] == "1" {
 			rows = []any{map[string]any{"id": "original", "salesRecordNumber": "8821619", "platformOrderId": "8086064201975", "orderItem": []any{map[string]any{"id": "item", "stockSku": "MORPHO-1", "quantity": "1"}}}, map[string]any{"id": "wrong", "salesRecordNumber": "OTHER", "platformOrderId": "8086064201975", "orderItem": []any{}}}
 		}
-		json.NewEncoder(w).Encode(map[string]any{"code": 200, "data": map[string]any{"list": rows}})
+		json.NewEncoder(w).Encode(map[string]any{"code": 200, "data": map[string]any{"list": rows, "hasNext": false, "nextCursor": "last-page-cursor"}})
 	}))
 	defer srv.Close()
 	c := &Client{URL: srv.URL, Key: "key", Token: "token", HTTP: srv.Client()}
@@ -81,5 +81,15 @@ func TestUnknownHistoryRequiresDateNotGuessedIdentifier(t *testing.T) {
 	_, e := c.Lookup(context.Background(), source.Query{PlatformNumber: "8821619"})
 	if e == nil || e.(*source.Error).Code != "history_identifier_required" || calls != 2 {
 		t.Fatal(calls, e)
+	}
+}
+
+func TestVoidedHistoricalOrderMayOmitItems(t *testing.T) {
+	o, e := mapOrder(map[string]any{"id": "voided", "salesRecordNumber": "P", "platformOrderId": "ERP", "orderStatus": "5"}, "tenant", true)
+	if e != nil || len(o.Items) != 0 || o.SourceFields["orderStatus"] != "5" {
+		t.Fatal("valid voided header rejected", e)
+	}
+	if _, e = mapOrder(map[string]any{"id": "bad", "platformOrderId": "ERP", "orderStatus": "3"}, "tenant", true); e == nil {
+		t.Fatal("missing shipped item payload accepted")
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"harbor/internal/catalog"
 	"harbor/internal/domain"
+	"harbor/internal/orderindex"
 	"harbor/internal/originalorders"
 	"harbor/internal/persistence"
 	"harbor/internal/ruoyi"
@@ -55,7 +56,10 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateReshipConfig(tx, ledger); e != nil {
 				return e
 			}
-			return migrateCatalog(tx, ledger)
+			if e := migrateCatalog(tx, ledger); e != nil {
+				return e
+			}
+			return migrateOrderIndex(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -98,7 +102,10 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateReshipConfig(tx, ledger); e != nil {
 			return e
 		}
-		return migrateCatalog(tx, ledger)
+		if e := migrateCatalog(tx, ledger); e != nil {
+			return e
+		}
+		return migrateOrderIndex(tx, ledger)
 	})
 }
 
@@ -142,6 +149,9 @@ func Open(namespace string) (*Store, error) {
 			return e
 		}
 		if e := tickets.EnsureRoles(tx); e != nil {
+			return e
+		}
+		if e := (ruoyi.Service{DB: tx}).EnsureOrderMenus(); e != nil {
 			return e
 		}
 		return persistence.Write(tx, state)
@@ -393,4 +403,28 @@ func migrateCatalog(tx *gorm.DB, ledger string) error {
 		return e
 	}
 	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(9)").Error
+}
+
+func migrateOrderIndex(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=10").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := orderindex.Init(tx); e != nil {
+		return e
+	}
+	// New databases seed explicit menu IDs later in Open; don't consume them first.
+	var roles int64
+	if e := tx.Model(&ruoyi.SysRole{}).Count(&roles).Error; e != nil {
+		return e
+	}
+	if roles > 0 {
+		if e := (ruoyi.Service{DB: tx}).EnsureOrderMenus(); e != nil {
+			return e
+		}
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(10)").Error
 }

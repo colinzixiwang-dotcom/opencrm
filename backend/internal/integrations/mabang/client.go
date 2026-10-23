@@ -144,7 +144,10 @@ func (c *Client) scan(ctx context.Context, api string, p map[string]string, q so
 			out = append(out, o)
 		}
 		next := str(d["nextCursor"])
-		has := d["hasNext"] == true || (history && next != "")
+		has, explicit := d["hasNext"].(bool)
+		if !explicit {
+			has = history && next != ""
+		}
 		if !has {
 			return out, nil
 		}
@@ -202,6 +205,12 @@ func mapOrder(r map[string]any, tenant string, history bool) (source.Order, erro
 		}
 	}
 	items, ok := r["orderItem"].([]any)
+	// Historical voided orders can legitimately omit item lines. They remain
+	// searchable, but cannot be confirmed as purchased items for an RMA.
+	if !ok && r["orderItem"] == nil && o.Status == "5" {
+		items = []any{}
+		ok = true
+	}
 	if !ok || o.SourceNumber == "" || o.SourceID == "" {
 		return o, failure("malformed", "Mabang returned an invalid order response.", 502)
 	}
@@ -212,6 +221,9 @@ func mapOrder(r map[string]any, tenant string, history bool) (source.Order, erro
 		}
 		id := str(x["orderItemId"])
 		if id == "" {
+			id = str(x["id"])
+		}
+		if id == "" {
 			id = strconv.Itoa(i)
 		}
 		sku := str(x["stockSku"])
@@ -220,6 +232,7 @@ func mapOrder(r map[string]any, tenant string, history bool) (source.Order, erro
 		}
 		o.Items = append(o.Items, source.Item{ID: id, SKU: sku, Name: str(x["title"]), Quantity: str(x["quantity"])})
 	}
+	o.SourceFields = r
 	o.Evidence, _ = json.Marshal(r)
 	// Never infer delivery or activation from shipTime, paidTime or expressTime.
 	return o, nil
