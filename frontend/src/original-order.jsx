@@ -1,3 +1,4 @@
+import { OrderSourceFields } from "./order-details";
 import React, { useState } from "react";
 import { api, useWorkspace } from "./context";
 import { tr, intlLocale } from "./i18n";
@@ -15,6 +16,23 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
           ["Mabang order number", o.sourceNumber],
           ["Purchased platform", o.platform],
           ["Shop", o.shop],
+          ["Mabang internal ID", o.sourceId],
+          ["Country", o.country],
+          [
+            "Order status",
+            tr(
+              {
+                1: "Unpaid",
+                2: "Awaiting shipment",
+                3: "Shipped",
+                4: "Completed",
+                5: "Voided",
+              }[o.status] ||
+                o.status ||
+                "",
+            ),
+          ],
+          ["Fetched at", o.fetchedAt],
           ["Payment time", o.paidAt],
           ["Shipment time", o.shippedAt],
           [
@@ -43,7 +61,9 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
       {showItems && (
         <div className="original-order-items">
           {o.items
-            ?.filter((i) => !confirmation.itemId || i.id === confirmation.itemId)
+            ?.filter(
+              (i) => !confirmation.itemId || i.id === confirmation.itemId,
+            )
             .map((i) => (
               <div key={i.id}>
                 <strong>{i.sku}</strong>
@@ -54,6 +74,7 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
             ))}
         </div>
       )}
+      <OrderSourceFields fields={o.sourceFields} />
       {confirmation.manualEvidence && (
         <div className="manual-order-evidence">
           <strong>{tr("Manual purchase evidence")}</strong>
@@ -94,7 +115,8 @@ export function OriginalOrderLookup({
   };
   const reset = (patch) => {
     const newSearch =
-      (patch.orderNumber !== undefined && patch.orderNumber !== v.orderNumber) ||
+      (patch.orderNumber !== undefined &&
+        patch.orderNumber !== v.orderNumber) ||
       (patch.orderMode !== undefined && patch.orderMode !== v.orderMode);
     if (newSearch) setHistory(false);
     setCandidates([]);

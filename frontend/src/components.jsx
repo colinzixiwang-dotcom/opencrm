@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { paths } from "./icons";
 import { useWorkspace, title, money, num, formatDate } from "./context";
 export const nav = [
+  ["orders", "Order center"],
   ["home", "Overview"],
   ["rma", "RMAs"],
   ["rmatasks", "Task center"],
@@ -34,6 +35,10 @@ export const disabledModules = new Set([
   "purchase",
 ]);
 export const info = {
+  orders: [
+    "Order center",
+    "Find original orders and inspect their source information.",
+  ],
   rma: [
     "Return merchandise authorizations",
     "Every case, its solution, and the work needed to resolve it.",
@@ -452,7 +457,10 @@ export function Pagination({
 }) {
   const total = totalPages == null ? null : Math.max(1, totalPages);
   return (
-    <nav className={"pagination" + (compact ? " pagination-compact" : "")} aria-label={tr(label)}>
+    <nav
+      className={"pagination" + (compact ? " pagination-compact" : "")}
+      aria-label={tr(label)}
+    >
       {context && <span className="pagination-context">{context}</span>}
       <div className="pagination-controls">
         <button
@@ -471,7 +479,9 @@ export function Pagination({
           <span>
             {total == null
               ? tr("Total pages pending")
-              : compact ? total : tr("{total} pages total", { total })}
+              : compact
+                ? total
+                : tr("{total} pages total", { total })}
           </span>
         </span>
         <button

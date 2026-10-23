@@ -1,4 +1,5 @@
 export const paths = {
+  orders: "M5 3h14v18H5z M8 7h8 M8 11h8 M8 15h5",
   rma: "M7 3h10v4H7z M5 5H3v16h18V5h-2 M7 12h10 M7 16h6",
   rmatasks: "M4 5h16 M4 12h16 M4 19h16 M7 3v4 M7 10v4 M7 17v4",
   rmalogistics: "M1 5h13v12H1z M14 9h4l4 4v4h-8 M6 21h.01 M18 21h.01",

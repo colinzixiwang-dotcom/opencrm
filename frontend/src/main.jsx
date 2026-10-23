@@ -1,3 +1,4 @@
+import { OrderCenter } from "./order-center";
 import { LanguageSwitcher } from "./language";
 import { tr } from "./i18n";
 import React, { useState, useEffect } from "react";
@@ -177,6 +178,7 @@ function Login() {
   );
 }
 const views = {
+  orders: OrderCenter,
   rma: RMAs,
   rmatasks: TaskCenter,
   rmalogistics: AwaitingDispatch,
@@ -246,7 +248,12 @@ function App() {
       .filter(([p]) => !disabledModules.has(p))
       .filter(([p]) => Object.hasOwn(views, p)),
     View = Object.hasOwn(views, page) ? views[page] : null,
-    allowed = permitted(page);
+    allowed =
+      permitted(page) &&
+      (page !== "orders" ||
+        codes.includes("*:*:*") ||
+        codes.includes("erp:orders:list") ||
+        codes.includes("erp:orders:search"));
   const navigate = (p) => {
     if (disabledModules.has(p)) return;
     setMobile(false);
