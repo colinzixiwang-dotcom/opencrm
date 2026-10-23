@@ -90,6 +90,7 @@ func (s *Server) Router() *gin.Engine {
 	api.Use(s.auth)
 	s.ticketRoutes(api)
 	s.catalogRoutes(api)
+	s.orderCenterRoutes(api)
 	api.GET("/bootstrap", s.bootstrap)
 	api.GET("/rmas/:id", func(c *gin.Context) {
 		state, e := s.Store.State()
@@ -251,6 +252,9 @@ func (s *Server) require(c *gin.Context, permissions ...string) {
 func (s *Server) visibleMenus(c *gin.Context) []ruoyi.SysMenu {
 	out := []ruoyi.SysMenu{}
 	for _, m := range (ruoyi.Service{DB: s.Store.DB}).Menus(s.user(c).UserID) {
+		if m.URL == "orders" && !(s.allowed(c, "erp:orders:list") || s.allowed(c, "erp:orders:search")) {
+			continue
+		}
 		if m.MenuType != "F" && m.Visible == "0" {
 			out = append(out, m)
 		}

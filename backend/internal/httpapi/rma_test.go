@@ -86,7 +86,7 @@ func TestRMAExecutionIdempotencyAndNoForeignBenefitHistory(t *testing.T) {
 func TestSupportMigrationIdempotentAndLegacyGrantsPreserved(t *testing.T) {
 	x := prepareRMA(t)
 	_, before, _ := x.req("GET", "/api/bootstrap", x.admin, nil, "")
-	if len(domain.Rows(before, "menus")) != 20 {
+	if len(domain.Rows(before, "menus")) != 21 {
 		t.Fatal("missing new pages")
 	}
 	if e := (ruoyi.Service{DB: x.s.DB}).EnsureSupportMenus(); e != nil {
