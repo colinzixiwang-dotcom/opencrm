@@ -5,8 +5,10 @@ package originalorders
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
+	"harbor/internal/orderindex"
 	source "harbor/internal/ordersource"
 	"strings"
 	"time"
@@ -84,29 +86,52 @@ func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
 	if e != nil {
 		return nil, e
 	}
-	sourceNumber := ""
-	identities := map[string]bool{}
 	shop := strings.TrimSpace(domain.Str(b["shop"]))
+	queries := map[string]source.Query{}
+	add := func(sourceNumber, matchedShop string) {
+		if shop != "" && matchedShop != shop {
+			return
+		}
+		queries[sourceNumber+"\x00"+matchedShop] = source.Query{PlatformNumber: number, SourceNumber: sourceNumber, PaidDate: date, Shop: matchedShop}
+	}
 	for _, r := range refs {
-		o := decode(r.Normalized)
-		if shop != "" && o.Shop != shop {
-			continue
-		}
-		identities[r.SourceNumber] = true
+		add(r.SourceNumber, decode(r.Normalized).Shop)
 	}
-	if len(identities) == 1 {
-		for id := range identities {
-			sourceNumber = id
-		}
-	}
-	orders, e := s.Source.Lookup(ctx, source.Query{PlatformNumber: number, SourceNumber: sourceNumber, PaidDate: date, Shop: shop})
+	indexed, e := (orderindex.Service{DB: s.DB, Tenant: s.Tenant}).Records(number, shop)
 	if e != nil {
 		return nil, e
+	}
+	for _, r := range indexed {
+		add(r.SourceNumber, r.Shop)
+	}
+	if len(queries) == 0 {
+		queries[""] = source.Query{PlatformNumber: number, PaidDate: date, Shop: shop}
+	}
+	if len(queries) > 20 {
+		return nil, &source.Error{Code: "order_ambiguous", Message: "Too many matching orders. Specify a shop.", Status: 422}
+	}
+	orders := []source.Order{}
+	for _, query := range queries {
+		rows, lookupErr := s.Source.Lookup(ctx, query)
+		if lookupErr != nil {
+			var upstream *source.Error
+			if errors.As(lookupErr, &upstream) && upstream.Code == "not_found" {
+				continue
+			}
+			return nil, lookupErr
+		}
+		orders = append(orders, rows...)
+	}
+	if len(orders) == 0 {
+		return nil, &source.Error{Code: "not_found", Message: "No order matches this platform order number.", Status: 404}
 	}
 	out := []M{}
 	e = s.DB.Transaction(func(tx *gorm.DB) error {
 		seen := map[string]bool{}
 		for _, o := range orders {
+			if e := (orderindex.Service{DB: tx, Tenant: s.Tenant}).Save(tx, o, ""); e != nil {
+				return e
+			}
 			key := o.SourceID
 			if seen[key] {
 				continue

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"harbor/internal/domain"
 	"harbor/internal/integrations/udesk"
+	"harbor/internal/orderindex"
 	source "harbor/internal/ordersource"
 	"harbor/internal/originalorders"
 	"harbor/internal/store"
@@ -160,5 +161,47 @@ func TestManualOrderEvidenceAndCatalogGates(t *testing.T) {
 	p["allowOriginal"] = false
 	if _, e = svc.Manual(actor, state, input); e == nil {
 		t.Fatal("manual catalog policy bypass accepted")
+	}
+}
+
+type indexedHistory struct{ queries []source.Query }
+
+func (f *indexedHistory) Lookup(_ context.Context, q source.Query) ([]source.Order, error) {
+	f.queries = append(f.queries, q)
+	return []source.Order{{Provider: "mabang", SourceID: q.SourceNumber, SourceNumber: q.SourceNumber, PlatformNumber: q.PlatformNumber, Shop: q.Shop, QuerySource: "history", Items: []source.Item{{ID: "line", SKU: "historical-sku", Quantity: "1"}}}}, nil
+}
+func TestHistoricalIndexResolvesMultipleShopsWithoutPaymentDate(t *testing.T) {
+	udesk.LoadEnv("../../../.env")
+	db, e := store.Open(filepath.Join(t.TempDir(), "history-map"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer db.Destroy()
+	state, _ := db.State()
+	index := orderindex.Service{DB: db.DB, Tenant: "fixture"}
+	for _, shop := range []string{"A", "B"} {
+		if e := index.Save(db.DB, source.Order{SourceID: shop, SourceNumber: "ERP-" + shop, PlatformNumber: "SAME-NUMBER", Shop: shop}, ""); e != nil {
+			t.Fatal(e)
+		}
+	}
+	f := &indexedHistory{}
+	svc := originalorders.Service{DB: db.DB, Source: f, Tenant: "fixture"}
+	actor := domain.M{"id": "USR-ADMIN"}
+	result, e := svc.Lookup(context.Background(), actor, state, domain.M{"draftId": "draft", "orderNumber": "SAME-NUMBER"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(domain.Rows(result, "items")) != 2 || len(f.queries) != 2 {
+		t.Fatal("ambiguous mapping was collapsed")
+	}
+	for _, q := range f.queries {
+		if q.SourceNumber == "" || q.PaidDate != "" || q.Shop == "" {
+			t.Fatal("historical query lacks indexed identity")
+		}
+	}
+	f.queries = nil
+	result, e = svc.Lookup(context.Background(), actor, state, domain.M{"draftId": "draft", "orderNumber": "SAME-NUMBER", "shop": "A"})
+	if e != nil || len(domain.Rows(result, "items")) != 1 || len(f.queries) != 1 {
+		t.Fatal("shop scope ignored", e)
 	}
 }
