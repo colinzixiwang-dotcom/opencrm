@@ -51,6 +51,7 @@ export async function api(path, options = {}) {
   if (!r.ok) {
     const e = new Error(data.error || "Request failed.");
     e.status = r.status;
+    e.code = data.code;
     e.lastSyncAt = data.lastSyncAt;
     throw e;
   }

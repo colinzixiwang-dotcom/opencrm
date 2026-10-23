@@ -146,7 +146,8 @@ export function OriginalOrderLookup({
       }
     } catch (e) {
       setError(e.message);
-      if (operation === "lookup") setHistory(true);
+      if (operation === "lookup" && e.code === "history_identifier_required")
+        setHistory(true);
     } finally {
       markBusy(false);
     }
@@ -251,37 +252,40 @@ export function OriginalOrderLookup({
               </Button>
             </div>
           </div>
-          <details
-            open={history}
-            onToggle={(e) => setHistory(e.currentTarget.open)}
-          >
-            <summary>{tr("Historical order lookup options")}</summary>
-            <div className="form-grid">
-              <label>
-                {tr("Payment date (for historical lookup)")}
-                <input
-                  type="date"
-                  disabled={busy}
-                  value={v.orderPaidDate || ""}
-                  onChange={(e) => reset({ orderPaidDate: e.target.value })}
-                />
-              </label>
-              <label>
-                {tr("Shop (optional)")}
-                <input
-                  disabled={busy}
-                  value={v.orderShop || ""}
-                  maxLength={160}
-                  onChange={(e) => reset({ orderShop: e.target.value })}
-                />
-              </label>
-            </div>
-            <p className="help-text">
-              {tr(
-                "Historical orders require a saved Mabang number mapping or a payment date. Results must match the platform order number exactly.",
-              )}
-            </p>
-          </details>
+          {history && (
+            <section className="original-order-history">
+              <p className="help-text">
+                {tr(
+                  "Add a payment date to continue the order search. Shop is optional.",
+                )}
+              </p>
+              <div className="form-grid">
+                <label>
+                  {tr("Payment date (for historical lookup)")}
+                  <input
+                    type="date"
+                    disabled={busy}
+                    value={v.orderPaidDate || ""}
+                    onChange={(e) => reset({ orderPaidDate: e.target.value })}
+                  />
+                </label>
+                <label>
+                  {tr("Shop (optional)")}
+                  <input
+                    disabled={busy}
+                    value={v.orderShop || ""}
+                    maxLength={160}
+                    onChange={(e) => reset({ orderShop: e.target.value })}
+                  />
+                </label>
+              </div>
+              <p className="help-text">
+                {tr(
+                  "Historical orders require a saved Mabang number mapping or a payment date. Results must match the platform order number exactly.",
+                )}
+              </p>
+            </section>
+          )}
         </>
       )}
       {error && (
@@ -306,7 +310,7 @@ export function OriginalOrderLookup({
                   {i.sku} × {i.quantity}
                   {!i.matched && (
                     <small>
-                      {tr("Not mapped to a supported Morpho device SKU")}
+                      {tr("Original SKU is not enabled in the catalog")}
                     </small>
                   )}
                 </span>
@@ -397,9 +401,9 @@ function ManualOrderEntry({
           </select>
         </label>
         <label>
-          {tr("Original device SKU")}
+          {tr("Original order SKU")}
           <select
-            aria-label={tr("Original device SKU")}
+            aria-label={tr("Original order SKU")}
             required
             disabled={busy}
             value={m.productId || ""}
@@ -471,7 +475,7 @@ function ManualOrderEntry({
       {!devices.length && (
         <p className="help-text">
           {tr(
-            "Configure a Morpho device SKU in the product catalog before confirming an order.",
+            "Enable original order recognition for a SKU in the product catalog before confirming an order.",
           )}
         </p>
       )}

@@ -460,6 +460,85 @@ function TaskParameters({
     </div>
   );
 }
+function ReshipLines({ solutionId, items, onChange }) {
+  const { state: s } = useWorkspace();
+  const type = solutionId === "parts" ? "part" : "device";
+  const choices = s.products.filter(
+    (p) =>
+      p.productType === type &&
+      (p.source !== "mabang" || (p.allowReship && p.sourcePresent !== false)),
+  );
+  const set = (i, k, v) =>
+    onChange(items.map((line, n) => (n === i ? { ...line, [k]: v } : line)));
+  return (
+    <section className="reship-lines" aria-label={tr("Reshipment details")}>
+      <div className="support-section-title">
+        <h3>{tr("Reshipment details")}</h3>
+        <small>
+          {tr("Purchased item and reshipment items are saved separately.")}
+        </small>
+      </div>
+      {items.map((line, i) => (
+        <div className="reship-line" key={i}>
+          <label>
+            {tr("Reship SKU")} {i + 1}
+            <select
+              aria-label={`${tr("Reship SKU")} ${i + 1}`}
+              required
+              value={line.productId}
+              onChange={(e) => set(i, "productId", e.target.value)}
+            >
+              <option value="">{tr("Choose SKU…")}</option>
+              {choices
+                .filter(
+                  (p) =>
+                    p.id === line.productId ||
+                    !items.some((x) => x.productId === p.id),
+                )
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.sku} · {p.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            {tr("Quantity")}
+            <input
+              aria-label={`${tr("Quantity")} ${i + 1}`}
+              type="number"
+              min="1"
+              max="1000000"
+              step="1"
+              required
+              value={line.qty}
+              onChange={(e) => set(i, "qty", e.target.value)}
+            />
+          </label>
+          <Button
+            kind="secondary"
+            onClick={() => onChange(items.filter((_, n) => n !== i))}
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      <Button
+        disabled={items.length >= 50 || !choices.length}
+        onClick={() => onChange([...items, { productId: "", qty: 1 }])}
+      >
+        Add reshipment item
+      </Button>
+      {!choices.length && (
+        <p className="help-text">
+          {tr(
+            "No enabled reship SKU for this solution. Ask an administrator to configure the product catalog.",
+          )}
+        </p>
+      )}
+    </section>
+  );
+}
 export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
   const { state: s } = useWorkspace(),
     cfg = s.supportConfig;
@@ -479,6 +558,7 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
           : "lookup"),
       manualOrder: initial.manualOrder || {},
       solutionReason: initial.solutionReason || "",
+      reshipItems: initial.reshipItems || [],
       platform: initial.platform || "",
       productId: initial.productId || "",
       rootCauseId: initial.rootCauseId || "",
@@ -530,7 +610,23 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
     ),
     orders = orderRows(s);
   const selectSolution = (id) => {
-    setV({ ...v, solutionId: id });
+    setV({
+      ...v,
+      solutionId: id,
+      reshipItems: [
+        {
+          productId: s.products.some(
+            (p) =>
+              p.id === v.productId &&
+              p.productType === (id === "parts" ? "part" : "device") &&
+              (p.source !== "mabang" || p.allowReship),
+          )
+            ? v.productId
+            : "",
+          qty: 1,
+        },
+      ],
+    });
     const sol = cfg.solutions.find((x) => x.id === id),
       values = {};
     sol?.nodes.forEach((n) => {
@@ -582,6 +678,14 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
             {
               ...v,
               taskInputs,
+              ...(v.draftId
+                ? {
+                    reshipItems: v.reshipItems.map((line) => ({
+                      ...line,
+                      qty: Number(line.qty),
+                    })),
+                  }
+                : {}),
               expectedConfigRevision: configRevision,
               expectedWarrantyRevision: warrantyRevision,
             },
@@ -651,6 +755,7 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                         solutionId: "",
                         rootCauseId: "",
                         warrantyEvidence: {},
+                        reshipItems: [],
                       }
                     : next,
                 );
@@ -852,7 +957,14 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                   onAssessment={setAssessment}
                 />
               )}
-              {solution && (
+              {solution && v.draftId && (
+                <ReshipLines
+                  solutionId={v.solutionId}
+                  items={v.reshipItems}
+                  onChange={(lines) => set("reshipItems", lines)}
+                />
+              )}
+              {solution && !v.draftId && (
                 <>
                   <div className="support-section-title">
                     <h3>{tr("Solution tasks")}</h3>
@@ -955,6 +1067,7 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                       busy ||
                       savingDraft ||
                       !assessment?.eligible ||
+                      !v.reshipItems?.length ||
                       !v.orderConfirmationId
                     }
                   >
@@ -1154,6 +1267,18 @@ function RMADetail({ id, onClose }) {
               </div>
               <OriginalOrderSummary confirmation={r.originalOrder} />
             </>
+          )}
+          {r.reshipItems?.length > 0 && (
+            <section className="reship-summary">
+              <h3>{tr("Reshipment details")}</h3>
+              <ul>
+                {r.reshipItems.map((line) => (
+                  <li key={line.productId}>
+                    <strong>{line.sku}</strong> · {line.name} × {line.qty}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           {r.solutionReason && (
             <div className="support-description">
