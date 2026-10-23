@@ -106,9 +106,7 @@ try {
     fullPage: true,
   });
   await d.locator(".language-switcher select").selectOption("en");
-  await d
-    .getByRole("button", { name: "Next: solution and warranty", exact: true })
-    .click();
+  await d.getByLabel("Proposed solution", { exact: true }).waitFor();
   assert.equal(
     await d
       .getByRole("button", { name: "Look up original order", exact: true })
@@ -300,16 +298,14 @@ try {
   await d
     .getByRole("button", { name: "Confirm manual order", exact: true })
     .click();
-  await d.getByText("Original order confirmed", { exact: true }).waitFor();
+  await d.getByText("Manually entered order", { exact: true }).waitFor();
   await page.screenshot({ path: "test-results/rma-manual-order-en.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await d.locator(".language-switcher select").selectOption("zh-CN");
   await page.screenshot({ path: "test-results/rma-order-step-mobile-zh.png" });
   await d.locator(".language-switcher select").selectOption("en");
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await d
-    .getByRole("button", { name: "Next: solution and warranty", exact: true })
-    .click();
+  await d.getByLabel("Proposed solution", { exact: true }).waitFor();
   await d
     .getByLabel("Proposed solution", { exact: true })
     .selectOption("reship_device");

@@ -757,6 +757,11 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
                   setAssessment(null);
                 }
                 setDraftMessage("");
+                if (changed && next.orderConfirmationId) {
+                  setStep(2);
+                  setError("");
+                  bodyRef.current?.scrollTo({ top: 0 });
+                }
               }}
             />
           )}

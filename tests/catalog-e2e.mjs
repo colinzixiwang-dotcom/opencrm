@@ -134,9 +134,8 @@ try {
       exact: true,
     })
     .click();
-  await d
-    .getByRole("button", { name: "Next: solution and warranty", exact: true })
-    .click();
+  await d.getByLabel("Proposed solution", { exact: true }).waitFor();
+  assert.equal(await d.getByRole("button", { name: "Next: solution and warranty", exact: true }).count(), 0);
   await d
     .getByLabel("Root cause", { exact: true })
     .selectOption("device_fault");
