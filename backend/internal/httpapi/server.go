@@ -63,7 +63,7 @@ func (s *Server) Router() *gin.Engine {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("Referrer-Policy", "same-origin")
 		c.Header("Cache-Control", "no-store")
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
 		if !allowedHostPattern.MatchString(c.Request.Host) {
 			domain.Fail("Invalid host.", 403)
 		}
@@ -89,6 +89,7 @@ func (s *Server) Router() *gin.Engine {
 	api := r.Group("/api")
 	api.Use(s.auth)
 	s.ticketRoutes(api)
+	s.catalogRoutes(api)
 	api.GET("/bootstrap", s.bootstrap)
 	api.GET("/rmas/:id", func(c *gin.Context) {
 		state, e := s.Store.State()
@@ -311,6 +312,7 @@ func (s *Server) bootstrap(c *gin.Context) {
 	}
 	if !s.allowed(c, ruoyi.ViewPermission("warehouse")) && !s.allowed(c, ruoyi.ViewPermission("fba")) {
 		state["stocks"] = []M{}
+		state["catalogInventory"] = []M{}
 		state["movements"] = []M{}
 	}
 	if !s.allowed(c, ruoyi.ViewPermission("home")) && !s.allowed(c, ruoyi.ViewPermission("statistics")) && !s.allowed(c, ruoyi.ViewPermission("finance")) {

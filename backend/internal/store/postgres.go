@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
+	"harbor/internal/catalog"
 	"harbor/internal/domain"
 	"harbor/internal/originalorders"
 	"harbor/internal/persistence"
@@ -51,7 +52,10 @@ func Migrate(db *gorm.DB) error {
 			if e := migrateOrderEvidence(tx, ledger); e != nil {
 				return e
 			}
-			return migrateReshipConfig(tx, ledger)
+			if e := migrateReshipConfig(tx, ledger); e != nil {
+				return e
+			}
+			return migrateCatalog(tx, ledger)
 		}
 		if e := tx.AutoMigrate(&ruoyi.SysUser{}, &ruoyi.SysRole{}, &ruoyi.SysMenu{}, &ruoyi.UserRole{}, &ruoyi.RoleMenu{}); e != nil {
 			return e
@@ -91,7 +95,10 @@ func Migrate(db *gorm.DB) error {
 		if e := migrateOrderEvidence(tx, ledger); e != nil {
 			return e
 		}
-		return migrateReshipConfig(tx, ledger)
+		if e := migrateReshipConfig(tx, ledger); e != nil {
+			return e
+		}
+		return migrateCatalog(tx, ledger)
 	})
 }
 
@@ -371,4 +378,19 @@ func migrateReshipConfig(tx *gorm.DB, ledger string) error {
 		}
 	}
 	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(8)").Error
+}
+
+// v9 is additive: reversible catalog imports, no automatic ERP network calls or cleanup.
+func migrateCatalog(tx *gorm.DB, ledger string) error {
+	var n int64
+	if e := tx.Table(ledger).Where("version=9").Count(&n).Error; e != nil {
+		return e
+	}
+	if n > 0 {
+		return nil
+	}
+	if e := catalog.Init(tx); e != nil {
+		return e
+	}
+	return tx.Exec("INSERT INTO " + ledger + " (version) VALUES(9)").Error
 }

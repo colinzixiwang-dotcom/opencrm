@@ -20,6 +20,7 @@ import (
 )
 
 var Tables = map[string]string{
+	"import_batches":  "integration",
 	"order_evidences": "order_reference",
 	"sys_user":        "access_control", "sys_role": "access_control", "sys_menu": "access_control", "sys_user_role": "access_control", "sys_role_menu": "access_control", "sessions": "access_control",
 	"tickets": "support_access", "metadata": "support_access", "mappings": "support_access", "snapshots": "support_access", "reply_pages": "support_access",

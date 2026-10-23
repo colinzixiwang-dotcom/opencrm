@@ -383,6 +383,9 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 		var p M
 		if action == "product.update" {
 			p = Find(s, "products", Str(b["id"]))
+			if p["source"] == "mabang" {
+				Fail("ERP fields are read-only. Use SKU policy configuration.", 422)
+			}
 		}
 		sku := Required(b["sku"], "SKU", 64)
 		Unique(Rows(s, "products"), "sku", sku, Str(b["id"]))
@@ -508,6 +511,9 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 	case "purchase.pay":
 		r = Payment(s, Find(s, "purchases", Str(b["id"])), b, user, true)
 	case "inventory.adjust":
+		if Find(s, "products", Str(b["productId"]))["source"] == "mabang" {
+			Fail("ERP inventory is read-only.", 422)
+		}
 		r = Stock(s, Str(b["productId"]), Str(b["warehouseId"]))
 		delta := Int(b["delta"], "Adjustment quantity", -1000000, 1000000)
 		if delta == 0 {

@@ -45,6 +45,12 @@ func str(v any) string {
 	return fmt.Sprint(v)
 }
 func (c *Client) call(ctx context.Context, api string, params map[string]string) (map[string]any, error) {
+	// Defense in depth: this adapter cannot invoke upstream mutation APIs.
+	switch api {
+	case "order-get-order-list-new", "get-history-order-list", "stock-do-search-sku-list-new", "stock-get-stock-quantity":
+	default:
+		return nil, failure("read_only", "Only approved read-only Mabang APIs are allowed.", 403)
+	}
 	if c.Key == "" || c.Token == "" {
 		return nil, failure("not_configured", "Mabang credentials are not configured.", 503)
 	}
