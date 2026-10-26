@@ -351,8 +351,9 @@ try {
   assert.match(await d.locator(".rma-steps").innerText(), /#101/);
   assert.equal(
     await d.getByLabel("Platform order number", { exact: true }).inputValue(),
-    "ORDER-101",
+    "",
   );
+  await d.getByLabel("Platform order number", { exact: true }).fill("CUSTOMER-ORDER");
   assert.equal(await d.getByLabel("Description", { exact: true }).count(), 0);
   await d.getByRole("button", { name: "Save draft", exact: true }).click();
   await d.getByText("Draft saved", { exact: true }).waitFor();
@@ -367,6 +368,7 @@ try {
     )
   ).json();
   assert(saved.payload.description.includes("Device stops printing"));
+  assert.equal(saved.payload.orderNumber, "CUSTOMER-ORDER", "Preserve the order number deliberately saved by the agent");
   const submitPayload = {
     ...saved.payload,
     platform: "Amazon",

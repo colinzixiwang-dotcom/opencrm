@@ -125,7 +125,8 @@ try {
     .click();
   const d = page.getByRole("dialog");
   const numberInput = d.getByLabel("Platform order number", { exact: true });
-  const originalNumber = await numberInput.inputValue();
+  assert.equal(await numberInput.inputValue(), "");
+  const originalNumber = "ORDER-101";
   const lookupButton = d.getByRole("button", { name: "Look up original order", exact: true });
   const historyDate = d.getByLabel("Payment date (for historical lookup)", { exact: true });
   await numberInput.fill("UNINDEXED-OLD-ORDER");

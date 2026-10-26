@@ -352,10 +352,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
           description: plain(t.content).slice(0, 4000),
         };
       const fields = metadata?.fields || [];
-      for (const [label, key] of [
-        ["Order Number", "orderNumber"],
-        ["Product Serial Number", "sn"],
-      ]) {
+      for (const [label, key] of [["Product Serial Number", "sn"]]) {
         const field = fields.find((f) => f.label === label);
         const value = field && t.customValues?.[field.key];
         if (typeof value === "string") payload[key] = value;

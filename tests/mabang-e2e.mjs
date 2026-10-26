@@ -82,8 +82,9 @@ try {
   );
   assert.equal(
     await d.getByLabel("Platform order number", { exact: true }).inputValue(),
-    "ORDER-101",
+    "",
   );
+  await d.getByLabel("Platform order number", { exact: true }).fill("ORDER-101");
   await d
     .getByRole("button", { name: "Look up original order", exact: true })
     .click();
