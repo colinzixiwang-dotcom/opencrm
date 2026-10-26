@@ -141,53 +141,6 @@ export function OrderCenter() {
   return (
     <>
       <Heading subtitle="Find original orders and inspect their source information." />
-      {sync && (
-        <section className="order-sync-summary" aria-label={tr("Order synchronization status")}>
-          <div className="order-sync-time">
-            <span className="order-sync-label">{tr("Last successful order sync")}</span>
-            <div className="order-sync-value">
-              {sync.lastSuccessfulSyncAt ? (
-                <time dateTime={sync.lastSuccessfulSyncAt}>
-                  {new Intl.DateTimeFormat(intlLocale(), {
-                    year: "numeric", month: "2-digit", day: "2-digit",
-                    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-                    timeZone: "Asia/Shanghai",
-                  }).format(new Date(sync.lastSuccessfulSyncAt))}
-                </time>
-              ) : <span>—</span>}
-              <span className={`order-sync-badge ${sync.continuousSyncEnabled ? "is-active" : "is-paused"}`}>
-                {tr(sync.continuousSyncEnabled ? "Automatic sync enabled" : "Automatic sync not enabled")}
-              </span>
-            </div>
-            <small>{tr("Completed backfill · Beijing time")}</small>
-          </div>
-          {job && (
-            <div className={`order-sync-coverage ${job.status === "failed" ? "has-error" : ""}`}>
-              <div className="order-sync-coverage-heading">
-                <span className="order-sync-label">{tr("Payment date coverage")}</span>
-                <span className="order-sync-job-state">
-                  {tr(job.status === "completed" ? "Backfill completed"
-                    : job.status === "failed" ? "Order backfill interrupted"
-                    : "Order backfill in progress")}
-                </span>
-              </div>
-              <div className="order-sync-range">
-                <time dateTime={job.fromDate}>{job.fromDate}</time>
-                <span aria-hidden="true">→</span>
-                <time dateTime={job.toDate}>{job.toDate}</time>
-              </div>
-              <div className="order-sync-counts">
-                <span><b>{job.completedDays.toLocaleString(intlLocale())}</b> {tr("days completed")}</span>
-                <span><b>{job.rows.toLocaleString(intlLocale())}</b> {tr("source rows processed")}</span>
-                {job.status !== "completed" && job.currentDate && (
-                  <span>{tr("Current payment date")}: {job.currentDate}</span>
-                )}
-              </div>
-              {job.error && <p className="form-error" role="alert">{tr(job.error)}</p>}
-            </div>
-          )}
-        </section>
-      )}
       <Panel className="order-center-panel">
         <div className="list-toolbar order-center-toolbar">
           {search && (
@@ -217,6 +170,36 @@ export function OrderCenter() {
                 Search order
               </Button>
             </form>
+          )}
+          {sync && (
+            <details className="order-sync-inline">
+              <summary aria-label={tr("Order synchronization status")}>
+                <span>{tr("Last successful order sync")}: </span>
+                {sync.lastSuccessfulSyncAt ? (
+                  <time dateTime={sync.lastSuccessfulSyncAt}>
+                    {new Intl.DateTimeFormat(intlLocale(), {
+                      month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+                      hourCycle: "h23", timeZone: "Asia/Shanghai",
+                    }).format(new Date(sync.lastSuccessfulSyncAt))}
+                  </time>
+                ) : "—"}
+                {job && job.status !== "completed" && (
+                  <span className={job.status === "failed" ? "sync-failed" : ""}>
+                    · {tr(job.status === "failed" ? "Order backfill interrupted" : "Order backfill in progress")}
+                  </span>
+                )}
+              </summary>
+              <div className="order-sync-popover">
+                <p>{tr(sync.continuousSyncEnabled ? "Automatic sync enabled" : "Automatic sync not enabled")}</p>
+                <p>{tr("Completed backfill · Beijing time")}</p>
+                {job && <>
+                  <p>{tr("Payment date coverage")}: {job.fromDate} → {job.toDate}</p>
+                  <p>{job.completedDays.toLocaleString(intlLocale())} {tr("days completed")} · {job.rows.toLocaleString(intlLocale())} {tr("source rows processed")}</p>
+                  {job.status !== "completed" && job.currentDate && <p>{tr("Current payment date")}: {job.currentDate}</p>}
+                  {job.error && <p className="form-error" role="alert">{tr(job.error)}</p>}
+                </>}
+              </div>
+            </details>
           )}
           {list && (
             <div className="order-center-sort">

@@ -4341,45 +4341,20 @@ td {
 @media(max-width:800px){.order-center-search{max-width:none;width:100%;flex-basis:100%}.order-center-sort{flex-wrap:wrap}.source-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.source-field-grid{grid-template-columns:1fr}.order-center-toolbar{padding:14px}.order-source-fields{padding:12px}.source-array-item{padding:8px;gap:6px}}
 
-/* A compact provenance strip keeps the order list at the center of the page. */
-.order-sync-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  margin-bottom: 16px;
-  padding: 20px 24px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-}
-.order-sync-time, .order-sync-coverage { min-width: 0; }
-.order-sync-coverage { border-left: 1px solid var(--line); padding-left: 24px; }
-.order-sync-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .03em; }
-.order-sync-value { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin: 8px 0 7px; }
-.order-sync-value > time, .order-sync-value > span:first-child { font-size: 19px; line-height: 1.3; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
-.order-sync-time > small { font-size: 11px; color: var(--muted); }
-.order-sync-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 5px; font-size: 10px; line-height: 1.4; font-weight: 500; white-space: nowrap; }
-.order-sync-badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.order-sync-badge.is-paused { color: #87692f; background: #f8f3e8; }
-.order-sync-badge.is-active { color: #35624e; background: #edf5ef; }
-.order-sync-coverage-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.order-sync-job-state { font-size: 10px; color: #527461; }
-.order-sync-coverage.has-error .order-sync-job-state { color: #a74738; }
-.order-sync-range { display: flex; align-items: center; gap: 12px; margin: 8px 0 7px; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.5; }
-.order-sync-range > span { color: #9aa99d; font-weight: 400; }
-.order-sync-counts { display: flex; flex-wrap: wrap; gap: 4px 18px; color: var(--muted); font-size: 11px; line-height: 1.6; }
-.order-sync-counts b { color: var(--green); font-weight: 600; font-variant-numeric: tabular-nums; }
-.order-sync-coverage .form-error { margin: 8px 0 0; overflow-wrap: anywhere; }
-@media (max-width: 1100px) {
-  .order-sync-summary { gap: 18px; padding: 18px 20px; }
-  .order-sync-coverage { padding-left: 18px; }
-  .order-sync-value > time { font-size: 17px; }
-  .order-sync-range { font-size: 14px; gap: 8px; }
-}
-@media (max-width: 700px) {
-  .order-sync-summary { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
-  .order-sync-coverage { border-left: 0; border-top: 1px solid var(--line); padding: 14px 0 0; }
-  .order-sync-value { gap: 8px 12px; }
+/* Sync metadata lives quietly in the existing list toolbar. */
+.order-sync-inline { position: relative; margin-left: auto; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.order-sync-inline > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; cursor: pointer; list-style: none; padding: 3px 0; }
+.order-sync-inline > summary::-webkit-details-marker { display: none; }
+.order-sync-inline > summary::after { content: "⌄"; margin-left: 3px; }
+.order-sync-inline > summary:focus-visible { outline: 2px solid #638778; outline-offset: 4px; border-radius: 2px; }
+.order-sync-inline time { font-variant-numeric: tabular-nums; }
+.order-sync-inline .sync-failed { color: #a74738; }
+.order-sync-popover { position: absolute; right: 0; top: calc(100% + 8px); z-index: 5; width: 310px; max-width: calc(100vw - 64px); padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: white; box-shadow: 0 6px 24px #17382918; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.order-sync-popover p { margin: 0 0 7px; }
+.order-sync-popover p:last-child { margin-bottom: 0; }
+@media (max-width: 800px) {
+  .order-sync-inline { margin-left: 0; }
+  .order-sync-popover { left: 0; right: auto; }
 }
 
 /* SKU configuration: read-only source data, explicit local policy, fixed actions. */
