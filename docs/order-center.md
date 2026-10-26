@@ -84,7 +84,8 @@ review/restarting that date; do not mark a partially read day complete.
 
 The list uses the common search/sort/pagination components and displays a
 snapshot projection. It is not a live order-status feed. Details and RMA
-confirmation re-read source facts. Searches operate on exact numbers, not on
+lookups read source facts live. Confirmation uses the saved candidate (valid for
+30 minutes) and rechecks CRM policy; it does not issue another source request. Searches operate on exact numbers, not on
 customer names, addresses or arbitrary full text.
 
 Full non-empty source fields are available in grouped, expandable sections in
@@ -111,3 +112,12 @@ job checkpoints and four added permissions; export these tables first if their
 recovery/progress evidence is needed. Existing RMA and original-order evidence
 are preserved. Reverting source alone may leave these additive tables safely
 in place. Review deployments use the shared .84 PostgreSQL database.
+
+## Mapping version 2 and synchronization capability review
+
+See [Mabang normalization and synchronization plan](mabang-order-sync-plan.md)
+for the implemented semantic contract, safe reprojection command, verified
+updated-time capabilities, and the distinction between proposed jobs and native
+API features. Continuous order synchronization remains disabled. The order page
+shows the last completed backfill time and automatically updates its local list
+when the index revision changes, without a manual refresh button.
