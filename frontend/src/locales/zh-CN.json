@@ -1537,5 +1537,10 @@
   "Order platform has no verified mapping. Ask an administrator to configure the integration.": "原订单的平台尚未建立已验证的映射，请联系管理员配置集成。",
   "Order synchronization status": "订单同步状态",
   "Last successful order sync": "最近成功同步时间",
-  "Latest completed backfill; continuous order synchronization is not enabled.": "此时间为最近一次完成回填的时间；持续自动同步尚未启用。"
+  "Latest completed backfill; continuous order synchronization is not enabled.": "此时间为最近一次完成回填的时间；持续自动同步尚未启用。",
+  "Automatic sync enabled": "自动同步已启用",
+  "Automatic sync not enabled": "自动同步未启用",
+  "Completed backfill · Beijing time": "最近完成回填 · 北京时间",
+  "Payment date coverage": "付款日期覆盖范围",
+  "Backfill completed": "回填已完成"
 }

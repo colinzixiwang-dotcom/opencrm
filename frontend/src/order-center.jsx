@@ -142,51 +142,50 @@ export function OrderCenter() {
     <>
       <Heading subtitle="Find original orders and inspect their source information." />
       {sync && (
-        <section className="order-index-status" aria-label={tr("Order synchronization status")}>
-          <div>
-            <strong>{tr("Last successful order sync")}: {sync.lastSuccessfulSyncAt
-              ? new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Shanghai" }).format(new Date(sync.lastSuccessfulSyncAt))
-              : "—"}</strong>
-            <p>{tr("Latest completed backfill; continuous order synchronization is not enabled.")}</p>
+        <section className="order-sync-summary" aria-label={tr("Order synchronization status")}>
+          <div className="order-sync-time">
+            <span className="order-sync-label">{tr("Last successful order sync")}</span>
+            <div className="order-sync-value">
+              {sync.lastSuccessfulSyncAt ? (
+                <time dateTime={sync.lastSuccessfulSyncAt}>
+                  {new Intl.DateTimeFormat(intlLocale(), {
+                    year: "numeric", month: "2-digit", day: "2-digit",
+                    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+                    timeZone: "Asia/Shanghai",
+                  }).format(new Date(sync.lastSuccessfulSyncAt))}
+                </time>
+              ) : <span>—</span>}
+              <span className={`order-sync-badge ${sync.continuousSyncEnabled ? "is-active" : "is-paused"}`}>
+                {tr(sync.continuousSyncEnabled ? "Automatic sync enabled" : "Automatic sync not enabled")}
+              </span>
+            </div>
+            <small>{tr("Completed backfill · Beijing time")}</small>
           </div>
-        </section>
-      )}
-      {job && (
-        <section className="order-index-status">
-          <div>
-            <strong>
-              {tr(
-                job.status === "completed"
-                  ? "Order index ready"
-                  : job.status === "failed"
-                    ? "Order backfill interrupted"
-                    : "Order backfill in progress",
-              )}
-            </strong>
-            <p>
-              {job.fromDate} — {job.toDate} · {job.completedDays}{" "}
-              {tr("days completed")} · {job.rows.toLocaleString()}{" "}
-              {tr("source rows processed")}
-            </p>
-            {job.status !== "completed" && (
-              <small>
-                {tr("Current payment date")}: {job.currentDate}
-              </small>
-            )}
-            {job.error && (
-              <p className="form-error" role="alert">
-                {tr(job.error)}
-              </p>
-            )}
-          </div>
-          <span>
-            {tr("Updated at")}:{" "}
-            {new Intl.DateTimeFormat(intlLocale(), {
-              dateStyle: "medium",
-              timeStyle: "medium",
-              timeZone: "Asia/Shanghai",
-            }).format(new Date(job.updatedAt))}
-          </span>
+          {job && (
+            <div className={`order-sync-coverage ${job.status === "failed" ? "has-error" : ""}`}>
+              <div className="order-sync-coverage-heading">
+                <span className="order-sync-label">{tr("Payment date coverage")}</span>
+                <span className="order-sync-job-state">
+                  {tr(job.status === "completed" ? "Backfill completed"
+                    : job.status === "failed" ? "Order backfill interrupted"
+                    : "Order backfill in progress")}
+                </span>
+              </div>
+              <div className="order-sync-range">
+                <time dateTime={job.fromDate}>{job.fromDate}</time>
+                <span aria-hidden="true">→</span>
+                <time dateTime={job.toDate}>{job.toDate}</time>
+              </div>
+              <div className="order-sync-counts">
+                <span><b>{job.completedDays.toLocaleString(intlLocale())}</b> {tr("days completed")}</span>
+                <span><b>{job.rows.toLocaleString(intlLocale())}</b> {tr("source rows processed")}</span>
+                {job.status !== "completed" && job.currentDate && (
+                  <span>{tr("Current payment date")}: {job.currentDate}</span>
+                )}
+              </div>
+              {job.error && <p className="form-error" role="alert">{tr(job.error)}</p>}
+            </div>
+          )}
         </section>
       )}
       <Panel className="order-center-panel">
