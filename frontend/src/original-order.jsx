@@ -281,6 +281,11 @@ export function OriginalOrderLookup({
                 maxLength={160}
                 disabled={busy}
                 onChange={(e) => reset({ orderNumber: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  if (!busy && v.orderNumber.trim()) run("lookup");
+                }}
               />
             </label>
             <div className="original-order-search">
