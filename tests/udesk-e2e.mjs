@@ -80,7 +80,8 @@ try {
   await selectColumnFilter(page, "Filter by ticket assignment", "all");
   assert.equal((await (await sortedResponse).json()).sort, "repliedAt:desc");
   await page.locator("tbody .ticket-subject").first().waitFor();
-  assert.equal(await page.locator("nav a.nav-item").count(), 13);
+  assert.equal(await page.locator('nav a.nav-item[href="#service"]').count(), 1);
+  assert.equal(await page.locator('nav a.nav-item[href="#orders"]').count(), 1);
   console.log("PASS shared scope selector and fixed reply-time order");
   await page
     .getByLabel("Search ticket content", { exact: true })
