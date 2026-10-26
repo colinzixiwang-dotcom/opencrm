@@ -17,12 +17,17 @@ const sourceStatuses = {
   Clearance: "Clearance",
   Discontinued: "Discontinued",
   Unknown: "Unknown",
+
+};
+
+// Legacy snapshots retain source codes; filter choices use the current contract only.
+const sourceStatusLabel = (value) => sourceStatuses[value] || ({
   1: "Automatically created",
   2: "Awaiting development",
   3: "Selling",
   4: "Clearance",
   5: "Discontinued",
-};
+})[value] || value;
 const stamp = (v) =>
   v
     ? new Intl.DateTimeFormat(intlLocale(), {
@@ -198,7 +203,7 @@ function ProductDetail({ product: p, onClose }) {
               ["English name", p.nameEn],
               [
                 "Source status",
-                tr(sourceStatuses[p.sourceStatus] || p.sourceStatus),
+                tr(sourceStatusLabel(p.sourceStatus)),
               ],
               ["Category", p.category],
               ["Master SKU", p.masterSku],
@@ -468,7 +473,7 @@ export function CatalogProducts() {
               "Source status",
               (p) => (
                 <span className={"catalog-status status-" + p.sourceStatus}>
-                  {tr(sourceStatuses[p.sourceStatus] || p.sourceStatus)}
+                  {tr(sourceStatusLabel(p.sourceStatus))}
                 </span>
               ),
               "sourceStatus",

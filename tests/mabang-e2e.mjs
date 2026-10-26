@@ -248,6 +248,8 @@ try {
   assert.equal(r.status(), 200, await r.text());
   candidate = (await r.json()).items[0];
   assert.equal(candidate.order.querySource, "history");
+  assert.equal(candidate.order.platform, "Shopify");
+  assert.equal(candidate.order.status, "Shipped");
   r = await page.request.post(app.base + "/api/original-orders/confirm", {
     data: { draftId: nextId, candidateId: candidate.id, itemId: "item-1" },
   });
@@ -256,7 +258,7 @@ try {
   await action("rma.create", {
     ...newDraft.payload,
     orderNumber: "HISTORY-1",
-    platform: "Amazon",
+    platform: confirmation.order.platform,
     productId: device.id,
     rootCauseId: "device_fault",
     solutionId: "parts",

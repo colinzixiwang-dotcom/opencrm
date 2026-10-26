@@ -89,10 +89,8 @@ func mapCustomer(r map[string]any) ordersource.Customer {
 // MapStoredOrder rebuilds replaceable projections without fetching or changing source facts.
 func MapStoredOrder(raw map[string]any, tenant string, history bool, fetchedAt string) (ordersource.Order, error) {
 	o, e := mapOrder(raw, tenant, history)
-	if fetchedAt != "" {
-		o.FetchedAt = fetchedAt
-		o.Source.FetchedAt = fetchedAt
-	}
+	o.FetchedAt = fetchedAt
+	o.Source.FetchedAt = fetchedAt
 	return o, e
 }
 
