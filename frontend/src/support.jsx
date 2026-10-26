@@ -532,7 +532,9 @@ function ReshipLines({ solutionId, items, onChange }) {
       {!choices.length && (
         <p className="help-text">
           {tr(
-            "No enabled reship SKU for this solution. Ask an administrator to configure the product catalog.",
+            type === "part"
+              ? 'No reshipment parts available. In the product catalog, set the SKU type to Part and enable Allow reshipment. The source product must still be present.'
+              : 'No reshipment devices available. In the product catalog, set the SKU type to Device and enable Allow reshipment. The source product must still be present.',
           )}
         </p>
       )}

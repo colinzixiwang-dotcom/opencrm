@@ -1417,6 +1417,8 @@
   "Add reshipment item": "添加补发商品",
   "Remove": "移除",
   "No enabled reship SKU for this solution. Ask an administrator to configure the product catalog.": "该方案暂无允许补发的 SKU，请联系管理员在商品目录中配置。",
+  "No reshipment parts available. In the product catalog, set the SKU type to Part and enable Allow reshipment. The source product must still be present.": "暂无可补发的配件。请管理员在商品目录中将 SKU 类型设为“配件”，并开启“允许补发”；源商品还必须存在。",
+  "No reshipment devices available. In the product catalog, set the SKU type to Device and enable Allow reshipment. The source product must still be present.": "暂无可补发的整机。请管理员在商品目录中将 SKU 类型设为“整机”，并开启“允许补发”；源商品还必须存在。",
   "Add a payment date to continue the order search. Shop is optional.": "近期订单未命中，请补充付款日期继续查找；店铺可选填。",
   "Original SKU is not enabled in the catalog": "目录尚未启用该商品的原单识别",
   "Original order SKU": "原订单商品 SKU",
