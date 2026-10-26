@@ -15,6 +15,7 @@ import {
   subscribeLanguage,
 } from "./i18n";
 import { normalizeWorkspace } from "./state";
+import { newId } from "./ids";
 export const Workspace = createContext(null);
 export const useWorkspace = () => useContext(Workspace);
 export const money = (c) =>
@@ -76,7 +77,7 @@ export function Provider({ children }) {
     [filters, setFilters] = useState({ from: "", to: "", channel: "all" }),
     [report, setReport] = useState(null);
   const notify = useCallback((message, type = "success") => {
-    const id = crypto.randomUUID();
+    const id = newId();
     setNotifications((n) => [...n, { id, message, type }]);
     setTimeout(
       () => setNotifications((n) => n.filter((x) => x.id !== id)),
@@ -149,11 +150,11 @@ export function Provider({ children }) {
   const act = async (action, payload, message = "Record saved.") => {
     if (acting.current) return false;
     acting.current = true;
-    const signature = JSON.stringify({ action, payload });
-    if (retry.current?.signature !== signature)
-      retry.current = { signature, key: crypto.randomUUID() };
     setBusy(true);
     try {
+      const signature = JSON.stringify({ action, payload });
+      if (retry.current?.signature !== signature)
+        retry.current = { signature, key: newId() };
       await api("/api/action", {
         method: "POST",
         headers: { "Idempotency-Key": retry.current.key },

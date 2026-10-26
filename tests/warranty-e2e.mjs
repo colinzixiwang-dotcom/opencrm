@@ -7,6 +7,7 @@ import {startServer} from './server.mjs';
 const temp=mkdtempSync(join(tmpdir(),'harbor-warranty-')),app=await startServer(join(temp,'test-workspace'));
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_EXECUTABLE?{executablePath:process.env.CHROME_EXECUTABLE}:{})});
 const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(() => Object.defineProperty(crypto, 'randomUUID', {value: undefined, configurable: true}));
 const data=async()=>(await page.request.get(app.base+'/api/bootstrap')).json();
 const post=async(action,payload,status=200)=>{const r=await page.request.post(app.base+'/api/action',{data:{action,payload}});assert.equal(r.status(),status,await r.text());return (await r.json()).result;};
 try {
@@ -24,7 +25,20 @@ try {
  assert.equal(await d.getByRole('button',{name:'Create RMA',exact:true}).isDisabled(),true);
  await page.unroute('**/api/rma-assessment');
  await d.getByLabel('Delivery date',{exact:true}).fill('2000-01-01');await d.getByText('Warranty has expired. Choose a solution that does not require warranty coverage.',{exact:true}).waitFor();assert.equal(await d.getByRole('button',{name:'Create RMA',exact:true}).isDisabled(),true);
- const recent=new Date(Date.now()-30*86400000).toISOString().slice(0,10);await d.getByLabel('Delivery date',{exact:true}).fill(recent);await d.getByText('Warranty is active. This solution is eligible.',{exact:true}).waitFor();await d.getByRole('button',{name:'Create RMA',exact:true}).click();await d.waitFor({state:'detached'});
+ const recent=new Date(Date.now()-30*86400000).toISOString().slice(0,10);await d.getByLabel('Delivery date',{exact:true}).fill(recent);await d.getByText('Warranty is active. This solution is eligible.',{exact:true}).waitFor();const keys=[];
+ await page.route('**/api/action', async route => {
+  if(route.request().postDataJSON()?.action !== 'rma.create') return route.continue();
+  keys.push(route.request().headers()['idempotency-key']);
+  if(keys.length === 1) { const response=await route.fetch(); assert.equal(response.status(),200); await route.abort('failed'); }
+  else await route.continue();
+ });
+ await d.getByRole('button',{name:'Create RMA',exact:true}).click();
+ await d.locator('.form-error').waitFor();
+ assert.equal((await data()).rmas.length,1,'Lost response must leave exactly one committed RMA');
+ await d.getByRole('button',{name:'Create RMA',exact:true}).click();await d.waitFor({state:'detached'});
+ assert.equal(keys.length,2);assert(keys[0]);assert.equal(keys[0],keys[1],'Retry must reuse the same idempotency key');
+ assert.equal((await data()).rmas.length,1,'Retry must not duplicate RMA');
+ await page.unroute('**/api/action');
  const original=(await data()).rmas[0].eligibilityAssessment;assert.equal(original.status,'covered');assert.equal(original.ruleSnapshot.months,12);
  await page.locator('a[href="#settings"]').click();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.getByLabel('Warranty months',{exact:true}).first().fill('24');await page.getByRole('button',{name:'Save warranty rules',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toasts')?.textContent.includes('Warranty rules saved.'));
  let s=await data();assert.equal(s.supportConfig.warrantyPolicy.revision,2);assert.equal(s.rmas[0].eligibilityAssessment.ruleSnapshot.months,12);

@@ -238,3 +238,15 @@ test("queue failures use safe recovery messages for permissions and source failu
   assert.equal(ticketListIssue({status:403,message:"private detail"}), "permission");
   assert.equal(ticketListIssue({status:502,message:"2026-10-19T00:00:00Z source failed"}), "unavailable");
 });
+
+test("client IDs use secure random bytes when randomUUID is unavailable on LAN HTTP", async () => {
+  const { newId } = await import("../frontend/src/ids.js");
+  assert.equal(newId({randomUUID: () => "native-id"}), "native-id");
+  let calls = 0;
+  const source = {getRandomValues: (bytes) => { calls++; bytes.fill(255); return bytes; }};
+  assert.equal(newId(source), "ffffffff-ffff-4fff-bfff-ffffffffffff");
+  assert.equal(calls, 1);
+  const ids = new Set(Array.from({length: 100}, () => newId({getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto)})));
+  assert.equal(ids.size, 100);
+  for (const id of ids) assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+});

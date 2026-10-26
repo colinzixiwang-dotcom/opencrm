@@ -1,4 +1,5 @@
 import { tr } from "./i18n";
+import { newId } from "./ids";
 import React, { useState, useEffect } from "react";
 import { api, useWorkspace, formatDate } from "./context";
 import { Panel, Button, Note, Badge } from "./components";
@@ -353,7 +354,7 @@ export function WarrantySettings() {
                 rules: [
                   ...policy.rules,
                   {
-                    id: "rule_" + crypto.randomUUID(),
+                    id: "rule_" + newId(),
                     name: "",
                     coverage: "device",
                     months: 12,
