@@ -104,3 +104,10 @@ func catalogProvenance(tenant string, raw map[string]any) sourceinfo.Metadata {
 	}
 	return m
 }
+
+// MapStoredProductStatus reprojects source facts without changing CRM SKU policy.
+func MapStoredProductStatus(raw map[string]any, tenant, fetchedAt string) (string, sourceinfo.Metadata) {
+	m := catalogProvenance(tenant, raw)
+	m.FetchedAt = fetchedAt
+	return productStatus(str(raw["status"])), m
+}
