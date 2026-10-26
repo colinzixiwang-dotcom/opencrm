@@ -29,7 +29,13 @@ export function AssessmentSummary({ assessment }) {
       <small>
         {tr("Policy revision ")}
         {assessment.policyRevision} ·{" "}
-        {tr(assessment.ruleSnapshot?.name || tr("No warranty required"))}
+        {tr(
+          assessment.ruleSnapshot?.name ||
+            (assessment.status === "not_required" &&
+            assessment.requiresWarranty === false
+              ? "No warranty required"
+              : "Warranty rule not determined"),
+        )}
       </small>
     </div>
   );

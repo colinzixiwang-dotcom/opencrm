@@ -17,6 +17,12 @@ try {
  await page.reload();await page.locator('a[href="#rma"]').click();await page.getByRole('button',{name:'Create RMA',exact:true}).click();
  const d=page.getByRole('dialog');
  await d.getByLabel('Support ticket number').fill(b.ticketNumber);await d.getByLabel('Order number',{exact:true}).fill(b.orderNumber);await d.getByLabel('Purchased platform').selectOption('Shopify');await d.getByLabel('Affected device / part SKU').selectOption(device.id);await d.getByLabel('Root cause',{exact:true}).selectOption('device_fault');await d.getByLabel('Description',{exact:true}).fill(b.description);await d.getByLabel('Proposed solution').selectOption('replacement');
+ await page.route('**/api/rma-assessment', route => route.fulfill({json:{eligible:false,status:'incomplete',requiresWarranty:true,coverage:'none',reason:'Configure the affected SKU warranty class before using a warranty-required solution.',policyRevision:1}}));
+ await d.getByLabel('Delivery date',{exact:true}).fill('2001-01-01');
+ await d.getByText('Warranty rule not determined',{exact:false}).waitFor();
+ assert.equal(await d.getByText('No warranty required',{exact:false}).count(),0);
+ assert.equal(await d.getByRole('button',{name:'Create RMA',exact:true}).isDisabled(),true);
+ await page.unroute('**/api/rma-assessment');
  await d.getByLabel('Delivery date',{exact:true}).fill('2000-01-01');await d.getByText('Warranty has expired. Choose a solution that does not require warranty coverage.',{exact:true}).waitFor();assert.equal(await d.getByRole('button',{name:'Create RMA',exact:true}).isDisabled(),true);
  const recent=new Date(Date.now()-30*86400000).toISOString().slice(0,10);await d.getByLabel('Delivery date',{exact:true}).fill(recent);await d.getByText('Warranty is active. This solution is eligible.',{exact:true}).waitFor();await d.getByRole('button',{name:'Create RMA',exact:true}).click();await d.waitFor({state:'detached'});
  const original=(await data()).rmas[0].eligibilityAssessment;assert.equal(original.status,'covered');assert.equal(original.ruleSnapshot.months,12);
