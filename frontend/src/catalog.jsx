@@ -227,8 +227,11 @@ function ProductDetail({ product: p, onClose }) {
           </dl>
         </div>
         {source.warehouse?.length > 0 && (
-          <section>
-            <h3>{tr("Linked warehouses")}</h3>
+          <section className="catalog-warehouse-section">
+            <div className="catalog-section-heading">
+              <h3>{tr("Linked warehouses")}</h3>
+              <span>{source.warehouse.length}</span>
+            </div>
             <p className="help-text">
               {tr("Warehouse links do not represent inventory quantities.")}
             </p>
@@ -239,10 +242,10 @@ function ProductDetail({ product: p, onClose }) {
             </div>
           </section>
         )}
-        <form onSubmit={save}>
-          <div className="support-section-title">
+        <form id="catalog-policy-form" className="catalog-policy-form" onSubmit={save}>
+          <div className="catalog-section-heading">
             <h3>{tr("RMA SKU policy")}</h3>
-            <small>{tr("CRM configuration only")}</small>
+            <span>{tr("CRM configuration only")}</span>
           </div>
           <p className="help-text">
             {tr(
@@ -282,27 +285,38 @@ function ProductDetail({ product: p, onClose }) {
                 </select>
               </label>
             </div>
-            <label className="catalog-check">
+            <div className="catalog-policy-options">
+            <label className={`catalog-check ${v.allowOriginal ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
+                aria-label={tr("Allow original order recognition")}
                 checked={v.allowOriginal}
                 onChange={(e) => set("allowOriginal", e.target.checked)}
               />
-              {tr("Allow original order recognition")}
+              <span>
+                <strong>{tr("Allow original order recognition")}</strong>
+                <small>{tr("Identify this SKU as the customer's purchased item.")}</small>
+              </span>
             </label>
-            <label className="catalog-check">
+            <label className={`catalog-check ${v.allowReship ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
+                aria-label={tr("Allow reshipment")}
                 checked={v.allowReship}
                 onChange={(e) => set("allowReship", e.target.checked)}
               />
-              {tr("Allow reshipment")}
+              <span>
+                <strong>{tr("Allow reshipment")}</strong>
+                <small>{tr("Make this SKU available in RMA reshipment lines.")}</small>
+              </span>
             </label>
+            </div>
             {admin && (
-              <label>
+              <label className="catalog-policy-reason">
                 {tr("Configuration reason")}
                 <textarea
                   required
+                  rows={2}
                   maxLength={1000}
                   value={v.reason}
                   onChange={(e) => set("reason", e.target.value)}
@@ -315,16 +329,6 @@ function ProductDetail({ product: p, onClose }) {
               {tr(error)}
             </p>
           )}
-          <div className="catalog-dialog-actions">
-            <Button kind="secondary" onClick={onClose}>
-              Close
-            </Button>
-            {admin && (
-              <button className="btn primary" type="submit" disabled={busy}>
-                {tr("Save configuration")}
-              </button>
-            )}
-          </div>
         </form>
         {audits.length > 0 && (
           <details>
@@ -367,6 +371,15 @@ function ProductDetail({ product: p, onClose }) {
           </details>
         )}
       </div>
+      <footer className="catalog-dialog-actions">
+        <small>{tr("CRM configuration only")}</small>
+        <Button kind="secondary" onClick={onClose}>Close</Button>
+        {admin && (
+          <button className="btn primary" form="catalog-policy-form" type="submit" disabled={busy}>
+            {tr("Save configuration")}
+          </button>
+        )}
+      </footer>
     </dialog>
   );
 }

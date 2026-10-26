@@ -1542,5 +1542,7 @@
   "Automatic sync not enabled": "自动同步未启用",
   "Completed backfill · Beijing time": "最近完成回填 · 北京时间",
   "Payment date coverage": "付款日期覆盖范围",
-  "Backfill completed": "回填已完成"
+  "Backfill completed": "回填已完成",
+  "Identify this SKU as the customer's purchased item.": "用于确认客户原订单中购买的商品。",
+  "Make this SKU available in RMA reshipment lines.": "允许将此商品选入本次 RMA 的补发明细。"
 }
