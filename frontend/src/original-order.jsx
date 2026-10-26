@@ -8,6 +8,14 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
   const { state: s } = useWorkspace();
   if (!confirmation?.order) return null;
   const { order: o } = confirmation;
+  const buyer = o.sourceFields || {};
+  const phones = [
+    ...new Set(
+      [buyer.buyerPhone, buyer.buyerMobile]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean),
+    ),
+  ].join(" / ");
   return (
     <section className="original-order-summary">
       <div className="detail-grid">
@@ -16,6 +24,10 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
           ["Mabang order number", o.sourceNumber],
           ["Purchased platform", o.platform],
           ["Shop", o.shop],
+          ["Recipient", buyer.buyerName || "—"],
+          ["Email address", buyer.buyerEmail || "—"],
+          ["Phone", phones || "—"],
+          ["City", buyer.buyerCity || "—"],
           ["Mabang internal ID", o.sourceId],
           ["Country", o.country],
           [
@@ -32,7 +44,6 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
                 "",
             ),
           ],
-          ["Fetched at", o.fetchedAt],
           ["Payment time", o.paidAt],
           ["Shipment time", o.shippedAt],
           [

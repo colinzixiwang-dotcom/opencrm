@@ -107,7 +107,11 @@ export async function startMabangMock() {
       currencyId: "USD",
       itemTotalOrigin: "159.00",
       countryCode: "US",
+      buyerName: "Test Buyer",
       buyerEmail: "fixture@example.com",
+      buyerPhone: "+1 202 555 0100",
+      buyerMobile: "+1 202 555 0101",
+      buyerCity: "Test City",
       buyerAddress1: "100 Test Road",
       remark: "<script>unsafe</script>",
       orderItem: [

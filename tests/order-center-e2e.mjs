@@ -40,6 +40,15 @@ try {
   await p.locator(".order-number-link").waitFor();
   await p.locator(".order-number-link").click();
   await p.getByRole("dialog").locator(".original-order-summary").waitFor();
+  const summary = p.getByRole("dialog").locator(".detail-grid");
+  for (const value of [
+    "Test Buyer",
+    "fixture@example.com",
+    "+1 202 555 0100 / +1 202 555 0101",
+    "Test City",
+  ])
+    await summary.getByText(value, { exact: true }).waitFor();
+  assert.equal(await summary.getByText("Fetched at", { exact: true }).count(), 0);
   assert.equal(
     await p
       .getByRole("dialog")
@@ -72,6 +81,13 @@ try {
   const v = await r.json();
   assert.equal(v.items.length, 1);
   assert(!JSON.stringify(v).includes("100 Test Road"));
+  for (const value of [
+    "Test Buyer",
+    "fixture@example.com",
+    "+1 202 555 0100",
+    "Test City",
+  ])
+    assert(!JSON.stringify(v).includes(value));
   assert(
     mock.calls.some(
       (c) =>
