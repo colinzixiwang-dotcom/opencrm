@@ -90,19 +90,23 @@ export function OrderCenter() {
     [busy, setBusy] = useState(false),
     [selected, setSelected] = useState(""),
     [jobs, setJobs] = useState([]),
+    [sync, setSync] = useState(null),
     [tick, setTick] = useState(0);
+  const lastRevision = useRef("");
+  const queryPath = useRef("");
   useEffect(() => {
     if (!list && !searchNumber) {
       setData(null);
       return;
     }
     const controller = new window.AbortController();
-    setBusy(true);
-    setError("");
-    setData(null);
     const path = searchNumber
       ? `/api/orders/search?number=${encodeURIComponent(searchNumber)}`
       : `/api/orders?page=${page}&sort=${sort}`;
+    const changed = queryPath.current !== path;
+    queryPath.current = path;
+    if (changed) { setBusy(true); setData(null); }
+    setError("");
     api(path, { signal: controller.signal })
       .then(setData)
       .catch((e) => {
@@ -118,7 +122,12 @@ export function OrderCenter() {
     const load = () =>
       api("/api/orders/status")
         .then((v) => {
-          if (alive) setJobs(v.jobs || []);
+          if (!alive) return;
+          setJobs(v.jobs || []);
+          setSync(v);
+          if (v.indexRevision && lastRevision.current && v.indexRevision !== lastRevision.current && list && !searchNumber)
+            setTick((t) => t + 1);
+          lastRevision.current = v.indexRevision || "";
         })
         .catch(() => {});
     load();
@@ -127,11 +136,21 @@ export function OrderCenter() {
       alive = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [list, searchNumber]);
   const job = jobs[0];
   return (
     <>
       <Heading subtitle="Find original orders and inspect their source information." />
+      {sync && (
+        <section className="order-index-status" aria-label={tr("Order synchronization status")}>
+          <div>
+            <strong>{tr("Last successful order sync")}: {sync.lastSuccessfulSyncAt
+              ? new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Shanghai" }).format(new Date(sync.lastSuccessfulSyncAt))
+              : "—"}</strong>
+            <p>{tr("Latest completed backfill; continuous order synchronization is not enabled.")}</p>
+          </div>
+        </section>
+      )}
       {job && (
         <section className="order-index-status">
           <div>
@@ -230,9 +249,6 @@ export function OrderCenter() {
                   ]}
                 />
               )}
-              <Button disabled={busy} onClick={() => setTick((t) => t + 1)}>
-                Reload list
-              </Button>
             </div>
           )}
         </div>

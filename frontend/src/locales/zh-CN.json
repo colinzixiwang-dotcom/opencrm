@@ -1532,5 +1532,8 @@
   "Billing address": "账单地址",
   "District": "地区",
   "Buyer message flag": "买家留言标识",
-  "Order platform has no verified mapping. Ask an administrator to configure the integration.": "原订单的平台尚未建立已验证的映射，请联系管理员配置集成。"
+  "Order platform has no verified mapping. Ask an administrator to configure the integration.": "原订单的平台尚未建立已验证的映射，请联系管理员配置集成。",
+  "Order synchronization status": "订单同步状态",
+  "Last successful order sync": "最近成功同步时间",
+  "Latest completed backfill; continuous order synchronization is not enabled.": "此时间为最近一次完成回填的时间；持续自动同步尚未启用。"
 }

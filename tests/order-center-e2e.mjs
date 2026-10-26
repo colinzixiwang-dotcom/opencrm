@@ -15,6 +15,7 @@ try {
   p.setDefaultTimeout(30000);
   const errors = [];
   p.on("pageerror", (e) => errors.push(e.message));
+  await p.clock.install();
   await p.goto(app.base);
   await p.locator("[data-demo=admin]").click();
   await p.locator("#main-content h1").waitFor();
@@ -33,6 +34,20 @@ try {
   await p.locator('a.nav-item[href="#orders"]').click();
   await p.getByRole("heading", { name: "Order center", exact: true }).waitFor();
   await p.locator(".order-number-link").waitFor();
+  await p.getByText("Last successful order sync", { exact: false }).waitFor();
+  assert.equal(await p.getByRole("button", { name: "Reload list", exact: true }).count(), 0);
+  const updated = p.waitForResponse((r) => r.url().includes("/api/orders?page="));
+  await p.route("**/api/orders/status", async (route) => {
+    const response = await route.fetch();
+    const value = await response.json();
+    assert(value.lastSuccessfulSyncAt);
+    assert.equal(value.continuousSyncEnabled, false);
+    await route.fulfill({ json: { ...value, indexRevision: "changed-projection" } });
+  });
+  await p.clock.fastForward(10000);
+  await updated;
+  await p.unroute("**/api/orders/status");
+  await p.locator(".order-number-link").waitFor();
   await p
     .getByLabel("Platform order number", { exact: true })
     .fill("HISTORY-1");
@@ -41,6 +56,8 @@ try {
   await p.locator(".order-number-link").click();
   await p.getByRole("dialog").locator(".original-order-summary").waitFor();
   const summary = p.getByRole("dialog").locator(".detail-grid");
+  await summary.getByText("Shopify", { exact: true }).waitFor();
+  await summary.getByText("Shipped", { exact: true }).waitFor();
   for (const value of [
     "Test Buyer",
     "fixture@example.com",

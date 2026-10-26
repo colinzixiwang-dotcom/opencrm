@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"harbor/internal/domain"
@@ -80,7 +81,27 @@ func (s *Server) orderCenterRoutes(api *gin.RouterGroup) {
 			s.respond(c, e)
 			return
 		}
-		c.JSON(200, M{"jobs": jobs})
+		var completed orderindex.Job
+		if e := svc.DB.Where("tenant=? AND status='completed'", svc.Tenant).Order("updated_at DESC").Limit(1).Find(&completed).Error; e != nil {
+			s.respond(c, e)
+			return
+		}
+		result := M{"jobs": jobs, "continuousSyncEnabled": false, "lastSuccessfulSyncAt": nil, "lastSuccessfulSyncKind": "backfill"}
+		if completed.ID != "" {
+			result["lastSuccessfulSyncAt"] = completed.UpdatedAt
+		}
+		if s.allowed(c, "erp:orders:list") {
+			var revision struct {
+				UpdatedAt *time.Time
+				Count     int64
+			}
+			if e := svc.DB.Model(&orderindex.Record{}).Where("tenant=?", svc.Tenant).Select("max(indexed_at) AS updated_at, count(*) AS count").Scan(&revision).Error; e != nil {
+				s.respond(c, e)
+				return
+			}
+			result["indexRevision"] = fmt.Sprintf("%v:%d", revision.UpdatedAt, revision.Count)
+		}
+		c.JSON(200, result)
 	})
 	group.GET("/search", func(c *gin.Context) {
 		s.require(c, "erp:orders:search")
