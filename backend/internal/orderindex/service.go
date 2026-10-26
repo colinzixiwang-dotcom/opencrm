@@ -131,7 +131,7 @@ func (s Service) Run(ctx context.Context, id string) error {
 	}
 	for j.Date >= j.FromDate {
 		history := j.Date < j.HistoryBefore
-		q := source.BatchQuery{Date: j.Date, History: history, Cursor: j.Cursor, Status: []string{"7", "6"}[j.Branch], CanSend: []string{"1", "2"}[j.Branch]}
+		q := source.BatchQuery{Date: j.Date, History: history, Cursor: j.Cursor, Branch: j.Branch}
 		var page source.Page
 		var e error
 		for retry := 0; retry < 4; retry++ {

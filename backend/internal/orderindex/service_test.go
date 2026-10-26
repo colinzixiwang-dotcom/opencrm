@@ -18,14 +18,14 @@ type fakePages struct {
 
 func (f *fakePages) ReadPage(ctx context.Context, q source.BatchQuery) (source.Page, error) {
 	f.calls = append(f.calls, q)
-	if q.CanSend == "2" && f.fail {
+	if q.Branch == 1 && f.fail {
 		return source.Page{}, &source.Error{Code: "fixture", Message: "interrupted", Status: 422}
 	}
 	rows := []source.Order{}
-	if q.CanSend == "1" {
+	if q.Branch == 0 {
 		rows = append(rows, source.Order{SourceID: "1", SourceNumber: "ERP-1", PlatformNumber: "P-1", PaidAt: q.Date, QuerySource: "history", SourceFields: map[string]any{"buyerName": "retained"}})
 	}
-	if q.Cursor == "" && q.CanSend == "1" {
+	if q.Cursor == "" && q.Branch == 0 {
 		return source.Page{Orders: rows, NextCursor: "second"}, nil
 	}
 	return source.Page{Orders: rows}, nil

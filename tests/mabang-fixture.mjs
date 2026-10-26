@@ -162,6 +162,7 @@ export async function startMabangMock() {
               ? [
                   {
                     ...order("HISTORY-1"),
+                    platformId: "16",
                     erpOrderId: "source-history",
                     platformOrderId: "ERP-HISTORY",
                     paidTime: "2025-01-01 10:00:00",

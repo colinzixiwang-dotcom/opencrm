@@ -6,13 +6,16 @@ import (
 )
 
 func (c *Client) ReadPage(ctx context.Context, q source.BatchQuery) (source.Page, error) {
+	if q.Branch < 0 || q.Branch > 1 {
+		return source.Page{}, failure("invalid_range", "Invalid order partition.", 400)
+	}
 	api := "order-get-order-list-new"
-	p := map[string]string{"paidtimeStart": q.Date + " 00:00:00", "paidtimeEnd": q.Date + " 23:59:59", "maxRows": "700", "status": q.Status, "canSend": "3"}
+	p := map[string]string{"paidtimeStart": q.Date + " 00:00:00", "paidtimeEnd": q.Date + " 23:59:59", "maxRows": "700", "status": []string{"7", "6"}[q.Branch], "canSend": "3"}
 	key := "data"
 	if q.History {
 		api = "get-history-order-list"
 		key = "list"
-		p = map[string]string{"paidTime": q.Date, "pageSize": "700", "canSend": q.CanSend}
+		p = map[string]string{"paidTime": q.Date, "pageSize": "700", "canSend": []string{"1", "2"}[q.Branch]}
 	}
 	if q.Cursor != "" {
 		p["cursor"] = q.Cursor

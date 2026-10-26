@@ -255,7 +255,7 @@ func TestDraftSnapshotsAndAtomicRMA(t *testing.T) {
 	if e = store.Write(db.DB, state); e != nil {
 		t.Fatal(e)
 	}
-	order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: "ORDER-1", Platform: "Amazon", Status: "3", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
+	order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: "ORDER-1", Platform: "Amazon", Status: "Shipped", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
 	encoded, _ := json.Marshal(order)
 	evidence := originalorders.OrderEvidence{ID: "confirmed", UserID: domain.Str(one["id"]), DraftID: domain.Str(p["draftId"]), Kind: "confirmed", ItemID: "item", ProductID: "PRD-1", Normalized: string(encoded), Raw: "{}", CreatedAt: time.Now()}
 	if e = db.DB.Create(&evidence).Error; e != nil {

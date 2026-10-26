@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	source "harbor/internal/ordersource"
+	"harbor/internal/sourceinfo"
 	"io"
 	"net/http"
 	"os"
@@ -197,17 +198,46 @@ func (c *Client) Lookup(ctx context.Context, q source.Query) ([]source.Order, er
 	return out, nil
 }
 func mapOrder(r map[string]any, tenant string, history bool) (source.Order, error) {
-	o := source.Order{Provider: "mabang", Tenant: tenant, PlatformNumber: str(r["salesRecordNumber"]), SourceNumber: str(r["platformOrderId"]), SourceID: str(r["erpOrderId"]), Platform: str(r["platformId"]), Shop: str(r["shopName"]), Status: str(r["orderStatus"]), PaidAt: str(r["paidTime"]), ShippedAt: str(r["expressTime"]), Country: str(r["countryCode"]), Currency: str(r["currencyId"]), Amount: str(r["itemTotalOrigin"]), FetchedAt: time.Now().UTC().Format(time.RFC3339Nano), QuerySource: "recent", Items: []source.Item{}}
+	o := source.Order{Provider: "mabang", Tenant: tenant, PlatformNumber: str(r["salesRecordNumber"]), SourceNumber: str(r["platformOrderId"]), SourceID: str(r["erpOrderId"]), Platform: platform(str(r["platformId"])), Shop: str(r["shopName"]), Status: orderStatus(str(r["orderStatus"])), PaidAt: str(r["paidTime"]), ShippedAt: str(r["expressTime"]), Country: str(r["countryCode"]), Currency: str(r["currencyId"]), Amount: str(r["itemTotalOrigin"]), FetchedAt: time.Now().UTC().Format(time.RFC3339Nano), QuerySource: "recent", Items: []source.Item{}}
 	if history {
 		o.QuerySource = "history"
 		if o.SourceID == "" {
 			o.SourceID = str(r["id"])
 		}
 	}
+	api := "order-get-order-list-new"
+	if history {
+		api = "get-history-order-list"
+	}
+	o.Source = provenance(tenant, api, o.FetchedAt)
+	o.Source.RawPlatform = str(r["platformId"])
+	o.Source.RawPlatformCode = str(r["platformCode"])
+	o.Source.RawStatus = str(r["orderStatus"])
+	if code := platform(o.Source.RawPlatformCode); code != "" && o.Platform != "" && code != o.Platform {
+		o.Platform = ""
+		o.Source.Warnings = append(o.Source.Warnings, "conflicting_platform")
+	}
+	if o.Platform == "" {
+		o.Source.Warnings = append(o.Source.Warnings, "unmapped_platform")
+	}
+	if o.Status == source.StatusUnknown {
+		o.Source.Warnings = append(o.Source.Warnings, "unmapped_order_status")
+	}
+	o.Customer = mapCustomer(r)
+	o.Times = map[string]sourceinfo.Timestamp{}
+	for name, key := range map[string]string{"paidAt": "paidTime", "shippedAt": "expressTime", "updatedAt": "updateTime"} {
+		raw := str(r[key])
+		if name == "updatedAt" && raw == "" {
+			raw = str(r["update_time"])
+		}
+		if raw != "" {
+			o.Times[name] = sourceTime(raw)
+		}
+	}
 	items, ok := r["orderItem"].([]any)
 	// Historical voided orders can legitimately omit item lines. They remain
 	// searchable, but cannot be confirmed as purchased items for an RMA.
-	if !ok && r["orderItem"] == nil && o.Status == "5" {
+	if !ok && r["orderItem"] == nil && o.Status == source.StatusVoided {
 		items = []any{}
 		ok = true
 	}

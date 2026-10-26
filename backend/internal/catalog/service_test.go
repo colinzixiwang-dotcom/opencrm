@@ -14,7 +14,7 @@ import (
 type fake struct{}
 
 func (fake) Catalog(context.Context, string, func(int)) (source.Snapshot, error) {
-	return source.Snapshot{Products: []source.Product{{ID: "100", SKU: "Retired-A", Name: "Historical device", Status: "5", Raw: map[string]any{}}}, Positions: []source.Position{{SKU: "Retired-A", WarehouseID: "1", OnHand: "2", Available: "1"}}, Through: time.Now().UTC().Format(time.RFC3339)}, nil
+	return source.Snapshot{Products: []source.Product{{ID: "100", SKU: "Retired-A", Name: "Historical device", Status: source.StatusDiscontinued, Raw: map[string]any{}}}, Positions: []source.Position{{SKU: "Retired-A", WarehouseID: "1", OnHand: "2", Available: "1"}}, Through: time.Now().UTC().Format(time.RFC3339)}, nil
 }
 func TestImportPolicyCleanupRollback(t *testing.T) {
 	if e := udesk.LoadEnv("../../../.env"); e != nil {

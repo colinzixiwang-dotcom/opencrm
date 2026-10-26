@@ -133,13 +133,14 @@ func (s Service) publish(r ImportBatch, snap source.Snapshot) error {
 			v["sourceId"] = p.ID
 			v["sourceTenant"] = s.Tenant
 			v["sourceStatus"] = p.Status
+			v["sourceMetadata"] = p.Source
 			v["masterSku"] = p.MasterSKU
 			v["aliases"] = p.Aliases
 			v["sourcePresent"] = true
 			v["syncedAt"] = snap.Through
 			v["sourceSnapshot"] = p.Raw
 			// ERP status/name is advisory, never automatically grants reship permission.
-			v["reshipCandidate"] = p.Status == "3" && !nonPhysical(p.SKU+" "+p.Name)
+			v["reshipCandidate"] = p.Status == source.StatusSelling && !nonPhysical(p.SKU+" "+p.Name)
 		}
 		for _, p := range products {
 			if p["source"] == "mabang" && p["sourceTenant"] == s.Tenant && !seen[domain.Str(p["id"])] {

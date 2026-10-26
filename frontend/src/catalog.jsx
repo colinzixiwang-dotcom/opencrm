@@ -11,6 +11,12 @@ import {
   Note,
 } from "./components";
 const sourceStatuses = {
+  Automatic: "Automatically created",
+  Development: "Awaiting development",
+  Selling: "Selling",
+  Clearance: "Clearance",
+  Discontinued: "Discontinued",
+  Unknown: "Unknown",
   1: "Automatically created",
   2: "Awaiting development",
   3: "Selling",

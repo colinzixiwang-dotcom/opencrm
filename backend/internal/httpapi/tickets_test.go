@@ -133,7 +133,7 @@ func TestEveryActiveRoleCanReadSharedMorphoAndCreateRMA(t *testing.T) {
 		input["warrantyEvidence"] = M{"deliveredAt": time.Now().AddDate(0, 0, -30).Format("2006-01-02"), "evidenceReference": "Receipt"}
 		input["taskInputs"] = M{}
 		product := domain.Find(state, "products", domain.Str(input["productId"]))
-		order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: domain.Str(input["orderNumber"]), Platform: domain.Str(input["platform"]), Status: "3", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
+		order := orders.Order{Provider: "mabang", SourceID: "source", SourceNumber: "ERP-1", PlatformNumber: domain.Str(input["orderNumber"]), Platform: domain.Str(input["platform"]), Status: "Shipped", Items: []orders.Item{{ID: "item", SKU: domain.Str(product["sku"]), Quantity: "1"}}}
 		encoded, _ := json.Marshal(order)
 		evidence := originalorders.OrderEvidence{ID: domain.ID("CONF"), UserID: domain.Str(actor["id"]), DraftID: domain.Str(input["draftId"]), Kind: "confirmed", ItemID: "item", ProductID: domain.Str(input["productId"]), Normalized: string(encoded), Raw: "{}", CreatedAt: time.Now()}
 		if e := x.s.DB.Create(&evidence).Error; e != nil {

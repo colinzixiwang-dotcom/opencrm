@@ -37,7 +37,7 @@ func TestConfirmationBindingAndWarrantyGates(t *testing.T) {
 	p := domain.Find(state, "products", "PRD-1")
 	p["productType"] = "device"
 	actor := domain.M{"id": "USR-ADMIN", "name": "Administrator", "roles": []string{"admin"}, "permissions": []string{"*:*:*"}}
-	f := &fake{orders: []source.Order{{Provider: "mabang", Tenant: "test", PlatformNumber: "PLATFORM", SourceNumber: "ERP", SourceID: "1", Platform: "Amazon", Status: "3", Items: []source.Item{{ID: "item", SKU: domain.Str(p["sku"]), Quantity: "1"}}, Evidence: []byte(`{"private":"source"}`)}}}
+	f := &fake{orders: []source.Order{{Provider: "mabang", Tenant: "test", PlatformNumber: "PLATFORM", SourceNumber: "ERP", SourceID: "1", Platform: "Amazon", Status: "Shipped", Items: []source.Item{{ID: "item", SKU: domain.Str(p["sku"]), Quantity: "1"}}, Evidence: []byte(`{"private":"source"}`)}}}
 	svc := originalorders.Service{DB: db.DB, Source: f, Tenant: "test"}
 	query := domain.M{"draftId": "draft", "orderNumber": "PLATFORM"}
 	result, e := svc.Lookup(context.Background(), actor, state, query)

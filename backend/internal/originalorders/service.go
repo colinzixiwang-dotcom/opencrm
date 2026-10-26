@@ -137,7 +137,7 @@ func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
 				continue
 			}
 			seen[key] = true
-			r := OrderEvidence{ID: domain.ID("ORDER"), Tenant: s.Tenant, UserID: domain.Str(actor["id"]), DraftID: draft, PlatformNumber: o.PlatformNumber, SourceNumber: o.SourceNumber, Kind: "candidate", Normalized: encode(o), Raw: string(o.Evidence), CreatedAt: time.Now().UTC()}
+			r := OrderEvidence{ID: domain.ID("ORDER"), Tenant: s.Tenant, UserID: domain.Str(actor["id"]), DraftID: draft, PlatformNumber: o.PlatformNumber, SourceNumber: o.SourceNumber, Kind: "candidate", Normalized: encode(o), Raw: string(o.Evidence), MappingVersion: o.Source.MappingVersion, CreatedAt: time.Now().UTC()}
 			if r.Raw == "" {
 				r.Raw = "null"
 			}
@@ -178,8 +178,11 @@ func (s Service) Confirm(actor, state, b M) (M, error) {
 	if p == nil {
 		return nil, fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
 	}
-	if !domain.In(o.Status, "3", "4") {
+	if !domain.In(o.Status, source.StatusShipped, source.StatusCompleted) {
 		return nil, fail("Only shipped or completed original orders can be used for this RMA.", 422)
+	}
+	if o.Platform == "" {
+		return nil, fail("Order platform has no verified mapping. Ask an administrator to configure the integration.", 422)
 	}
 	platformKnown := false
 	for _, platform := range domain.Rows(domain.Obj(state["supportConfig"]), "platforms") {

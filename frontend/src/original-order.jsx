@@ -8,32 +8,31 @@ export function OriginalOrderSummary({ confirmation, showItems = true }) {
   const { state: s } = useWorkspace();
   if (!confirmation?.order) return null;
   const { order: o } = confirmation;
-  const buyer = o.sourceFields || {};
-  const phones = [
-    ...new Set(
-      [buyer.buyerPhone, buyer.buyerMobile]
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean),
-    ),
-  ].join(" / ");
+  const buyer = o.customer || {};
+  const phones = (buyer.phones || []).join(" / ");
   return (
     <section className="original-order-summary">
       <div className="detail-grid">
         {[
           ["Platform order number", o.platformNumber],
           ["Mabang order number", o.sourceNumber],
-          ["Purchased platform", o.platform],
+          ["Purchased platform", o.platform || o.source?.rawPlatform || "—"],
           ["Shop", o.shop],
-          ["Recipient", buyer.buyerName || "—"],
-          ["Email address", buyer.buyerEmail || "—"],
+          ["Recipient", buyer.name || "—"],
+          ["Email address", buyer.email || "—"],
           ["Phone", phones || "—"],
-          ["City", buyer.buyerCity || "—"],
+          ["City", buyer.city || "—"],
           ["Mabang internal ID", o.sourceId],
           ["Country", o.country],
           [
             "Order status",
             tr(
               {
+                AwaitingShipment: "Awaiting shipment",
+                Shipped: "Shipped",
+                Completed: "Completed",
+                Voided: "Voided",
+                Unknown: "Unknown",
                 1: "Unpaid",
                 2: "Awaiting shipment",
                 3: "Shipped",

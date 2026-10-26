@@ -75,7 +75,7 @@ func (c *Client) Catalog(ctx context.Context, from string, progress func(int)) (
 				if image == "" {
 					image = str(r["salePicture"])
 				}
-				out.Products = append(out.Products, catalog.Product{ID: id, SKU: str(r["stockSku"]), Name: str(r["nameCN"]), NameEN: str(r["nameEN"]), MasterSKU: str(r["salesSku"]), Aliases: aliases, Status: str(r["status"]), Category: strings.Join(cats, " / "), Image: image, Raw: r})
+				out.Products = append(out.Products, catalog.Product{ID: id, SKU: str(r["stockSku"]), Name: str(r["nameCN"]), NameEN: str(r["nameEN"]), MasterSKU: str(r["salesSku"]), Aliases: aliases, Status: productStatus(str(r["status"])), Category: strings.Join(cats, " / "), Image: image, Source: catalogProvenance(c.Key, r), Raw: r})
 			}
 			next := str(d["nextCursor"])
 			if next == "" {

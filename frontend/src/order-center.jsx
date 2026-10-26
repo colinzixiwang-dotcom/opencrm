@@ -12,6 +12,11 @@ import {
 } from "./components";
 import { OriginalOrderSummary } from "./original-order";
 const orderStatus = {
+  AwaitingShipment: "Awaiting shipment",
+  Shipped: "Shipped",
+  Completed: "Completed",
+  Voided: "Voided",
+  Unknown: "Unknown",
   1: "Unpaid",
   2: "Awaiting shipment",
   3: "Shipped",

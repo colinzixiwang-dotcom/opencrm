@@ -1,19 +1,32 @@
 // Package catalogsource owns the read-only ERP catalog and inventory contract.
 package catalogsource
 
-import "context"
+import (
+	"context"
+	"harbor/internal/sourceinfo"
+)
+
+const (
+	StatusAutomatic    = "Automatic"
+	StatusDevelopment  = "Development"
+	StatusSelling      = "Selling"
+	StatusClearance    = "Clearance"
+	StatusDiscontinued = "Discontinued"
+	StatusUnknown      = "Unknown"
+)
 
 type Product struct {
-	ID        string         `json:"sourceId"`
-	SKU       string         `json:"sku"`
-	Name      string         `json:"name"`
-	NameEN    string         `json:"nameEn"`
-	MasterSKU string         `json:"masterSku"`
-	Aliases   []string       `json:"aliases"`
-	Status    string         `json:"sourceStatus"`
-	Category  string         `json:"category"`
-	Image     string         `json:"image"`
-	Raw       map[string]any `json:"-"`
+	Source    sourceinfo.Metadata `json:"source"`
+	ID        string              `json:"sourceId"`
+	SKU       string              `json:"sku"`
+	Name      string              `json:"name"`
+	NameEN    string              `json:"nameEn"`
+	MasterSKU string              `json:"masterSku"`
+	Aliases   []string            `json:"aliases"`
+	Status    string              `json:"sourceStatus"`
+	Category  string              `json:"category"`
+	Image     string              `json:"image"`
+	Raw       map[string]any      `json:"-"`
 }
 type Position struct {
 	SKU         string         `json:"sku"`

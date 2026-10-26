@@ -1531,5 +1531,6 @@
   "hasBuyerMessage": "买家留言标识",
   "Billing address": "账单地址",
   "District": "地区",
-  "Buyer message flag": "买家留言标识"
+  "Buyer message flag": "买家留言标识",
+  "Order platform has no verified mapping. Ask an administrator to configure the integration.": "原订单的平台尚未建立已验证的映射，请联系管理员配置集成。"
 }
