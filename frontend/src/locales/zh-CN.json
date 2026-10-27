@@ -746,7 +746,7 @@
   "Wait for these nodes": "等待以下节点",
   "Waiting for destination receipt": "等待目标仓库收货",
   "Warehouse": "库存",
-  "Warehouse name": "仓库名称",
+  "Warehouse name": "仓库",
   "Warehouse type": "仓库类型",
   "Warehouses": "仓库",
   "Warranty and solution eligibility": "质保与方案资格",
@@ -1582,5 +1582,10 @@
   "Bundle flag must be a boolean.": "套装标记必须为布尔值。",
   "Classification note must be at most 1000 characters.": "分类备注不能超过 1000 个字符。",
   "{count} devices selected": "已选 {count} 个整机",
-  "No matching products": "没有匹配的商品"
+  "No matching products": "没有匹配的商品",
+  "Warehouse inventory": "仓库库存",
+  "Query inventory": "查询库存",
+  "Querying inventory…": "查询中…",
+  "Inventory queried at": "库存查询时间",
+  "No warehouse inventory returned.": "未返回仓库库存记录。"
 }

@@ -48,3 +48,8 @@ type Snapshot struct {
 type Source interface {
 	Catalog(context.Context, string, func(int)) (Snapshot, error)
 }
+
+// InventoryReader is the optional read-only capability for an exact stock SKU.
+type InventoryReader interface {
+	Inventory(context.Context, string) ([]Position, error)
+}

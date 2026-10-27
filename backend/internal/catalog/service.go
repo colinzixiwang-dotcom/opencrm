@@ -37,6 +37,30 @@ type Service struct {
 	Tenant string
 }
 
+// Inventory resolves CRM identity before requesting an exact ERP stock SKU.
+// It returns an isolated observation; catalog import snapshots remain unchanged.
+func (s Service) Inventory(ctx context.Context, id string) (M, error) {
+	state, e := persistence.Read(s.DB)
+	if e != nil {
+		return nil, e
+	}
+	for _, p := range domain.Rows(state, "products") {
+		if domain.Str(p["id"]) != id || domain.Str(p["source"]) != "mabang" {
+			continue
+		}
+		reader, ok := s.Source.(source.InventoryReader)
+		if !ok {
+			return nil, fail("Inventory lookup is unavailable.", 503)
+		}
+		positions, e := reader.Inventory(ctx, domain.Str(p["sku"]))
+		if e != nil {
+			return nil, e
+		}
+		return M{"sku": p["sku"], "positions": positions, "queriedAt": time.Now().UTC().Format(time.RFC3339)}, nil
+	}
+	return nil, fail("ERP product not found.", 404)
+}
+
 func Init(db *gorm.DB) error            { return db.AutoMigrate(&ImportBatch{}) }
 func fail(msg string, status int) error { return &domain.Error{Message: msg, Status: status} }
 func enc(v any) string                  { b, _ := json.Marshal(v); return string(b) }

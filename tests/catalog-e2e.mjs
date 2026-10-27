@@ -56,6 +56,15 @@ try {
   await page.locator('a.nav-item[href="#product"]').click();
   await page.getByRole("button", { name: /MORPHO-TEST/ }).click();
   const detail = page.getByRole("dialog");
+  const inventoryRequest = page.waitForResponse(r => r.url().includes("/inventory") && r.request().method() === "GET");
+  await detail.getByRole("button", {name:"Query inventory", exact:true}).click();
+  const inventoryResponse = await inventoryRequest;
+  assert.equal(inventoryResponse.status(), 200, await inventoryResponse.text());
+  const observation = await inventoryResponse.json();
+  assert.equal(observation.sku, "MORPHO-TEST");
+  assert(observation.positions.length > 0);
+  await detail.getByText("Inventory queried at", {exact:false}).waitFor();
+  assert(await detail.locator("table").innerText());
   await detail.getByLabel("SKU type", { exact: true }).selectOption("device");
   await detail
     .getByLabel("Warranty class", { exact: true })

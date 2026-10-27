@@ -152,6 +152,17 @@ function RelatedProductRow({ product, checked, onChange }) {
 
 function ProductDetail({ product: p, onClose }) {
   const { state, reload } = useWorkspace();
+  const grants = state.permissionCodes || [];
+  const canQueryStock = ["*:*:*", "erp:warehouse:view", "erp:fba:view"].some(code => grants.includes(code));
+  const [stock, setStock] = useState(null), [stockBusy, setStockBusy] = useState(false), [stockError, setStockError] = useState("");
+  const queryStock = async () => {
+    setStockBusy(true);
+    setStockError("");
+    try {
+      setStock(await api(`/api/catalog/products/${encodeURIComponent(p.id)}/inventory`));
+    } catch (e) { setStockError(e.message); }
+    finally { setStockBusy(false); }
+  };
   const admin = state.currentUser.roles?.includes("admin");
   const ref = useRef(null);
   const [v, setV] = useState({
@@ -253,20 +264,26 @@ function ProductDetail({ product: p, onClose }) {
               ))}
           </dl>
         </div>
-        {source.warehouse?.length > 0 && (
+        {(source.warehouse?.length > 0 || canQueryStock) && (
           <section className="catalog-warehouse-section">
             <div className="catalog-section-heading">
-              <h3>{tr("Linked warehouses")}</h3>
-              <span>{source.warehouse.length}</span>
+              <h3>{tr("Warehouse inventory")}</h3>
+              {canQueryStock && <Button onClick={queryStock} disabled={stockBusy}>{tr(stockBusy ? "Querying inventory…" : "Query inventory")}</Button>}
             </div>
             <p className="help-text">
-              {tr("Warehouse links do not represent inventory quantities.")}
+              {stock ? `${tr("Inventory queried at")}: ${stamp(stock.queriedAt)}` : tr("Warehouse links do not represent inventory quantities.")}
             </p>
+            {stockError && <p role="alert" className="error">{stockError}</p>}
+            {stock && <div className="table-scroll"><table><thead><tr><th>{tr("Warehouse name")}</th><th>{tr("Available")}</th><th>{tr("On hand")}</th><th>{tr("Awaiting shipment")}</th></tr></thead><tbody>
+              {stock.positions.map(w => <tr key={w.warehouseId}><td>{w.warehouse || w.warehouseId}</td><td>{w.available === "" ? "—" : w.available}</td><td>{w.onHand === "" ? "—" : w.onHand}</td><td>{w.waiting === "" ? "—" : w.waiting}</td></tr>)}
+              {!stock.positions.length && <tr><td colSpan="4">{tr("No warehouse inventory returned.")}</td></tr>}
+            </tbody></table></div>}
+            {!stock &&
             <div className="catalog-chips">
-              {source.warehouse.map((w) => (
+              {(source.warehouse || []).map((w) => (
                 <span key={w.warehouseId}>{w.warehouseName}</span>
               ))}
-            </div>
+            </div>}
           </section>
         )}
         <form id="catalog-policy-form" className="catalog-policy-form" onSubmit={save}>

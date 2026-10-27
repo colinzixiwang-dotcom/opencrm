@@ -4370,6 +4370,8 @@ td {
 .catalog-detail .help-text { font-size: 11px; line-height: 1.65; color: var(--muted); margin: 0; }
 .catalog-warehouse-section .catalog-chips { margin: 12px 0 0; gap: 6px; }
 .catalog-warehouse-section .catalog-chips span { background: white; font-size: 10px; padding: 5px 8px; }
+.catalog-warehouse-section table { margin-top: 10px; }
+.catalog-warehouse-section th, .catalog-warehouse-section td { padding: 10px 12px; }
 .catalog-policy-form { margin-top: 24px; }
 .catalog-policy { display: grid; gap: 18px; margin-top: 16px; min-width: 0; }
 .catalog-policy .form-grid { gap: 16px; }

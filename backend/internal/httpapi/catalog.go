@@ -17,6 +17,20 @@ func (s *Server) catalogService() catalog.Service {
 	return catalog.Service{DB: s.Store.DB, Source: c, Tenant: fmt.Sprintf("%x", sha256.Sum256([]byte(c.Key)))}
 }
 func (s *Server) catalogRoutes(api *gin.RouterGroup) {
+	api.GET("/catalog/products/:id/inventory", func(c *gin.Context) {
+		s.require(c, ruoyi.ViewPermission("product"))
+		if !s.allowed(c, ruoyi.ViewPermission("warehouse")) {
+			s.require(c, ruoyi.ViewPermission("fba"))
+		}
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+		defer cancel()
+		v, e := s.catalogService().Inventory(ctx, c.Param("id"))
+		if e != nil {
+			s.respond(c, e)
+			return
+		}
+		c.JSON(200, v)
+	})
 	admin := func(c *gin.Context) {
 		if !domain.In("admin", domain.Strings(s.actor(c)["roles"])...) {
 			domain.Fail("Only administrators can configure the ERP catalog.", 403)

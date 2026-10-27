@@ -119,3 +119,13 @@ Review worktree: `/data/zixi_wang/opencrm-mabang-catalog-rma`, branch
 `codex/mabang-catalog-rma`; frontend `http://192.168.1.61:5186/`, backend 4327.
 It uses the configured .84 PostgreSQL database; Git worktrees do not isolate shared
 database state. The main worktree's three pre-existing dirty files are untouched.
+
+### 商品详情按 SKU 查询库存（2026-10-27）
+
+详情页的仓库区域提供“查询库存”，不轮询、不执行目录同步。CRM `GET /api/catalog/products/:id/inventory` 要求商品查看权限，并要求仓库或 FBA 查看权限；后端以商品 ID 解析马邦库存 SKU，再通过 catalogsource.InventoryReader / 马邦适配器读取。不可用商品名称、主 SKU 或虚拟别名替代库存 SKU。
+
+上游请求为 `stock-get-stock-quantity`，`stockSkus` 为当前一个库存 SKU，`page` 从 1 开始；与原目录同步共用库存分页、限流和响应完整性检查。接口返回 SKU 层记录，每条内含 warehouse 列表；count 用于判断 SKU 记录分页完成，并非仓库数量。目录同步仍按 100 个 SKU 一批，此按钮只查一个。详情只返回映射后的仓库、现有/可用/待发货等字段及查询成功时间，不返回源原始对象。
+
+结果为本次只读观察，不写回目录导入快照，不锁库存、不占库存、不创建补发单。界面显示各仓库可用、现有、待发货数量及本次成功查询时间；未知数量显示破折号，数值 0 保留。无仓库返回显示空记录说明；SKU 缺失、响应不完整或请求失败明确报错。套装按其销售库存 SKU 查询，不推算组件可组套数量。
+
+现场验证：2026-10-27 北京时间 11:07，5186 通过真实马邦 API 查询 `ColorBox_2Base_StarterKit_Vivid`，返回 FuYong Stock、美东、美西和官网退货异常虚拟仓共 4 个仓库；核对了桌面与 390px 手机界面。负库存按来源原值展示；仓库是否可用于补发仍需履约规则确定，不能以这次查询授予发货资格。
