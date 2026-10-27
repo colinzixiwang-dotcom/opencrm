@@ -1,0 +1,1540 @@
+{
+  "appliedAt": "2026-10-27T04:11:50.646Z",
+  "environment": "5186 / backend4327",
+  "sources": [
+    {
+      "url": "https://zuvi.sg.larksuite.com/wiki/F3Ykw1TC9i4kBrkz3UdlX4bXgYg",
+      "revision": 741
+    },
+    {
+      "url": "https://zuvi.sg.larksuite.com/docx/I1Tndfx8zonbavxEMlJlCx2Aglh",
+      "revision": 1456
+    }
+  ],
+  "counts": {
+    "halo_device": 76,
+    "halo_accessory": 10,
+    "none": 7,
+    "colorbox_device": 7,
+    "colorbox_consumable": 4
+  },
+  "beforePolicy": {
+    "graceDays": 14,
+    "revision": 1,
+    "rules": [
+      {
+        "coverage": "device",
+        "enabled": true,
+        "id": "device",
+        "market": "",
+        "months": 12,
+        "name": "New device",
+        "platform": "",
+        "productIds": []
+      },
+      {
+        "coverage": "printhead_1080",
+        "enabled": true,
+        "id": "head1080",
+        "market": "",
+        "months": 3,
+        "name": "Printhead 1080",
+        "platform": "",
+        "productIds": []
+      },
+      {
+        "coverage": "printhead_3200",
+        "enabled": true,
+        "id": "head3200",
+        "market": "",
+        "months": 6,
+        "name": "Printhead 3200",
+        "platform": "",
+        "productIds": []
+      }
+    ]
+  },
+  "afterPolicy": {
+    "classes": [
+      {
+        "id": "halo_device",
+        "name": "Halo device"
+      },
+      {
+        "id": "halo_accessory",
+        "name": "Halo accessory"
+      },
+      {
+        "id": "colorbox_device",
+        "name": "ColorBox device"
+      },
+      {
+        "id": "colorbox_consumable",
+        "name": "ColorBox consumable"
+      }
+    ],
+    "graceDays": 14,
+    "id": "warranty",
+    "revision": 3,
+    "rules": [
+      {
+        "coverage": "halo_device",
+        "days": 0,
+        "durationUnit": "months",
+        "eligibilityMode": "timed",
+        "enabled": true,
+        "graceDays": 14,
+        "id": "halo_device",
+        "market": "",
+        "months": 12,
+        "name": "Halo device",
+        "platform": "",
+        "productIds": [
+          "MB-bc7a4a15-1662624",
+          "MB-bc7a4a15-1674726",
+          "MB-bc7a4a15-1685774",
+          "MB-bc7a4a15-1686416",
+          "MB-bc7a4a15-1687407",
+          "MB-bc7a4a15-1687408",
+          "MB-bc7a4a15-1703006",
+          "MB-bc7a4a15-1785038",
+          "MB-bc7a4a15-1785040",
+          "MB-bc7a4a15-1785041",
+          "MB-bc7a4a15-1785042",
+          "MB-bc7a4a15-1785043",
+          "MB-bc7a4a15-1785044",
+          "MB-bc7a4a15-1785045",
+          "MB-bc7a4a15-1785046",
+          "MB-bc7a4a15-1785047",
+          "MB-bc7a4a15-1785048",
+          "MB-bc7a4a15-1785049",
+          "MB-bc7a4a15-1785050",
+          "MB-bc7a4a15-1785051",
+          "MB-bc7a4a15-1785052",
+          "MB-bc7a4a15-1785053",
+          "MB-bc7a4a15-1785054",
+          "MB-bc7a4a15-1785055",
+          "MB-bc7a4a15-1785056",
+          "MB-bc7a4a15-1785057",
+          "MB-bc7a4a15-1785058",
+          "MB-bc7a4a15-1785059",
+          "MB-bc7a4a15-1785060",
+          "MB-bc7a4a15-1785061",
+          "MB-bc7a4a15-1785063",
+          "MB-bc7a4a15-1785064",
+          "MB-bc7a4a15-1785065",
+          "MB-bc7a4a15-1785066",
+          "MB-bc7a4a15-1785070",
+          "MB-bc7a4a15-1805382",
+          "MB-bc7a4a15-1817872",
+          "MB-bc7a4a15-1836331",
+          "MB-bc7a4a15-1850554",
+          "MB-bc7a4a15-1902254",
+          "MB-bc7a4a15-1921320",
+          "MB-bc7a4a15-1922966",
+          "MB-bc7a4a15-2032161",
+          "MB-bc7a4a15-2032164",
+          "MB-bc7a4a15-2042102",
+          "MB-bc7a4a15-2536065",
+          "MB-bc7a4a15-2655267",
+          "MB-bc7a4a15-2655433",
+          "MB-bc7a4a15-2655488",
+          "MB-bc7a4a15-2655490",
+          "MB-bc7a4a15-2655491",
+          "MB-bc7a4a15-2745484",
+          "MB-bc7a4a15-2745485",
+          "MB-bc7a4a15-2745486",
+          "MB-bc7a4a15-2745487",
+          "MB-bc7a4a15-2745488",
+          "MB-bc7a4a15-2745489",
+          "MB-bc7a4a15-2745492",
+          "MB-bc7a4a15-2745493",
+          "MB-bc7a4a15-2745494",
+          "MB-bc7a4a15-2745495",
+          "MB-bc7a4a15-2745496",
+          "MB-bc7a4a15-2822285",
+          "MB-bc7a4a15-2927838",
+          "MB-bc7a4a15-2993991",
+          "MB-bc7a4a15-3109923",
+          "MB-bc7a4a15-3115339"
+        ],
+        "requireEvidence": true,
+        "sourceReference": "https://zuvi.sg.larksuite.com/docx/I1Tndfx8zonbavxEMlJlCx2Aglh (revision 1456), B-501/B-502 业务备注：新机一年；激活日与签收后14天取早。",
+        "startMode": "activation_grace",
+        "startOffsetDays": 0
+      },
+      {
+        "coverage": "halo_accessory",
+        "days": 0,
+        "durationUnit": "months",
+        "eligibilityMode": "timed",
+        "enabled": false,
+        "graceDays": 14,
+        "id": "halo_accessory",
+        "market": "",
+        "months": 0,
+        "name": "Halo accessory",
+        "platform": "",
+        "productIds": [],
+        "requireEvidence": true,
+        "sourceReference": "待确认：上述来源没有明确此类普通配件／染剂耗材的期限，不套用打印头条款。",
+        "startMode": "delivery",
+        "startOffsetDays": 0
+      },
+      {
+        "coverage": "colorbox_device",
+        "days": 0,
+        "durationUnit": "months",
+        "eligibilityMode": "timed",
+        "enabled": true,
+        "graceDays": 14,
+        "id": "colorbox_device",
+        "market": "",
+        "months": 12,
+        "name": "ColorBox device",
+        "platform": "",
+        "productIds": [
+          "MB-bc7a4a15-4458907",
+          "MB-bc7a4a15-4460655",
+          "MB-bc7a4a15-4479141",
+          "MB-bc7a4a15-4523151",
+          "MB-bc7a4a15-4951964",
+          "MB-bc7a4a15-5000443"
+        ],
+        "requireEvidence": true,
+        "sourceReference": "https://zuvi.sg.larksuite.com/docx/I1Tndfx8zonbavxEMlJlCx2Aglh (revision 1456), B-501/B-502 业务备注：新机一年；激活日与签收后14天取早。",
+        "startMode": "activation_grace",
+        "startOffsetDays": 0
+      },
+      {
+        "coverage": "colorbox_consumable",
+        "days": 0,
+        "durationUnit": "months",
+        "eligibilityMode": "timed",
+        "enabled": false,
+        "graceDays": 14,
+        "id": "colorbox_consumable",
+        "market": "",
+        "months": 0,
+        "name": "ColorBox consumable",
+        "platform": "",
+        "productIds": [],
+        "requireEvidence": true,
+        "sourceReference": "待确认：上述来源没有明确此类普通配件／染剂耗材的期限，不套用打印头条款。",
+        "startMode": "delivery",
+        "startOffsetDays": 0
+      }
+    ]
+  },
+  "changes": [
+    {
+      "id": "MB-bc7a4a15-1662624",
+      "sku": "zuvi-halo-us",
+      "before": {
+        "warrantyClass": "device",
+        "policyRevision": 4
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 5
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1674726",
+      "sku": "zuvi-halo-jp",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1685774",
+      "sku": "HS100-US-OLD",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1686416",
+      "sku": "HS100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1687407",
+      "sku": "zuvi-halo-eu",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1687408",
+      "sku": "zuvi-halo-uk",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1703006",
+      "sku": "zuvi-halo-us-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1705380",
+      "sku": "to-be-matched",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1748612",
+      "sku": "THS100-GB",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1749156",
+      "sku": "HS100-PP",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785038",
+      "sku": "zuvi-halo-euat",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785040",
+      "sku": "zuvi-halo-eube",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785041",
+      "sku": "zuv-halo-eubg",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785042",
+      "sku": "zuv-halo-euhr",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785043",
+      "sku": "zuv-halo-eucy",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785044",
+      "sku": "zuvi-halo-eucz",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785045",
+      "sku": "zuvi-halo-eudk",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785046",
+      "sku": "zuvi-halo-euee",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785047",
+      "sku": "zuvi-halo-eufi",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785048",
+      "sku": "zuvi-halo-eufr",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785049",
+      "sku": "zuvi-halo-eude",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785050",
+      "sku": "zuvi-halo-eugr",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785051",
+      "sku": "zuvi-halo-euhu",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785052",
+      "sku": "zuvi-halo-ukie",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785053",
+      "sku": "zuvi-halo-euit",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785054",
+      "sku": "zuvi-halo-eulv",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785055",
+      "sku": "zuvi-halo-eult",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785056",
+      "sku": "zuvi-halo-eulu",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785057",
+      "sku": "zuvi-halo-eumt",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785058",
+      "sku": "zuvi-halo-eunl",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785059",
+      "sku": "zuvi-halo-eupl",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785060",
+      "sku": "zuvi-halo-eupt",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785061",
+      "sku": "zuvi-halo-euro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785063",
+      "sku": "zuvi-halo-eusk",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785064",
+      "sku": "zuvi-halo-eusi",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785065",
+      "sku": "zuvi-halo-eues",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785066",
+      "sku": "zuvi-halo-euse",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1785070",
+      "sku": "zuvi-halo-euch",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1805382",
+      "sku": "zuvi-halo-uk-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1805383",
+      "sku": "to-be-matched-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1817872",
+      "sku": "zuvi-halo-usca",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1836331",
+      "sku": "zuvi-halo-euit-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1850554",
+      "sku": "zuvi-halo-eu-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1895731",
+      "sku": "HS100-PP-GIFT",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1902254",
+      "sku": "zuvi-halo-au",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1915320",
+      "sku": "styling-concentrator-HS100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 3
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 4
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1916649",
+      "sku": "gentle-air-attachment-HS100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 3
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 4
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1921320",
+      "sku": "zuvi-halo-ch",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1922966",
+      "sku": "zuvi-halo-au-pro",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1935994",
+      "sku": "HS-STD100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1935995",
+      "sku": "HS-B01",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-1952625",
+      "sku": "diffuser-HS100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2032161",
+      "sku": "HS100-BL-GB",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2032164",
+      "sku": "HS100-BL-US",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2032542",
+      "sku": "HS-WM01",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2042102",
+      "sku": "HS100TB-US",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2072313",
+      "sku": "to-be-matched-bl",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2741937",
+      "sku": "HS100-PP-V2",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2484168",
+      "sku": "HS100-GB-RE",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2484657",
+      "sku": "to-be-matched-HS100-RE",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2485337",
+      "sku": "HS100-US-RE",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2536065",
+      "sku": "HS100-CA",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2655267",
+      "sku": "HS100TB-GIFT-GB",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2655433",
+      "sku": "HS100TB-GIFT-EU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2655488",
+      "sku": "HS100TB-GIFT-AU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2655490",
+      "sku": "HS100TB-GIFT-CH",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2655491",
+      "sku": "HS100TB-GIFT-IE",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2667858",
+      "sku": "to-be-matched-HS100TB-US",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745484",
+      "sku": "ZuviHalo-US",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745485",
+      "sku": "ZuviHalo-UK",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745486",
+      "sku": "ZuviHalo-EU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745487",
+      "sku": "ZuviHalo-AU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745488",
+      "sku": "ZuviHalo-CH",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745489",
+      "sku": "ZuviHalo-JP",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745492",
+      "sku": "ZuviHalo+TravelBag-UK",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745493",
+      "sku": "ZuviHalo+TravelBag-EU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745494",
+      "sku": "ZuviHalo+TravelBag-AU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745495",
+      "sku": "ZuviHalo+TravelBag-CH",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2745496",
+      "sku": "ZuviHalo+TravelBag-JP",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2789204",
+      "sku": "HS-DC01",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_accessory",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2822285",
+      "sku": "HA100-US",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2927838",
+      "sku": "HS100-BL-EU",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-2993991",
+      "sku": "HS100-US(J)-2N+TB01",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-3109923",
+      "sku": "HA100-CN",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-3115339",
+      "sku": "HS100-JP(US)-2N+TB01",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-3173348",
+      "sku": "HS100-BL-UK-REF",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "halo_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4458907",
+      "sku": "50488957698295",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4460655",
+      "sku": "ColorBox_2Base_StarterKit_Vivid",
+      "before": {
+        "warrantyClass": "device",
+        "policyRevision": 3
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 4
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4479141",
+      "sku": "ColorBox_2Base_StarterKit_Vivid_CA",
+      "before": {
+        "warrantyClass": "device",
+        "policyRevision": 3
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 4
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4523151",
+      "sku": "HCM100",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4523162",
+      "sku": "HCC001-Base",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_consumable",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4523221",
+      "sku": "HCC002-Red",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_consumable",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4523222",
+      "sku": "HCC003-Yellow",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_consumable",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4523223",
+      "sku": "HCC004-Blue",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_consumable",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4540291",
+      "sku": "to-be-matched-ColorBox_2Base_StarterKit_Vivid",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-4951964",
+      "sku": "ColorBox_1Base_StarterKit",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 3
+      }
+    },
+    {
+      "id": "MB-bc7a4a15-5000443",
+      "sku": "ZUVI-CBX-KIT",
+      "before": {
+        "warrantyClass": "none",
+        "policyRevision": 2
+      },
+      "after": {
+        "warrantyClass": "colorbox_device",
+        "policyRevision": 3
+      }
+    }
+  ],
+  "excludedFromNewDeviceRule": [
+    {
+      "id": "MB-bc7a4a15-1705380",
+      "sku": "to-be-matched",
+      "name": "待匹配（美国HS100TB-US 其他HS100）",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-1748612",
+      "sku": "THS100-GB",
+      "name": "退货Zuvi原里光能吹风机",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-1805383",
+      "sku": "to-be-matched-pro",
+      "name": "待匹配",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-2072313",
+      "sku": "to-be-matched-bl",
+      "name": "深蓝款待匹配",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-2484168",
+      "sku": "HS100-GB-RE",
+      "name": "Zuvi光能吹风机-英国-翻新机",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-2484657",
+      "sku": "to-be-matched-HS100-RE",
+      "name": "待匹配-Zuvi光能吹风机-翻新机",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-2485337",
+      "sku": "HS100-US-RE",
+      "name": "Zuvi光能吹风机-美国-翻新机",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-2667858",
+      "sku": "to-be-matched-HS100TB-US",
+      "name": "待匹配",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-3173348",
+      "sku": "HS100-BL-UK-REF",
+      "name": "Zuvi光能吹风机-青蓝版-英国",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    },
+    {
+      "id": "MB-bc7a4a15-4540291",
+      "sku": "to-be-matched-ColorBox_2Base_StarterKit_Vivid",
+      "name": "Color套装(2 Base ) V1版本染剂 （待匹配）",
+      "reason": "退货／翻新／待匹配，未确认新购权益"
+    }
+  ],
+  "unassigned": [
+    {
+      "id": "MB-bc7a4a15-2018477",
+      "sku": "shipping-fee",
+      "name": "Shipping Fee",
+      "reason": "费用／服务／非实物记录"
+    },
+    {
+      "id": "MB-bc7a4a15-2018482",
+      "sku": "repair-fee",
+      "name": "Repair Fee",
+      "reason": "费用／服务／非实物记录"
+    },
+    {
+      "id": "MB-bc7a4a15-2480665",
+      "sku": "price-difference",
+      "name": "差价",
+      "reason": "费用／服务／非实物记录"
+    },
+    {
+      "id": "MB-bc7a4a15-4141861",
+      "sku": "50121406513399",
+      "name": "Colorist",
+      "reason": "Colorist 产品归属尚待业务确认"
+    },
+    {
+      "id": "MB-bc7a4a15-4228251",
+      "sku": "50106943275255",
+      "name": "Zuvi Colorist",
+      "reason": "Colorist 产品归属尚待业务确认"
+    },
+    {
+      "id": "MB-bc7a4a15-4557253",
+      "sku": "0",
+      "name": "Pending Payment for #8818431",
+      "reason": "费用／服务／非实物记录"
+    },
+    {
+      "id": "MB-bc7a4a15-4980442",
+      "sku": "red-1",
+      "name": "test for subscribe",
+      "reason": "费用／服务／非实物记录"
+    }
+  ],
+  "verification": {
+    "historicalRmasUnchanged": true,
+    "historicalTasksUnchanged": true,
+    "otherCatalogPolicyFieldsUnchanged": true,
+    "readOnlyAssessments": [
+      {
+        "sku": "zuvi-halo-us",
+        "status": "covered",
+        "startsAt": "2026-10-03",
+        "endsAt": "2027-10-03"
+      },
+      {
+        "sku": "HCM100",
+        "status": "covered",
+        "startsAt": "2026-10-03",
+        "endsAt": "2027-10-03"
+      },
+      {
+        "sku": "HS100-PP",
+        "status": "incomplete",
+        "reason": "policy pending confirmation"
+      },
+      {
+        "sku": "HCC001-Base",
+        "status": "incomplete",
+        "reason": "policy pending confirmation"
+      },
+      {
+        "sku": "HS100-US-RE",
+        "status": "incomplete",
+        "reason": "excluded from new-device scope"
+      }
+    ],
+    "assessmentInput": {
+      "deliveredAt": "2026-10-01",
+      "activatedAt": "2026-10-03",
+      "evidenceReference": "Read-only verification; no RMA created"
+    }
+  }
+}
