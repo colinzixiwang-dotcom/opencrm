@@ -16,7 +16,6 @@ export const nav = [
   ["sales", "Sales"],
   ["fba", "FBA"],
   ["purchase", "Purchase"],
-  ["warehouse", "Warehouse"],
   ["logistics", "Logistics"],
   ["advertising", "Advertising"],
   ["service", "Ticket center"],
@@ -78,7 +77,6 @@ export const info = {
     "Purchasing",
     "Plan, approve, order, and receive with confidence.",
   ],
-  warehouse: ["Inventory", "Know what’s available, reserved, and on the move."],
   logistics: ["Logistics", "Track every transfer from departure to arrival."],
   advertising: [
     "Advertising",

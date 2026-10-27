@@ -122,33 +122,11 @@ try {
     fullPage: true,
   });
   await page.locator(".language-switcher select").selectOption("en");
-  await page.locator('a.nav-item[href="#warehouse"]').click();
-  await page
-    .getByRole("heading", { name: "ERP inventory", exact: true })
-    .waitFor();
-  assert.equal(
-    await page
-      .getByRole("button", { name: "Adjust inventory", exact: true })
-      .count(),
-    0,
-  );
-  await page.screenshot({
-    path: "test-results/catalog-inventory-en.png",
-    fullPage: true,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator(".language-switcher select").selectOption("zh-CN");
-  await page.screenshot({
-    path: "test-results/catalog-inventory-mobile-zh.png",
-    fullPage: true,
-  });
-  assert(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  );
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator(".language-switcher select").selectOption("en");
+  assert.equal(await page.locator('a.nav-item[href="#warehouse"]').count(), 0);
+  // Existing bookmarks must lead to products, where stock can still be queried.
+  await page.evaluate(() => { location.hash = "warehouse"; });
+  await page.waitForURL("**/#product");
+  await page.locator(".catalog-products").waitFor();
   await post("/api/integrations/udesk/accounts/sync", {});
   await page.locator('a.nav-item[href="#service"]').click();
   await selectColumnFilter(page, "Filter by ticket assignment", "all");

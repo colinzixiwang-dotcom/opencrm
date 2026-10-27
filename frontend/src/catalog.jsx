@@ -7,8 +7,6 @@ import {
   Table,
   Button,
   FilterControl,
-  ListToolbar,
-  Note,
   Icon,
   SearchControl,
 } from "./components";
@@ -582,78 +580,6 @@ export function CatalogProducts() {
           onClose={() => setSelected(null)}
         />
       )}
-    </>
-  );
-}
-export function CatalogInventory() {
-  const { state: s } = useWorkspace();
-  const [warehouse, setWarehouse] = useState("");
-  const positions = s.catalogInventory || [];
-  const names = [...new Set(positions.map((p) => p.warehouse))];
-  const rows = positions
-    .filter((p) => !warehouse || p.warehouse === warehouse)
-    .map((p) => ({
-      ...p,
-      name: s.products.find((x) => x.sku === p.sku)?.name || "",
-      onHand: p.onHand === "" ? null : Number(p.onHand),
-      available: p.available === "" ? null : Number(p.available),
-    }));
-  return (
-    <>
-      <Heading subtitle="Warehouse balances read from Mabang. Quantities are snapshots, not reservations." />
-      <Panel>
-        <div className="catalog-inventory-heading">
-          <div>
-            <h2>{tr("ERP inventory")}</h2>
-            <p className="help-text">
-              {tr("Last successful sync")}: {stamp(positions[0]?.syncedAt)}
-            </p>
-          </div>
-          <span>
-            {names.length} {tr("warehouses")} · {positions.length}{" "}
-            {tr("stock positions")}
-          </span>
-        </div>
-        <ListToolbar>
-          <FilterControl
-            label="Warehouse"
-            value={warehouse}
-            onChange={setWarehouse}
-            options={[
-              { value: "", label: "All warehouses" },
-              ...names.map((value) => ({ value, label: value })),
-            ]}
-          />
-        </ListToolbar>
-        <Table
-          rows={rows}
-          empty="No ERP inventory snapshot. Synchronize from the product catalog."
-          columns={[
-            col(
-              "Product / SKU",
-              (p) => (
-                <>
-                  <strong>{p.sku}</strong>
-                  <small className="cell-sub">{p.name}</small>
-                </>
-              ),
-              "sku",
-            ),
-            col("Warehouse", (p) => p.warehouse, "warehouse"),
-            col("On hand", (p) => p.onHand ?? "—", "onHand"),
-            col("Available", (p) => p.available ?? "—", "available"),
-            col("Awaiting shipment", (p) => p.waiting || "—"),
-            col("Purchase in transit", (p) => p.purchasing || "—"),
-            col("Transfer in transit", (p) => p.transfer || "—"),
-            col("Bin location", (p) => p.grid || "—"),
-          ]}
-        />
-      </Panel>
-      <Note>
-        {tr(
-          "Inventory is read-only. RMA creation records reshipment needs without reserving stock or creating ERP orders.",
-        )}
-      </Note>
     </>
   );
 }

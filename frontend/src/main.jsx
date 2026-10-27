@@ -26,10 +26,7 @@ import {
   Benefits,
   SupportConfig,
 } from "./support";
-import {
-  CatalogProducts as Products,
-  CatalogInventory as Inventory,
-} from "./catalog";
+import { CatalogProducts as Products } from "./catalog";
 import { Settings } from "./settings";
 import { ModalHost } from "./forms";
 import "./style.css";
@@ -190,7 +187,6 @@ const views = {
   product: Products,
   sales: Sales,
   purchase: Purchasing,
-  warehouse: Inventory,
   logistics: Logistics,
   fba: FBA,
   advertising: Advertising,
@@ -214,6 +210,9 @@ function App() {
     [mobile, setMobile] = useState(false),
     [search, setSearch] = useState(""),
     [routeSearch, setRouteSearch] = useState({ page: "", query: "", key: 0 });
+  useEffect(() => {
+    if (page === "warehouse") go("product");
+  }, [page, go]);
   useEffect(() => {
     const key = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {

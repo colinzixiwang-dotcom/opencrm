@@ -74,10 +74,8 @@ try {
   await page.getByLabel("语言", { exact: true }).waitFor();
   assert.equal(await page.locator("html").getAttribute("lang"), "zh-CN");
   await page.getByRole("tab", { name: "质保规则", exact: true }).click();
-  // Exercise canonical state identifiers in Chinese, including keys used by inventory/return forms.
-  await page.locator('a[href="#warehouse"]').click();
-  await page.getByRole("tab", { name: /仓库/ }).click();
-  await page.getByRole("button", { name: "新增仓库", exact: true }).waitFor();
+  // Inventory is queried within product details, not a separate navigation page.
+  assert.equal(await page.locator('a[href="#warehouse"]').count(), 0);
 
   const post = async (action, payload) => {
     const r = await page.request.post(app.base + "/api/action", {
