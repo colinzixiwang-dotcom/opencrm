@@ -459,7 +459,7 @@ export function CatalogProducts() {
             options={[
               { value: "", label: "All SKUs" },
               { value: "approval", label: "Approval required" },
-              { value: "direct", label: "No SKU approval required" },
+              { value: "direct", label: "No approval required" },
             ]}
           />
 </>
@@ -503,9 +503,10 @@ export function CatalogProducts() {
               "sourceStatus",
             ),
             col("SKU type", p => tr(({device: "Device", part: "Accessory", consumable: "Consumable", general: "Unclassified"})[p.productType]), "productType"),
+            col("Master SKU", p => p.masterSku || "—", "masterSku"),
             col("Reshipment approval", p => (
               <span className={p.reshipRequiresApproval ? "catalog-approval-required" : "catalog-approval-standard"}>
-                {tr(p.reshipRequiresApproval ? "Approval required" : "No SKU approval required")}
+                {tr(p.reshipRequiresApproval ? "Approval required" : "No approval required")}
               </span>
             ), "reshipRequiresApproval"),
           ]}
