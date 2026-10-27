@@ -429,11 +429,33 @@ function ProductDetail({ product: p, onClose }) {
   );
 }
 export function CatalogProducts() {
-  const { state: s } = useWorkspace();
+  const { state: s, reload, notify } = useWorkspace();
   const [status, setStatus] = useState(""),
     [eligibility, setEligibility] = useState(""),
     [productType, setProductType] = useState(""),
     [selected, setSelected] = useState(null);
+  useEffect(() => {
+    let active = true, pending = false;
+    const refresh = async () => {
+      if (selected || pending || document.visibilityState === "hidden") return;
+      pending = true;
+      try {
+        await reload();
+      } catch (e) {
+        if (active && e.status !== 401) notify(e.message, "error");
+      } finally {
+        pending = false;
+      }
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [reload, notify, selected]);
   const products = s.products.filter((p) => p.source === "mabang");
   const rows = products
     .filter(

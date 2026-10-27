@@ -51,8 +51,8 @@ try {
   assert.equal(state.stocks.length, 0);
   assert.equal(state.catalogInventory.length, 5);
   assert(state.products.every((p) => p.reshipRequiresApproval === true));
-  // This import was triggered through the test API, outside the integration settings UI.
-  await page.reload();
+  // Imports outside this tab must become visible when entering the catalog,
+  // without reloading the whole application.
   await page.locator('a.nav-item[href="#product"]').click();
   await page.getByRole("button", { name: /MORPHO-TEST/ }).click();
   const detail = page.getByRole("dialog");
@@ -80,8 +80,10 @@ try {
       reason: "Approved replacement catalog",
     });
   }
-  await page.reload();
-  await page.locator("#main-content h1").waitFor();
+  // Policy updates outside this tab must also be picked up when it regains focus.
+  const refreshed = page.waitForResponse(r => r.url().endsWith("/api/bootstrap"));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await refreshed;
   await page.getByLabel("SKU type", {exact:true}).selectOption("consumable");
   assert.equal(await page.getByRole("button", {name:/PART-B/}).count(),0);
   await page.getByRole("button", {name:/PART-C/}).click();
