@@ -1638,5 +1638,13 @@
   "All SKUs in this type": "本类型全部 SKU",
   "Search applicable SKUs": "搜索适用 SKU",
   "Search by SKU or product name": "按 SKU 或商品名称搜索",
-  "No matching SKUs": "没有匹配的 SKU"
+  "No matching SKUs": "没有匹配的 SKU",
+  "New warranty type": "新质保类型",
+  "Edit warranty type": "编辑质保类型",
+  "Applicable rules": "适用规则",
+  "Applicable rule": "适用规则",
+  "Add applicable rule": "添加适用规则",
+  "Remove warranty type": "删除质保类型",
+  "This type is assigned to products and cannot be removed.": "该类型已被商品使用，不能删除。",
+  "Default settings": "默认设置"
 }
