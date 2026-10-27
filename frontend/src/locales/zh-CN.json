@@ -1587,5 +1587,6 @@
   "Query inventory": "查询库存",
   "Querying inventory…": "查询中…",
   "Inventory queried at": "库存查询时间",
-  "No warehouse inventory returned.": "未返回仓库库存记录。"
+  "No warehouse inventory returned.": "未返回仓库库存记录。",
+  "RMA not found or not available to your account.": "未找到该 RMA，或你暂无查看权限。"
 }

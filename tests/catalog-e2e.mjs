@@ -241,12 +241,22 @@ try {
   assert.equal(tasks.length, 2);
   assert.equal(tasks.find(t => t.productId === state.products.find(p=>p.sku === "PART-C").id).approval,"pending");
   assert.equal(tasks.find(t => t.productId === state.products.find(p=>p.sku === "PART-B").id).approval,"not_required");
-  await page.locator('a.nav-item[href="#rma"]').click();
-  await page.getByRole("button", { name: rma.id, exact: true }).click();
+  await page.goto(app.base + "/#service?ticket=101");
+  await page.reload();
+  const linkedRma = page.locator(".ticket-detail-header").getByRole("link", {name:rma.id,exact:true});
+  await linkedRma.click();
+  await page.waitForURL("**/#rma?rma=" + rma.id);
+  await page.getByRole("dialog").getByRole("heading", {name:rma.id,exact:true}).waitFor();
+  await page.reload();
+  await page.getByRole("dialog").getByRole("heading", {name:rma.id,exact:true}).waitFor();
   await page
     .getByRole("heading", { name: "Reshipment details", exact: true })
     .waitFor();
   await page.screenshot({ path: "test-results/catalog-rma-detail-en.png" });
+  await page.getByRole("dialog").getByRole("button", {name:"Close dialog",exact:true}).click();
+  await page.waitForURL("**/#rma");
+  await page.evaluate(() => { location.hash = "rma?rma=missing-rma"; });
+  await page.getByRole("alert").getByText("RMA not found or not available to your account.", {exact:true}).waitFor();
   assert(
     mabang.calls.every((c) =>
       [

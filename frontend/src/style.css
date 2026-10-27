@@ -3299,6 +3299,8 @@ td {
 .ticket-rma-label { color: var(--ink); font-weight: 600; flex: none; }
 .ticket-rma-items { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .ticket-rma-id { padding: 5px 10px; border: 1px solid #b5cbbd; border-radius: 5px; background: #eaf2e8; color: var(--green); font-weight: 600; overflow-wrap: anywhere; }
+.ticket-rma-id:hover { background: #dcebdc; border-color: var(--green); text-decoration: underline; }
+.ticket-rma-id:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 @media (max-width: 600px) { .ticket-rma-links { flex-wrap: wrap; } }
 .ticket-detail > p,
 .ticket-detail > .form-error {

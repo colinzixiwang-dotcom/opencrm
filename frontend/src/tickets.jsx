@@ -432,7 +432,7 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                 <div className="ticket-rma-links" role="group" aria-label={tr("Linked RMAs")}>
                   <span className="ticket-rma-label">{tr("Linked RMAs")}</span>
                   <div className="ticket-rma-items">
-                    {data.rmaIds.map(rmaId => <span className="ticket-rma-id" key={rmaId}>{rmaId}</span>)}
+                    {data.rmaIds.map(rmaId => <a className="ticket-rma-id" key={rmaId} href={`#rma?rma=${encodeURIComponent(rmaId)}`}>{rmaId}</a>)}
                   </div>
                 </div>
               )}

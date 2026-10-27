@@ -1098,9 +1098,31 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
   );
 }
 export function RMAs({ query = "" }) {
-  const { state: s, can } = useWorkspace(),
+  const { state: s, can, reload } = useWorkspace(),
     [editor, setEditor] = useState(null),
+    [detailError, setDetailError] = useState(""),
     rows = s.rmas.map((r) => ({ ...r, product: sku(s, r.productId) }));
+  useEffect(() => {
+    let active = true;
+    const change = () => {
+      const id = new URLSearchParams(location.hash.split("?")[1]).get("rma");
+      setDetailError("");
+      setEditor(id ? { id } : null);
+      if (id) reload().then(next => {
+        if (active && new URLSearchParams(location.hash.split("?")[1]).get("rma") === id && !next.rmas.some(r => r.id === id)) {
+          setDetailError("RMA not found or not available to your account.");
+        }
+      }).catch(e => { if (active) setDetailError(e.message); });
+    };
+    change();
+    window.addEventListener("hashchange", change);
+    return () => { active = false; window.removeEventListener("hashchange", change); };
+  }, [reload]);
+  const closeDetail = () => {
+    setEditor(null);
+    setDetailError("");
+    if (new URLSearchParams(location.hash.split("?")[1]).has("rma")) location.hash = "rma";
+  };
   return (
     <>
       <Heading>
@@ -1112,6 +1134,7 @@ export function RMAs({ query = "" }) {
           </Button>
         )}
       </Heading>
+      {detailError && <p className="form-error" role="alert">{tr(detailError)}</p>}
       <section className="stat-grid compact">
         <Stat
           label={tr(admin(s) ? "All RMAs" : "My RMAs")}
@@ -1218,7 +1241,7 @@ export function RMAs({ query = "" }) {
       </Note>
       {editor?.create && <RMAForm onClose={() => setEditor(null)} />}
       {editor?.id && (
-        <RMADetail id={editor.id} onClose={() => setEditor(null)} />
+        <RMADetail id={editor.id} onClose={closeDetail} />
       )}
     </>
   );
