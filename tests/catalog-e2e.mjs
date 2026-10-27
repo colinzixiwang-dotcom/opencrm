@@ -50,7 +50,7 @@ try {
   assert.equal(state.products.length, 5);
   assert.equal(state.stocks.length, 0);
   assert.equal(state.catalogInventory.length, 5);
-  assert(state.products.every((p) => p.allowReship === false));
+  assert(state.products.every((p) => p.reshipRequiresApproval === true));
   await page.locator('a.nav-item[href="#product"]').click();
   await page.getByRole("button", { name: /MORPHO-TEST/ }).click();
   const detail = page.getByRole("dialog");
@@ -72,14 +72,32 @@ try {
       id: p.id,
       expectedRevision: p.policyRevision,
       allowOriginal: true,
-      allowReship: true,
-      productType: sku.startsWith("PART") ? "part" : "device",
+      reshipRequiresApproval: sku === "PART-C",
+      deviceIds: sku.startsWith("PART") ? [state.products.find(p => p.sku === "MORPHO-TEST").id] : [],
+      productType: sku === "PART-C" ? "consumable" : sku === "PART-B" ? "part" : "device",
       warrantyClass: "device",
       reason: "Approved replacement catalog",
     });
   }
   await page.reload();
   await page.locator("#main-content h1").waitFor();
+  await page.getByLabel("SKU type", {exact:true}).selectOption("consumable");
+  assert.equal(await page.getByRole("button", {name:/PART-B/}).count(),0);
+  await page.getByRole("button", {name:/PART-C/}).click();
+  assert.equal(await detail.getByLabel("SKU type", {exact:true}).inputValue(),"consumable");
+  assert.equal(await detail.getByLabel("Reshipment requires approval", {exact:true}).isChecked(),true);
+  const binding = detail.locator(".catalog-device-options label").filter({hasText:"MORPHO-TEST"}).getByRole("checkbox");
+  assert.equal(await binding.isChecked(),true);
+  await page.screenshot({path:"test-results/catalog-compatibility-detail-en.png"});
+  await page.setViewportSize({width:390,height:844});
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({path:"test-results/catalog-compatibility-detail-mobile.png"});
+  await page.setViewportSize({width:1440,height:1000});
+  await binding.uncheck(); await binding.check();
+  await detail.getByLabel("Configuration reason", {exact:true}).fill("Verified consumable compatibility in product details");
+  await detail.getByRole("button", {name:"Save configuration",exact:true}).click();
+  await detail.waitFor({state:"hidden"});
+  await page.getByLabel("SKU type", {exact:true}).selectOption("");
   await page.locator(".language-switcher select").selectOption("zh-CN");
   await page.screenshot({
     path: "test-results/catalog-products-zh.png",
@@ -174,12 +192,16 @@ try {
   await d
     .getByLabel("Solution reason", { exact: true })
     .fill("Two parts failed");
+  await d.getByLabel("Search reshipment SKU", {exact:true}).fill("PART-B");
+  assert.equal(await d.getByLabel("Reship SKU 1", {exact:true}).locator("option").count(),2);
   await d
     .getByLabel("Reship SKU 1", { exact: true })
     .selectOption(state.products.find((p) => p.sku === "PART-B").id);
   await d
     .getByRole("button", { name: "Add reshipment item", exact: true })
     .click();
+  state = await (await page.request.get(app.base + "/api/bootstrap")).json();
+  await d.getByLabel("Search reshipment SKU", {exact:true}).fill(state.products.find(p=>p.sku === "PART-C").name);
   await d
     .getByLabel("Reship SKU 2", { exact: true })
     .selectOption(state.products.find((p) => p.sku === "PART-C").id);
@@ -214,7 +236,10 @@ try {
       ["PART-C", 2],
     ],
   );
-  assert.equal(state.rmaTasks.filter((t) => t.rmaId === rma.id).length, 2);
+  const tasks = state.rmaTasks.filter((t) => t.rmaId === rma.id);
+  assert.equal(tasks.length, 2);
+  assert.equal(tasks.find(t => t.productId === state.products.find(p=>p.sku === "PART-C").id).approval,"pending");
+  assert.equal(tasks.find(t => t.productId === state.products.find(p=>p.sku === "PART-B").id).approval,"not_required");
   await page.locator('a.nav-item[href="#rma"]').click();
   await page.getByRole("button", { name: rma.id, exact: true }).click();
   await page

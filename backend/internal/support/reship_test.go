@@ -16,7 +16,7 @@ func TestReshipLinesAndAlternateDevice(t *testing.T) {
 		p["source"] = "mabang"
 		p["allowReship"] = true
 		p["sourcePresent"] = true
-		p["deviceIds"] = []string{}
+		p["deviceIds"] = []string{"PRD-1"}
 		other := domain.Clone(p)
 		other["id"] = "OTHER"
 		other["sku"] = "OTHER"
@@ -46,10 +46,59 @@ func TestReshipLinesAndAlternateDevice(t *testing.T) {
 		if n != 2 {
 			t.Fatal(n)
 		}
-		p["allowReship"] = false
-		reject(t, s, u, "rma.create", b, "not enabled for reshipment")
+		p["sourcePresent"] = false
+		reject(t, s, u, "rma.create", b, "no longer present")
+		p["sourcePresent"] = true
 		p["allowReship"] = true
 		b["reshipItems"] = []any{M{"productId": "PRD-2", "qty": 1}, M{"productId": "PRD-2", "qty": 2}}
 		reject(t, s, u, "rma.create", b, "Duplicate")
+	}
+}
+
+func TestConsumableCompatibilityAndSKUApproval(t *testing.T) {
+	s := fixture()
+	u := actor("owner", true)
+	p := domain.Find(s, "products", "PRD-2")
+	p["productType"] = "consumable"
+	p["source"] = "mabang"
+	p["sourcePresent"] = true
+	p["allowReship"] = false // Retired flag must not prevent a valid application.
+	p["reshipRequiresApproval"] = true
+	b := input("parts")
+	next, r, e := Mutate(s, "rma.create", b, u)
+	if e != nil {
+		t.Fatal(e)
+	}
+	item := task(next, r, "send_parts")
+	if item["approval"] != "pending" {
+		t.Fatal(item)
+	}
+	reject(t, next, u, "rmatask.execute", M{"id": item["id"], "operation": "start"}, "approved")
+	run(t, &next, u, "rmatask.review", M{"id": item["id"], "decision": "approved", "note": "Verified replacement"})
+	run(t, &next, u, "rmatask.execute", M{"id": item["id"], "operation": "start"})
+	// Removing a relation blocks further execution even after approval.
+	domain.Find(next, "products", "PRD-2")["deviceIds"] = []string{}
+	reject(t, next, u, "rmatask.execute", M{"id": item["id"], "operation": "dispatch"}, "not compatible")
+	p["deviceIds"] = []string{}
+	reject(t, s, u, "rma.create", b, "not compatible")
+	p["deviceIds"] = []string{"OTHER-DEVICE"}
+	reject(t, s, u, "rma.create", b, "not compatible")
+}
+
+func TestReshipApprovalPolicyChangeBeforeExecution(t *testing.T) {
+	s := fixture()
+	u := actor("owner", true)
+	p := domain.Find(s, "products", "PRD-2")
+	p["reshipRequiresApproval"] = false
+	r := run(t, &s, u, "rma.create", input("parts"))
+	item := task(s, r, "send_parts")
+	if item["approval"] != "not_required" {
+		t.Fatal(item)
+	}
+	domain.Find(s, "products", "PRD-2")["reshipRequiresApproval"] = true
+	reject(t, s, u, "rmatask.execute", M{"id": item["id"], "operation": "start"}, "now requires approval")
+	run(t, &s, u, "rmatask.update", M{"id": item["id"], "productId": "PRD-2", "qty": 1})
+	if task(s, r, "send_parts")["approval"] != "pending" {
+		t.Fatal("updated task bypassed approval")
 	}
 }

@@ -400,14 +400,14 @@ function TaskParameters({
 }) {
   const { state: s } = useWorkspace();
   const set = (k, v) => onChange({ ...value, [k]: v });
-  let products = s.products;
+  const [skuSearch, setSkuSearch] = useState("");
+  let products = s.products.filter(p => p.sourcePresent !== false);
   if (type.id === "send_parts")
     products = products.filter(
       (p) =>
-        p.productType === "part" &&
-        (p.id === rmaProductId ||
-          !p.deviceIds?.length ||
-          p.deviceIds.includes(rmaProductId)),
+        ["part", "consumable"].includes(p.productType) &&
+        p.sourcePresent !== false &&
+        (p.id === rmaProductId || p.deviceIds?.includes(rmaProductId)),
     );
   if (["send_device", "return_device"].includes(type.id))
     products = products.filter((p) => p.productType === "device");
@@ -425,13 +425,14 @@ function TaskParameters({
           required
         />
       )}
+      {type.requiresProduct && <Input label={tr("Search reshipment SKU")} value={skuSearch} onChange={setSkuSearch} placeholder={tr("Search SKU or product name")} />}
       {type.requiresProduct && (
         <Select
           label={tr("Task SKU")}
           value={value.productId ?? node.productId ?? ""}
           onChange={(v) => set("productId", v)}
           items={s.products
-            .filter((p) => products.includes(p))
+            .filter((p) => products.includes(p) && (p.id === (value.productId ?? node.productId) || `${p.sku} ${p.name} ${p.nameEn || ""}`.toLowerCase().includes(skuSearch.toLowerCase())))
             .map((p) => ({ value: p.id, label: sku(s, p.id) }))}
           empty={tr("Choose SKU…")}
           required
@@ -460,13 +461,13 @@ function TaskParameters({
     </div>
   );
 }
-function ReshipLines({ solutionId, items, onChange }) {
+function ReshipLines({ solutionId, items, onChange, rmaProductId }) {
   const { state: s } = useWorkspace();
+  const [search, setSearch] = useState("");
   const type = solutionId === "parts" ? "part" : "device";
   const choices = s.products.filter(
     (p) =>
-      p.productType === type &&
-      (p.source !== "mabang" || (p.allowReship && p.sourcePresent !== false)),
+      (type === "part" ? ["part", "consumable"].includes(p.productType) && (p.id === rmaProductId || p.deviceIds?.includes(rmaProductId)) : p.productType === "device") && p.sourcePresent !== false,
   );
   const set = (i, k, v) =>
     onChange(items.map((line, n) => (n === i ? { ...line, [k]: v } : line)));
@@ -478,6 +479,9 @@ function ReshipLines({ solutionId, items, onChange }) {
           {tr("Purchased item and reshipment items are saved separately.")}
         </small>
       </div>
+      <label className="reship-search">{tr("Search reshipment SKU")}
+        <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder={tr("Search SKU or product name")} />
+      </label>
       {items.map((line, i) => (
         <div className="reship-line" key={i}>
           <label>
@@ -493,11 +497,11 @@ function ReshipLines({ solutionId, items, onChange }) {
                 .filter(
                   (p) =>
                     p.id === line.productId ||
-                    !items.some((x) => x.productId === p.id),
+                    (!items.some((x) => x.productId === p.id) && `${p.sku} ${p.name} ${p.nameEn || ""}`.toLowerCase().includes(search.toLowerCase())),
                 )
                 .map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.sku} · {p.name}
+                    {p.sku} · {p.name}{(p.reshipRequiresApproval ?? (p.source === "mabang" && !p.allowReship)) ? ` · ${tr("Approval required")}` : ""}
                   </option>
                 ))}
             </select>
@@ -620,8 +624,8 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
           productId: s.products.some(
             (p) =>
               p.id === v.productId &&
-              p.productType === (id === "parts" ? "part" : "device") &&
-              (p.source !== "mabang" || p.allowReship),
+              (id === "parts" ? ["part", "consumable"].includes(p.productType) : p.productType === "device") &&
+              p.sourcePresent !== false,
           )
             ? v.productId
             : "",
@@ -960,6 +964,7 @@ export function RMAForm({ onClose, initial = {}, duplicateRmaIds = [] }) {
               {solution && v.draftId && (
                 <ReshipLines
                   solutionId={v.solutionId}
+                  rmaProductId={v.productId}
                   items={v.reshipItems}
                   onChange={(lines) => set("reshipItems", lines)}
                 />

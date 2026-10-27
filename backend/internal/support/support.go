@@ -220,8 +220,11 @@ func refresh(s M) {
 func approval(c, t, r M) (bool, []string) {
 	mandatory := domain.In(domain.Str(t["typeId"]), "refund", "return_device") || t["direction"] == "inbound"
 	always := domain.Bool(domain.Obj(t["typeSnapshot"])["alwaysApprove"])
-	required := mandatory || always
+	required := mandatory || always || domain.Bool(t["reshipRequiresApproval"])
 	reasons := []string{}
+	if domain.Bool(t["reshipRequiresApproval"]) {
+		reasons = append(reasons, "SKU requires reshipment approval")
+	}
 	if always {
 		reasons = append(reasons, "Task type always requires approval")
 	}
@@ -263,6 +266,11 @@ func values(s, c, t, b M) {
 	p := domain.Str(b["productId"])
 	validateProduct(s, t, p)
 	t["productId"] = p
+	if p != "" && domain.In(domain.Str(t["typeId"]), "send_device", "send_parts") {
+		product := domain.Find(s, "products", p)
+		t["reshipRequiresApproval"] = domain.ReshipApprovalRequired(product)
+		t["productPolicySnapshot"] = domain.Clone(product)
+	}
 	t["customFields"] = custom(c, "task", domain.Str(t["typeId"]), b["customFields"], t["customFields"])
 }
 func Mutate(original M, action string, b, u M) (s, result M, err error) {
@@ -421,8 +429,8 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 					}
 					seen[id] = true
 					p := domain.Find(s, "products", id)
-					if p["source"] == "mabang" && (!domain.Bool(p["allowReship"]) || p["sourcePresent"] == false) {
-						domain.Fail("This SKU is not enabled for reshipment.", 422)
+					if p["source"] == "mabang" && (p["sourcePresent"] == false) {
+						domain.Fail("This SKU is no longer present in the source catalog.", 422)
 					}
 					qty := domain.Int(line["qty"], "Quantity", 1, 1000000)
 					node := domain.Clone(template)
@@ -560,6 +568,9 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 				domain.Fail("Enter a positive task amount before execution.")
 			}
 			validateProduct(s, t, domain.Str(t["productId"]))
+			if domain.In(domain.Str(t["typeId"]), "send_device", "send_parts") && domain.Str(t["productId"]) != "" && domain.ReshipApprovalRequired(domain.Find(s, "products", domain.Str(t["productId"]))) && t["approval"] != "approved" {
+				domain.Fail("SKU now requires approval. Update the task and obtain approval before execution.", 409)
+			}
 			if domain.Bool(typ["requiresProduct"]) && domain.Str(t["productId"]) == "" {
 				domain.Fail("Choose a task SKU before execution.")
 			}
@@ -894,10 +905,10 @@ func normalize(s M) {
 func validateProduct(s, t M, p string) {
 	if p != "" {
 		prod := domain.Find(s, "products", p)
-		if domain.In(domain.Str(t["typeId"]), "send_device", "send_parts") && prod["source"] == "mabang" && (!domain.Bool(prod["allowReship"]) || prod["sourcePresent"] == false) {
-			domain.Fail("This SKU is not enabled for reshipment.", 422)
+		if domain.In(domain.Str(t["typeId"]), "send_device", "send_parts") && prod["source"] == "mabang" && (prod["sourcePresent"] == false) {
+			domain.Fail("This SKU is no longer present in the source catalog.", 422)
 		}
-		if t["typeId"] == "send_parts" && prod["productType"] != "part" {
+		if t["typeId"] == "send_parts" && !domain.In(domain.Str(prod["productType"]), "part", "consumable") {
 			domain.Fail("Choose a support part SKU.")
 		}
 		if domain.In(domain.Str(t["typeId"]), "send_device", "return_device") && prod["productType"] != "device" {
@@ -907,7 +918,7 @@ func validateProduct(s, t M, p string) {
 	if p != "" && t["typeId"] == "send_parts" {
 		part := domain.Find(s, "products", p)
 		ids := domain.Strings(part["deviceIds"])
-		if len(ids) > 0 && p != domain.Str(t["affectedProductId"]) && !domain.In(domain.Str(t["affectedProductId"]), ids...) {
+		if p != domain.Str(t["affectedProductId"]) && !domain.In(domain.Str(t["affectedProductId"]), ids...) {
 			domain.Fail("This part is not compatible with the affected device.")
 		}
 	}
