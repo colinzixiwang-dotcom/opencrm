@@ -83,7 +83,7 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
   const legacyPrinthead = mode === "purchase_type" && ["printhead_1080", "printhead_3200"].includes(p?.warrantyClass);
   const needsDelivery = !exempt && !["payment", "activation"].includes(mode);
   const needsActivation = !exempt && ["activation", "activation_grace", "purchase_type"].includes(mode);
-  const needsReference = rule?.requireEvidence ?? !!payload.draftId;
+  const needsReference = rule?.requireEvidence ?? (!!payload.draftId || payload.solutionId === "reship_device");
   return (
     <section className="warranty-evidence">
       <h3>{tr("Warranty and solution eligibility")}</h3>

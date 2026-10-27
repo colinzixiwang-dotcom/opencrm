@@ -18,6 +18,10 @@ try {
  await page.reload();await page.locator('a[href="#rma"]').click();await page.getByRole('button',{name:'Create RMA',exact:true}).click();
  const d=page.getByRole('dialog');
  await d.getByLabel('Support ticket number').fill(b.ticketNumber);await d.getByLabel('Order number',{exact:true}).fill(b.orderNumber);await d.getByLabel('Purchased platform').selectOption('Shopify');await d.getByLabel('Affected device / part SKU').selectOption(device.id);await d.getByLabel('Root cause',{exact:true}).selectOption('device_fault');await d.getByLabel('Description',{exact:true}).fill(b.description);await d.getByLabel('Proposed solution').selectOption('replacement');
+ // Legacy reship rules require an evidence reference in both API and UI.
+ await d.getByLabel('Proposed solution').selectOption('reship_device');
+ await d.getByLabel('Delivery evidence reference',{exact:true}).waitFor();
+ await d.getByLabel('Proposed solution').selectOption('replacement');
  await page.route('**/api/rma-assessment', route => route.fulfill({json:{eligible:false,status:'incomplete',requiresWarranty:true,coverage:'none',reason:'Configure the affected SKU warranty class before using a warranty-required solution.',policyRevision:1}}));
  await d.getByLabel('Delivery date',{exact:true}).fill('2001-01-01');
  await d.getByText('Warranty rule not determined',{exact:false}).waitFor();
