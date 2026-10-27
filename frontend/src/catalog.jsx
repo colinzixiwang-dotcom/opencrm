@@ -37,7 +37,7 @@ const stamp = (v) =>
       }).format(new Date(v))
     : "—";
 const col = (label, render, key) => ({ label, render, key });
-function CatalogSync() {
+export function CatalogSync() {
   const { state, reload } = useWorkspace();
   const admin = state.currentUser.roles?.includes("admin");
   const [runs, setRuns] = useState([]),
@@ -294,13 +294,13 @@ function ProductDetail({ product: p, onClose }) {
             <label className={`catalog-check ${v.allowOriginal ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
-                aria-label={tr("Allow original order recognition")}
+                aria-label={tr("Can be confirmed as the purchased item")}
                 checked={v.allowOriginal}
                 onChange={(e) => set("allowOriginal", e.target.checked)}
               />
               <span>
-                <strong>{tr("Allow original order recognition")}</strong>
-                <small>{tr("Identify this SKU as the customer's purchased item.")}</small>
+                <strong>{tr("Can be confirmed as the purchased item")}</strong>
+                <small>{tr("Disable only for invalid or non-product entries; discontinued products remain eligible for identification.")}</small>
               </span>
             </label>
             <label className={`catalog-check ${v.reshipRequiresApproval ? "is-selected" : ""}`}>
@@ -433,26 +433,10 @@ export function CatalogProducts() {
     }));
   return (
     <>
-      <Heading subtitle="Browse ERP SKUs and configure what customer service may reship." />
-      <CatalogSync />
-      <div className="catalog-stats">
-        <Panel>
-          <small>{tr("Inventory SKUs")}</small>
-          <strong>{products.length}</strong>
-        </Panel>
-        <Panel>
-          <small>{tr("Unclassified")}</small>
-          <strong>
-            {products.filter((p) => !p.productType || p.productType === "general").length}
-          </strong>
-        </Panel>
-        <Panel>
-          <small>{tr("Reshipment requires approval")}</small>
-          <strong>{products.filter((p) => p.reshipRequiresApproval ?? !p.allowReship).length}</strong>
-        </Panel>
-      </div>
+      <Heading subtitle="Manage product types, compatible devices and reshipment approval." />
       <Panel className="catalog-products">
-        <ListToolbar>
+        <Table
+          toolbarControls={<>
           <FilterControl label="SKU type" value={productType} onChange={setProductType} options={[
             {value: "", label: "All types"}, {value: "device", label: "Device"}, {value: "part", label: "Accessory"}, {value: "consumable", label: "Consumable"}, {value: "general", label: "Unclassified"}
           ]} />
@@ -478,8 +462,8 @@ export function CatalogProducts() {
               { value: "direct", label: "No SKU approval required" },
             ]}
           />
-        </ListToolbar>
-        <Table
+</>
+}
           rows={rows}
           empty="No imported SKUs yet. Synchronize the Mabang catalog first."
           columns={[
@@ -519,31 +503,11 @@ export function CatalogProducts() {
               "sourceStatus",
             ),
             col("SKU type", p => tr(({device: "Device", part: "Accessory", consumable: "Consumable", general: "Unclassified"})[p.productType]), "productType"),
-            col("Category", (p) => p.category || "—", "category"),
-            col("Master SKU", (p) => p.masterSku || "—", "masterSku"),
-            col("Virtual SKUs", (p) => (
-              <span className="catalog-aliases" title={p.aliases}>
-                {p.aliases || "—"}
+            col("Reshipment approval", p => (
+              <span className={p.reshipRequiresApproval ? "catalog-approval-required" : "catalog-approval-standard"}>
+                {tr(p.reshipRequiresApproval ? "Approval required" : "No SKU approval required")}
               </span>
-            )),
-            col("RMA SKU policy", (p) => (
-              <div className="catalog-policy-labels">
-                <span>
-                  {tr(
-                    p.allowOriginal
-                      ? "Original order recognized"
-                      : "Original order blocked",
-                  )}
-                </span>
-                <strong>
-                  {tr(
-                    p.reshipRequiresApproval
-                      ? "Approval required"
-                      : "No SKU approval required",
-                  )}
-                </strong>
-              </div>
-            )),
+            ), "reshipRequiresApproval"),
           ]}
         />
       </Panel>

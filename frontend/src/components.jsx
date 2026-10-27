@@ -505,6 +505,7 @@ export function Table({
   search = true,
   statuses = [],
   initialQuery = "",
+  toolbarControls,
   idKey = "id",
   limit,
 }) {
@@ -589,6 +590,7 @@ export function Table({
           }
         >
           <SearchControl id="record-search" value={query} onChange={setQuery} />
+          {toolbarControls}
         </ListToolbar>
       )}
       <div className="table-scroll">

@@ -1569,5 +1569,8 @@
   "Remove compatible part references before changing this device type.": "请先解除配件／耗材的适配绑定，再修改此整机的分类。",
   "This SKU is no longer present in the source catalog.": "此 SKU 已不在来源商品目录中。",
   "SKU now requires approval. Update the task and obtain approval before execution.": "此商品现已要求补发审批，请更新任务并审批后再执行。",
-  "SKU requires reshipment approval": "商品配置要求补发审批"
+  "SKU requires reshipment approval": "商品配置要求补发审批",
+  "Manage product types, compatible devices and reshipment approval.": "维护商品类型、适配关系与补发审批。",
+  "Can be confirmed as the purchased item": "可确认为售后原商品",
+  "Disable only for invalid or non-product entries; discontinued products remain eligible for identification.": "仅对无效记录或非商品条目关闭；停售商品仍可确认为原购买商品。"
 }

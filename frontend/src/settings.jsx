@@ -15,6 +15,7 @@ import {
 } from "./components";
 import { intlLocale } from "./i18n";
 import { WarrantySettings } from "./warranty";
+import { CatalogSync } from "./catalog";
 import { UdeskAccounts } from "./tickets";
 const col = (label, render, key) => ({ label, render, key });
 export function Settings() {
@@ -220,6 +221,8 @@ export function Settings() {
           />
         </Panel>
       ) : tab === "integrations" ? (
+        <>
+        {s.currentUser.roles.includes("admin") && <CatalogSync />}
         <div className="integration-grid">
           {[
             [
@@ -243,6 +246,7 @@ export function Settings() {
             </Panel>
           ))}
         </div>
+        </>
       ) : (
         <div className="two-columns">
           <Panel className="settings-form">

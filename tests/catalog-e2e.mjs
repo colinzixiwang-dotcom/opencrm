@@ -51,6 +51,8 @@ try {
   assert.equal(state.stocks.length, 0);
   assert.equal(state.catalogInventory.length, 5);
   assert(state.products.every((p) => p.reshipRequiresApproval === true));
+  // This import was triggered through the test API, outside the integration settings UI.
+  await page.reload();
   await page.locator('a.nav-item[href="#product"]').click();
   await page.getByRole("button", { name: /MORPHO-TEST/ }).click();
   const detail = page.getByRole("dialog");
