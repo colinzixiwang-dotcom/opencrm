@@ -428,19 +428,19 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                 <span>{data.ticket.channel}</span>
               </div>
               <h2>{data.ticket.subject}</h2>
+              {data.rmaIds?.length > 0 && (
+                <div className="ticket-rma-links" role="group" aria-label={tr("Linked RMAs")}>
+                  <span className="ticket-rma-label">{tr("Linked RMAs")}</span>
+                  <div className="ticket-rma-items">
+                    {data.rmaIds.map(rmaId => <span className="ticket-rma-id" key={rmaId}>{rmaId}</span>)}
+                  </div>
+                </div>
+              )}
             </header>
             <div className="ticket-detail-layout">
               <div className="ticket-main-column">
                 {(hasValue(problem.text) || problem.fields.length > 0) && (
                   <ProblemDetails problem={problem} ticket={data.ticket} />
-                )}
-                {data.rmaIds?.length > 0 && (
-                  <div className="ticket-rma-links" role="group" aria-label={tr("Linked RMAs")}>
-                    <span className="ticket-rma-label">{tr("Linked RMAs")}</span>
-                    <div className="ticket-rma-items">
-                      {data.rmaIds.map(rmaId => <span className="ticket-rma-id" key={rmaId}>{rmaId}</span>)}
-                    </div>
-                  </div>
                 )}
                 <section className="ticket-thread">
                   <PanelHeading
