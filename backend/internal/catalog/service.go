@@ -121,7 +121,7 @@ func (s Service) publish(r ImportBatch, snap source.Snapshot) error {
 			seen[id] = true
 			v := by[id]
 			if v == nil {
-				v = M{"id": id, "productType": "general", "partKind": "other", "deviceIds": []string{}, "customFields": M{}, "unit": "pcs", "costCents": 0, "priceCents": 0, "reorderPoint": 0, "allowOriginal": true, "reshipRequiresApproval": true, "policyRevision": 1}
+				v = M{"id": id, "productType": "general", "partKind": "other", "deviceIds": []string{}, "customFields": M{}, "unit": "pcs", "costCents": 0, "priceCents": 0, "reorderPoint": 0, "reshipRequiresApproval": true, "policyRevision": 1}
 				products = append(products, v)
 			}
 			v["sku"] = p.SKU
@@ -305,9 +305,9 @@ func (s Service) Configure(actor, b M) error {
 		if _, exists := b["reshipRequiresApproval"]; !exists {
 			b["reshipRequiresApproval"] = domain.ReshipApprovalRequired(p)
 		}
-		for _, k := range []string{"allowOriginal", "reshipRequiresApproval"} {
+		for _, k := range []string{"reshipRequiresApproval"} {
 			if _, ok := b[k].(bool); !ok {
-				return fail("Original recognition and approval flags must be explicit.", 422)
+				return fail("Approval flag must be explicit.", 422)
 			}
 		}
 		ids := domain.Strings(p["deviceIds"])
@@ -355,7 +355,7 @@ func (s Service) Configure(actor, b M) error {
 			return fail("A configuration reason is required.", 422)
 		}
 		before := domain.Clone(p)
-		for _, k := range []string{"productType", "warrantyClass", "allowOriginal", "reshipRequiresApproval", "deviceIds"} {
+		for _, k := range []string{"productType", "warrantyClass", "reshipRequiresApproval", "deviceIds"} {
 			p[k] = b[k]
 		}
 		p["partKind"] = "other"

@@ -138,7 +138,6 @@ function ProductDetail({ product: p, onClose }) {
   const [v, setV] = useState({
       productType: p.productType || "general",
       warrantyClass: p.warrantyClass || "none",
-      allowOriginal: !!p.allowOriginal,
       reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
       deviceIds: p.deviceIds || [],
       reason: "",
@@ -291,18 +290,6 @@ function ProductDetail({ product: p, onClose }) {
               </label>
             </div>
             <div className="catalog-policy-options">
-            <label className={`catalog-check ${v.allowOriginal ? "is-selected" : ""}`}>
-              <input
-                type="checkbox"
-                aria-label={tr("Can be confirmed as the purchased item")}
-                checked={v.allowOriginal}
-                onChange={(e) => set("allowOriginal", e.target.checked)}
-              />
-              <span>
-                <strong>{tr("Can be confirmed as the purchased item")}</strong>
-                <small>{tr("Disable only for invalid or non-product entries; discontinued products remain eligible for identification.")}</small>
-              </span>
-            </label>
             <label className={`catalog-check ${v.reshipRequiresApproval ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
@@ -365,7 +352,6 @@ function ProductDetail({ product: p, onClose }) {
                 {[
                   "productType",
                   "warrantyClass",
-                  "allowOriginal",
                   "reshipRequiresApproval",
                   "deviceIds",
                 ]
@@ -376,7 +362,6 @@ function ProductDetail({ product: p, onClose }) {
                         {
                           productType: "SKU type",
                           warrantyClass: "Warranty class",
-                          allowOriginal: "Allow original order recognition",
                           reshipRequiresApproval: "Reshipment requires approval",
                           deviceIds: "Compatible devices",
                         }[k],
@@ -429,7 +414,6 @@ export function CatalogProducts() {
       aliases: (p.aliases || []).join(", "),
       productType: p.productType || "general",
       reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
-      allowOriginal: p.allowOriginal,
     }));
   return (
     <>

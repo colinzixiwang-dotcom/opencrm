@@ -73,7 +73,6 @@ try {
     await post("/api/catalog/policy", {
       id: p.id,
       expectedRevision: p.policyRevision,
-      allowOriginal: true,
       reshipRequiresApproval: sku === "PART-C",
       deviceIds: sku.startsWith("PART") ? [state.products.find(p => p.sku === "MORPHO-TEST").id] : [],
       productType: sku === "PART-C" ? "consumable" : sku === "PART-B" ? "part" : "device",

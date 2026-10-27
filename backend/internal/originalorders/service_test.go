@@ -96,8 +96,8 @@ func TestConfirmationBindingAndWarrantyGates(t *testing.T) {
 		t.Fatal(e)
 	}
 	confirm["candidateId"] = domain.Rows(result, "items")[0]["id"]
-	if _, e = svc.Confirm(actor, state, confirm); e == nil {
-		t.Fatal("catalog-disabled order accepted")
+	if _, e = svc.Confirm(actor, state, confirm); e != nil {
+		t.Fatal("Retired catalog permission must not negate a purchased item:", e)
 	}
 	var stored originalorders.OrderEvidence
 	db.DB.First(&stored, "id=?", confirmed["confirmationId"])
@@ -123,7 +123,7 @@ func TestManualOrderEvidenceAndCatalogGates(t *testing.T) {
 	actor := domain.M{"id": "USR-ADMIN", "name": "Administrator"}
 	svc := originalorders.Service{DB: db.DB, Tenant: "tenant"}
 	input := domain.M{"draftId": "draft", "orderNumber": "MANUAL-1", "platform": "Amazon", "productId": "PRD-1", "quantity": float64(2), "paidDate": "2026-01-01", "evidenceReference": "Receipt INV-123", "entryReason": "Legacy order missing from ERP"}
-	for _, patch := range []domain.M{{"quantity": 1.5}, {"quantity": 0}, {"evidenceReference": ""}, {"entryReason": ""}, {"paidDate": "2099-01-01"}, {"platform": "UNKNOWN"}, {"productId": "PRD-2"}, {"draftId": ""}, {"orderNumber": "ONE,TWO"}} {
+	for _, patch := range []domain.M{{"quantity": 1.5}, {"quantity": 0}, {"evidenceReference": ""}, {"entryReason": ""}, {"paidDate": "2099-01-01"}, {"platform": "UNKNOWN"}, {"productId": "MISSING-PRODUCT"}, {"draftId": ""}, {"orderNumber": "ONE,TWO"}} {
 		bad := domain.Clone(input)
 		for k, v := range patch {
 			bad[k] = v
@@ -159,8 +159,8 @@ func TestManualOrderEvidenceAndCatalogGates(t *testing.T) {
 	p["sku"] = "ColorBox_2Base_StarterKit_Vivid"
 	p["source"] = "mabang"
 	p["allowOriginal"] = false
-	if _, e = svc.Manual(actor, state, input); e == nil {
-		t.Fatal("manual catalog policy bypass accepted")
+	if _, e = svc.Manual(actor, state, input); e != nil {
+		t.Fatal("Retired catalog permission must not block manual evidence:", e)
 	}
 }
 
@@ -203,5 +203,21 @@ func TestHistoricalIndexResolvesMultipleShopsWithoutPaymentDate(t *testing.T) {
 	result, e = svc.Lookup(context.Background(), actor, state, domain.M{"draftId": "draft", "orderNumber": "SAME-NUMBER", "shop": "A"})
 	if e != nil || len(domain.Rows(result, "items")) != 1 || len(f.queries) != 1 {
 		t.Fatal("shop scope ignored", e)
+	}
+}
+
+func TestPurchasedItemIdentityDoesNotDependOnCatalogPolicy(t *testing.T) {
+	for _, kind := range []string{"device", "part", "consumable", "general", "other"} {
+		exact := domain.M{"id": "exact", "sku": "SHIPPED-SKU", "productType": kind, "allowOriginal": false}
+		alias := domain.M{"id": "alias", "sku": "ANOTHER-SKU", "aliases": []string{"SHIPPED-SKU", "AMBIGUOUS"}}
+		state := domain.M{"products": []domain.M{alias, exact}}
+		matched := originalorders.Match(state, source.Item{SKU: "SHIPPED-SKU"})
+		if matched == nil || matched["id"] != "exact" {
+			t.Fatal("Exact order identity was lost", kind)
+		}
+		exact["aliases"] = []string{"AMBIGUOUS"}
+		if originalorders.Match(state, source.Item{SKU: "AMBIGUOUS"}) != nil {
+			t.Fatal("Ambiguous alias resolved arbitrarily")
+		}
 	}
 }

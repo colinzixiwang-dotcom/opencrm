@@ -43,27 +43,36 @@ func fail(msg string, status int) error { return &domain.Error{Message: msg, Sta
 func encode(v any) string               { b, _ := json.Marshal(v); return string(b) }
 func decode(v string) source.Order      { var o source.Order; json.Unmarshal([]byte(v), &o); return o }
 func Match(state M, item source.Item) M {
-	// Identity and business eligibility are separate. Retired catalog SKUs remain identifiable.
-	var found M
-	for _, p := range domain.Rows(state, "products") {
-		matches := strings.EqualFold(domain.Str(p["sku"]), item.SKU)
-		for _, alias := range domain.Strings(p["aliases"]) {
-			matches = matches || strings.EqualFold(alias, item.SKU)
-		}
-		allowed := p["productType"] == "device"
-		if p["source"] == "mabang" {
-			allowed = domain.Bool(p["allowOriginal"])
-		}
-		if matches && item.SKU != "" && allowed {
-			if found != nil {
-				return nil
+	// The order establishes the purchased item; catalog policy cannot negate it.
+	// Prefer an exact SKU identity, then require an unambiguous alias match.
+	if strings.TrimSpace(item.SKU) == "" {
+		return nil
+	}
+	for _, exact := range []bool{true, false} {
+		var found M
+		for _, p := range domain.Rows(state, "products") {
+			matches := false
+			if exact {
+				matches = strings.EqualFold(domain.Str(p["sku"]), item.SKU)
+			} else {
+				for _, alias := range domain.Strings(p["aliases"]) {
+					matches = matches || strings.EqualFold(alias, item.SKU)
+				}
 			}
-			found = p
+			if matches {
+				if found != nil {
+					return nil
+				}
+				found = p
+			}
+		}
+		if found != nil {
+			return found
 		}
 	}
-
-	return found
+	return nil
 }
+
 func (s Service) Lookup(ctx context.Context, actor, state, b M) (M, error) {
 	number := strings.TrimSpace(domain.Str(b["orderNumber"]))
 	if number == "" || len(number) > 160 || strings.ContainsAny(number, ",\r\n") {
@@ -176,7 +185,7 @@ func (s Service) Confirm(actor, state, b M) (M, error) {
 	}
 	p := Match(state, *selected)
 	if p == nil {
-		return nil, fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
+		return nil, fail("No unique catalog match for this order item. Check SKU mapping.", 422)
 	}
 	if !domain.In(o.Status, source.StatusShipped, source.StatusCompleted) {
 		return nil, fail("Only shipped or completed original orders can be used for this RMA.", 422)
@@ -231,7 +240,7 @@ func Bind(tx *gorm.DB, actor, state, b M) error {
 		}
 	}
 	if !matched {
-		return fail("Original item is not enabled for order confirmation. Ask an administrator to check the product catalog.", 422)
+		return fail("No unique catalog match for this order item. Check SKU mapping.", 422)
 	}
 	b["originalOrder"] = M{"confirmationId": r.ID, "candidateId": r.ParentID, "order": o, "itemId": r.ItemID, "productId": r.ProductID, "confirmedAt": r.CreatedAt, "confirmedBy": r.ActorName, "confirmedById": actor["id"]}
 	if o.Provider == "manual" {
