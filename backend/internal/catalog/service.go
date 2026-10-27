@@ -121,7 +121,7 @@ func (s Service) publish(r ImportBatch, snap source.Snapshot) error {
 			seen[id] = true
 			v := by[id]
 			if v == nil {
-				v = M{"id": id, "productType": "general", "partKind": "other", "deviceIds": []string{}, "customFields": M{}, "unit": "pcs", "costCents": 0, "priceCents": 0, "reorderPoint": 0, "allowOriginal": true, "allowReship": false, "policyRevision": 1}
+				v = M{"id": id, "productType": "general", "partKind": "other", "deviceIds": []string{}, "customFields": M{}, "unit": "pcs", "costCents": 0, "priceCents": 0, "reorderPoint": 0, "allowOriginal": true, "reshipRequiresApproval": true, "policyRevision": 1}
 				products = append(products, v)
 			}
 			v["sku"] = p.SKU
@@ -295,27 +295,67 @@ func (s Service) Configure(actor, b M) error {
 			return fail("SKU policy changed. Reload before saving.", 409)
 		}
 		typ := domain.Str(b["productType"])
-		if !domain.In(typ, "general", "device", "part") {
+		if !domain.In(typ, "general", "device", "part", "consumable") {
 			return fail("Choose a valid SKU type.", 422)
 		}
 		kind := domain.Str(b["warrantyClass"])
 		if !domain.In(kind, "none", "device", "printhead_1080", "printhead_3200") {
 			return fail("Choose a valid warranty class.", 422)
 		}
-		for _, k := range []string{"allowOriginal", "allowReship"} {
+		if _, exists := b["reshipRequiresApproval"]; !exists {
+			b["reshipRequiresApproval"] = domain.ReshipApprovalRequired(p)
+		}
+		for _, k := range []string{"allowOriginal", "reshipRequiresApproval"} {
 			if _, ok := b[k].(bool); !ok {
-				return fail("Original and reship flags must be explicit.", 422)
+				return fail("Original recognition and approval flags must be explicit.", 422)
 			}
 		}
-		if domain.Bool(b["allowReship"]) && (typ == "general" || p["sourcePresent"] == false) {
-			return fail("Classify an available physical SKU before enabling reshipment.", 422)
+		ids := domain.Strings(p["deviceIds"])
+		if raw, exists := b["deviceIds"]; exists {
+			rows, ok := raw.([]any)
+			if !ok {
+				return fail("Compatible devices must be an array.", 422)
+			}
+			ids = []string{}
+			seen := map[string]bool{}
+			for _, row := range rows {
+				id, ok := row.(string)
+				if !ok || id == "" || seen[id] {
+					return fail("Choose unique compatible devices.", 422)
+				}
+				found := false
+				for _, device := range domain.Rows(state, "products") {
+					if device["id"] == id && device["productType"] == "device" && id != domain.Str(p["id"]) {
+						found = true
+					}
+				}
+				if !found {
+					return fail("Compatible SKUs must be devices.", 422)
+				}
+				seen[id] = true
+				ids = append(ids, id)
+			}
 		}
+		if typ == "device" || typ == "general" {
+			ids = []string{}
+		}
+		if p["productType"] == "device" && typ != "device" {
+			for _, other := range domain.Rows(state, "products") {
+				if domain.In(domain.Str(p["id"]), domain.Strings(other["deviceIds"])...) {
+					return fail("Remove compatible part references before changing this device type.", 409)
+				}
+			}
+		}
+		if domain.In(typ, "part", "consumable") && len(ids) == 0 {
+			return fail("Bind at least one compatible device for this accessory or consumable.", 422)
+		}
+		b["deviceIds"] = ids
 		reason := strings.TrimSpace(domain.Str(b["reason"]))
 		if reason == "" || len(reason) > 1000 {
 			return fail("A configuration reason is required.", 422)
 		}
 		before := domain.Clone(p)
-		for _, k := range []string{"productType", "warrantyClass", "allowOriginal", "allowReship"} {
+		for _, k := range []string{"productType", "warrantyClass", "allowOriginal", "reshipRequiresApproval", "deviceIds"} {
 			p[k] = b[k]
 		}
 		p["partKind"] = "other"
@@ -323,7 +363,7 @@ func (s Service) Configure(actor, b M) error {
 			p["partKind"] = "printhead"
 		}
 		p["policyRevision"] = domain.N(p["policyRevision"]) + 1
-		domain.Prepend(state, "audit", M{"id": domain.ID("AUD"), "action": "catalog.policy", "reference": p["id"], "actorId": actor["id"], "actor": actor["name"], "at": domain.Now(), "reason": reason, "before": M{"productType": before["productType"], "warrantyClass": before["warrantyClass"], "allowOriginal": before["allowOriginal"], "allowReship": before["allowReship"]}, "after": M{"productType": p["productType"], "warrantyClass": p["warrantyClass"], "allowOriginal": p["allowOriginal"], "allowReship": p["allowReship"]}})
+		domain.Prepend(state, "audit", M{"id": domain.ID("AUD"), "action": "catalog.policy", "reference": p["id"], "actorId": actor["id"], "actor": actor["name"], "at": domain.Now(), "reason": reason, "before": before, "after": domain.Clone(p)})
 		return persistence.Write(tx, state)
 	})
 }

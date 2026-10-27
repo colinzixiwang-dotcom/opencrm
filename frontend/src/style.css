@@ -4398,3 +4398,10 @@ td {
   .catalog-dialog-actions > small { display: none; }
   .catalog-warehouse-section { padding: 14px; }
 }
+
+.catalog-compatibility { margin: 12px 0; font-size: 13px; }
+.catalog-device-options { max-height: 200px; overflow: auto; margin: 8px 0; border: 1px solid var(--border, #ddd); border-radius: 6px; }
+.catalog-device-options > label { display: flex; align-items: center; gap: 8px; padding: 7px 10px; }
+.catalog-device-options input { width: auto; }
+.catalog-device-options small { display: block; color: var(--muted, #667085); }
+.reship-search { display: block; margin-bottom: 10px; }

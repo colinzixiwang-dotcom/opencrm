@@ -139,10 +139,12 @@ function ProductDetail({ product: p, onClose }) {
       productType: p.productType || "general",
       warrantyClass: p.warrantyClass || "none",
       allowOriginal: !!p.allowOriginal,
-      allowReship: !!p.allowReship,
+      reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
+      deviceIds: p.deviceIds || [],
       reason: "",
     }),
     [busy, setBusy] = useState(false),
+    [deviceSearch, setDeviceSearch] = useState(""),
     [error, setError] = useState("");
   useEffect(() => {
     ref.current.showModal();
@@ -168,6 +170,9 @@ function ProductDetail({ product: p, onClose }) {
       setBusy(false);
     }
   };
+  const policyValue = value => Array.isArray(value)
+    ? value.map(id => state.products.find(item => item.id === id)?.sku || id).join(", ") || "—"
+    : typeof value === "boolean" ? tr(value ? "Enabled" : "Disabled") : tr(value || "none");
   const source = p.sourceSnapshot || {};
   const audits = (state.audit || []).filter(
     (a) => a.action === "catalog.policy" && a.reference === p.id,
@@ -249,7 +254,7 @@ function ProductDetail({ product: p, onClose }) {
           </div>
           <p className="help-text">
             {tr(
-              "Original order recognition and reshipment eligibility are independent. ERP status does not enable reshipment.",
+              "Configure product classification, compatible devices and reshipment approval.",
             )}
           </p>
           <fieldset disabled={!admin || busy} className="catalog-policy">
@@ -261,9 +266,9 @@ function ProductDetail({ product: p, onClose }) {
                   value={v.productType}
                   onChange={(e) => set("productType", e.target.value)}
                 >
-                  {["general", "device", "part"].map((k) => (
+                  {["general", "device", "part", "consumable"].map((k) => (
                     <option key={k} value={k}>
-                      {tr(k)}
+                      {tr(k === "general" ? "Unclassified" : k === "device" ? "Device" : k === "part" ? "Accessory" : "Consumable")}
                     </option>
                   ))}
                 </select>
@@ -298,19 +303,37 @@ function ProductDetail({ product: p, onClose }) {
                 <small>{tr("Identify this SKU as the customer's purchased item.")}</small>
               </span>
             </label>
-            <label className={`catalog-check ${v.allowReship ? "is-selected" : ""}`}>
+            <label className={`catalog-check ${v.reshipRequiresApproval ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
-                aria-label={tr("Allow reshipment")}
-                checked={v.allowReship}
-                onChange={(e) => set("allowReship", e.target.checked)}
+                aria-label={tr("Reshipment requires approval")}
+                checked={v.reshipRequiresApproval}
+                onChange={(e) => set("reshipRequiresApproval", e.target.checked)}
               />
               <span>
-                <strong>{tr("Allow reshipment")}</strong>
-                <small>{tr("Make this SKU available in RMA reshipment lines.")}</small>
+                <strong>{tr("Reshipment requires approval")}</strong>
+                <small>{tr("Create a pending approval task before this SKU can be dispatched.")}</small>
               </span>
             </label>
             </div>
+            {["part", "consumable"].includes(v.productType) && (
+              <div className="catalog-compatibility">
+                <label>{tr("Compatible devices")}
+                  <input aria-label={tr("Search compatible devices")} placeholder={tr("Search SKU or product name")} value={deviceSearch} onChange={e => setDeviceSearch(e.target.value)} />
+                </label>
+                <div className="catalog-device-options">
+                  {state.products.filter(d => d.productType === "device" && `${d.sku} ${d.name} ${d.nameEn || ""}`.toLowerCase().includes(deviceSearch.toLowerCase())).map(d => (
+                    <label key={d.id}><input type="checkbox" checked={v.deviceIds.includes(d.id)} onChange={e => set("deviceIds", e.target.checked ? [...v.deviceIds, d.id] : v.deviceIds.filter(id => id !== d.id))} /><span>{d.sku}<small>{d.name}</small></span></label>
+                  ))}
+                </div>
+                <small>{tr("Select one or more devices. Unconfigured compatibility does not permit replacement for another product.")}</small>
+              </div>
+            )}
+            {v.productType === "device" && (
+              <div className="catalog-compatibility"><strong>{tr("Compatible accessories and consumables")}</strong>
+                <p>{state.products.filter(x => ["part", "consumable"].includes(x.productType) && x.deviceIds?.includes(p.id)).map(x => x.sku).join(" · ") || tr("No compatible items configured")}</p>
+              </div>
+            )}
             {admin && (
               <label className="catalog-policy-reason">
                 {tr("Configuration reason")}
@@ -343,7 +366,8 @@ function ProductDetail({ product: p, onClose }) {
                   "productType",
                   "warrantyClass",
                   "allowOriginal",
-                  "allowReship",
+                  "reshipRequiresApproval",
+                  "deviceIds",
                 ]
                   .filter((k) => a.before?.[k] !== a.after?.[k])
                   .map((k) => (
@@ -353,17 +377,14 @@ function ProductDetail({ product: p, onClose }) {
                           productType: "SKU type",
                           warrantyClass: "Warranty class",
                           allowOriginal: "Allow original order recognition",
-                          allowReship: "Allow reshipment",
+                          reshipRequiresApproval: "Reshipment requires approval",
+                          deviceIds: "Compatible devices",
                         }[k],
                       )}
                       :{" "}
-                      {typeof a.before?.[k] === "boolean"
-                        ? tr(a.before[k] ? "Enabled" : "Disabled")
-                        : tr(a.before?.[k] || "none")}{" "}
+                      {policyValue(a.before?.[k])}{" "}
                       →{" "}
-                      {typeof a.after?.[k] === "boolean"
-                        ? tr(a.after[k] ? "Enabled" : "Disabled")
-                        : tr(a.after?.[k] || "none")}
+                      {policyValue(a.after?.[k])}
                     </p>
                   ))}
               </div>
@@ -387,14 +408,16 @@ export function CatalogProducts() {
   const { state: s } = useWorkspace();
   const [status, setStatus] = useState(""),
     [eligibility, setEligibility] = useState(""),
+    [productType, setProductType] = useState(""),
     [selected, setSelected] = useState(null);
   const products = s.products.filter((p) => p.source === "mabang");
   const rows = products
     .filter(
       (p) =>
         (!status || p.sourceStatus === status) &&
+        (!productType || (p.productType || "general") === productType) &&
         (!eligibility ||
-          (eligibility === "enabled" ? p.allowReship : !p.allowReship)),
+          (eligibility === "approval" ? (p.reshipRequiresApproval ?? !p.allowReship) : !(p.reshipRequiresApproval ?? !p.allowReship))),
     )
     .map((p) => ({
       id: p.id,
@@ -404,7 +427,8 @@ export function CatalogProducts() {
       sourceStatus: p.sourceStatus,
       masterSku: p.masterSku,
       aliases: (p.aliases || []).join(", "),
-      allowReship: p.allowReship,
+      productType: p.productType || "general",
+      reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
       allowOriginal: p.allowOriginal,
     }));
   return (
@@ -417,18 +441,21 @@ export function CatalogProducts() {
           <strong>{products.length}</strong>
         </Panel>
         <Panel>
-          <small>{tr("Reship candidates to review")}</small>
+          <small>{tr("Unclassified")}</small>
           <strong>
-            {products.filter((p) => p.reshipCandidate && !p.allowReship).length}
+            {products.filter((p) => !p.productType || p.productType === "general").length}
           </strong>
         </Panel>
         <Panel>
-          <small>{tr("Enabled for reshipment")}</small>
-          <strong>{products.filter((p) => p.allowReship).length}</strong>
+          <small>{tr("Reshipment requires approval")}</small>
+          <strong>{products.filter((p) => p.reshipRequiresApproval ?? !p.allowReship).length}</strong>
         </Panel>
       </div>
       <Panel className="catalog-products">
         <ListToolbar>
+          <FilterControl label="SKU type" value={productType} onChange={setProductType} options={[
+            {value: "", label: "All types"}, {value: "device", label: "Device"}, {value: "part", label: "Accessory"}, {value: "consumable", label: "Consumable"}, {value: "general", label: "Unclassified"}
+          ]} />
           <FilterControl
             label="Source status"
             value={status}
@@ -442,13 +469,13 @@ export function CatalogProducts() {
             ]}
           />
           <FilterControl
-            label="Reshipment eligibility"
+            label="Reshipment approval"
             value={eligibility}
             onChange={setEligibility}
             options={[
               { value: "", label: "All SKUs" },
-              { value: "enabled", label: "Enabled for reshipment" },
-              { value: "disabled", label: "Not enabled for reshipment" },
+              { value: "approval", label: "Approval required" },
+              { value: "direct", label: "No SKU approval required" },
             ]}
           />
         </ListToolbar>
@@ -491,6 +518,7 @@ export function CatalogProducts() {
               ),
               "sourceStatus",
             ),
+            col("SKU type", p => tr(({device: "Device", part: "Accessory", consumable: "Consumable", general: "Unclassified"})[p.productType]), "productType"),
             col("Category", (p) => p.category || "—", "category"),
             col("Master SKU", (p) => p.masterSku || "—", "masterSku"),
             col("Virtual SKUs", (p) => (
@@ -509,9 +537,9 @@ export function CatalogProducts() {
                 </span>
                 <strong>
                   {tr(
-                    p.allowReship
-                      ? "Enabled for reshipment"
-                      : "Not enabled for reshipment",
+                    p.reshipRequiresApproval
+                      ? "Approval required"
+                      : "No SKU approval required",
                   )}
                 </strong>
               </div>
