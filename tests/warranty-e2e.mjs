@@ -45,5 +45,27 @@ try {
  await post('warranty.save',{policy:s.supportConfig.warrantyPolicy,expectedRevision:1},409);
  await post('rma.create',{...b,solutionId:'goodwill',taskInputs:{gift:{amountCents:100}}});assert.equal((await data()).rmas.length,2);
  await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();assert.equal(await page.getByLabel('Warranty months',{exact:true}).first().inputValue(),'24');
+ // A new type and its business behavior must survive API/UI persistence.
+ s=await data();
+ const configured={id:'halo-payment-days',name:'Halo payment policy',coverage:'halo_device',durationUnit:'days',days:30,months:0,startMode:'payment',startOffsetDays:2,graceDays:0,requireEvidence:true,enabled:true,productIds:[],market:'',platform:'',sourceReference:'Isolated fixture policy'};
+ await post('warranty.save',{policy:{...s.supportConfig.warrantyPolicy,rules:[configured,...s.supportConfig.warrantyPolicy.rules]},expectedRevision:s.supportConfig.warrantyPolicy.revision});
+ await post('product.update',{...device,warrantyClass:'halo_device'});
+ const evaluate=async(evidence)=>{const r=await page.request.post(app.base+'/api/rma-assessment',{data:{...b,warrantyEvidence:evidence}});assert.equal(r.status(),200,await r.text());return r.json();};
+ assert.equal((await evaluate({})).eligible,false);
+ const paidAt=new Date(Date.now()-5*86400000).toISOString().slice(0,10);
+ const checked=await evaluate({paidAt,evidenceReference:'Receipt'});assert.equal(checked.status,'covered');assert.equal(checked.ruleSnapshot.days,30);assert.equal(checked.startMode,'payment');
+ await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();
+ assert.equal(await page.getByLabel('Coverage class',{exact:true}).first().inputValue(),'halo_device');
+ assert.equal(await page.getByLabel('Warranty days',{exact:true}).first().inputValue(),'30');
+ assert.equal(await page.getByLabel('Warranty start basis',{exact:true}).first().inputValue(),'payment');
+ await page.screenshot({path:'test-results/warranty-types-settings-en.png',fullPage:true});
+ await page.getByLabel('Language',{exact:true}).selectOption('zh-CN');await page.setViewportSize({width:390,height:844});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.screenshot({path:'test-results/warranty-types-settings-mobile-zh.png',fullPage:true});
+ s=await data();const snapshot=JSON.stringify(s.rmas[0].eligibilityAssessment);
+ const rules=s.supportConfig.warrantyPolicy.rules.map(r=>r.id===configured.id?{...r,eligibilityMode:'exempt',requireEvidence:false}:r);
+ await post('warranty.save',{policy:{...s.supportConfig.warrantyPolicy,rules},expectedRevision:s.supportConfig.warrantyPolicy.revision});
+ assert.equal((await evaluate({})).status,'exempt');
+ assert.equal(JSON.stringify((await data()).rmas[0].eligibilityAssessment),snapshot);
  assert.deepEqual(errors,[]);console.log('PASS warranty API gate, atomic rejection, live assessment, settings persistence, history snapshot, stale policy rejection and warranty exemption');
 } finally {await browser.close();await app.close();rmSync(temp,{recursive:true,force:true});}

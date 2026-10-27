@@ -10,6 +10,7 @@ import (
 	source "harbor/internal/catalogsource"
 	"harbor/internal/domain"
 	"harbor/internal/persistence"
+	"harbor/internal/warrantytypes"
 	"strings"
 	"time"
 )
@@ -323,7 +324,7 @@ func (s Service) Configure(actor, b M) error {
 			return fail("Choose a valid SKU type.", 422)
 		}
 		kind := domain.Str(b["warrantyClass"])
-		if !domain.In(kind, "none", "device", "printhead_1080", "printhead_3200") {
+		if kind != "none" && !warrantytypes.Exists(domain.Obj(domain.Obj(state["supportConfig"])["warrantyPolicy"]), kind) {
 			return fail("Choose a valid warranty class.", 422)
 		}
 		if _, exists := b["reshipRequiresApproval"]; !exists {

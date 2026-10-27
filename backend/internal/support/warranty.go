@@ -2,6 +2,7 @@ package support
 
 import (
 	"harbor/internal/domain"
+	"harbor/internal/warrantytypes"
 	"time"
 )
 
@@ -14,6 +15,10 @@ func ensureWarranty(s M) {
 			{"id": "head1080", "name": "Printhead 1080", "coverage": "printhead_1080", "months": int64(3), "enabled": true, "productIds": []string{}, "market": "", "platform": ""},
 			{"id": "head3200", "name": "Printhead 3200", "coverage": "printhead_3200", "months": int64(6), "enabled": true, "productIds": []string{}, "market": "", "platform": ""},
 		}}
+	}
+	policy := domain.Obj(c["warrantyPolicy"])
+	if policy["classes"] == nil {
+		policy["classes"] = warrantytypes.Definitions(policy)
 	}
 }
 
@@ -32,18 +37,11 @@ func requiresWarranty(solution M) bool {
 }
 
 func coverage(p M) string {
-	if p["source"] == "mabang" {
-		kind := domain.Str(p["warrantyClass"])
-		if domain.In(kind, "device", "printhead_1080", "printhead_3200") {
-			return kind
-		}
-		return "none"
+	if kind := domain.Str(p["warrantyClass"]); kind != "" && kind != "none" {
+		return kind
 	}
-	if p["productType"] == "device" {
+	if p["source"] != "mabang" && p["productType"] == "device" {
 		return "device"
-	}
-	if p["productType"] == "part" && p["partKind"] == "printhead" && domain.In(domain.Str(p["warrantyClass"]), "printhead_1080", "printhead_3200") {
-		return domain.Str(p["warrantyClass"])
 	}
 	return "none"
 }
@@ -147,6 +145,11 @@ func Assess(s, b M, now time.Time) M {
 		}
 	}
 	if selected == nil {
+		for _, r := range domain.Rows(policy, "rules") {
+			if r["coverage"] == kind && !enabled(r) {
+				return deny("incomplete", "Warranty policy for this type is pending confirmation.")
+			}
+		}
 		return deny("incomplete", "No enabled warranty rule matches this SKU, market and platform.")
 	}
 	if ambiguous {
@@ -154,25 +157,67 @@ func Assess(s, b M, now time.Time) M {
 	}
 	result["ruleSnapshot"] = domain.Clone(selected)
 	result["graceDays"] = policy["graceDays"]
-	if domain.Str(evidence["deliveredAt"]) == "" {
-		return deny("incomplete", "Delivery date is required to assess warranty eligibility.")
+	requireEvidence := domain.Bool(selected["requireEvidence"])
+	if selected["requireEvidence"] == nil && (domain.Str(b["draftId"]) != "" || sol["id"] == "reship_device") {
+		requireEvidence = true
 	}
-	delivered := warrantyDate(evidence["deliveredAt"], "Delivery date")
-	if delivered.After(today) {
-		return deny("incomplete", "Delivery date cannot be in the future.")
+	if requireEvidence && domain.Str(evidence["evidenceReference"]) == "" {
+		return deny("incomplete", "Warranty evidence reference is required by this rule.")
 	}
+	if selected["eligibilityMode"] == "exempt" {
+		result["status"] = "exempt"
+		result["reason"] = "This warranty type is explicitly exempt from time coverage checks."
+		result["evidence"] = domain.Clone(evidence)
+		return result
+	}
+	mode := domain.Str(selected["startMode"])
+	if mode == "" {
+		mode = "purchase_type"
+	} // Preserve existing policy semantics.
+	grace := domain.N(policy["graceDays"])
+	if selected["graceDays"] != nil {
+		grace = domain.N(selected["graceDays"])
+	}
+	result["graceDays"] = grace
 	purchase := domain.Str(evidence["purchaseType"])
-	if kind == "device" {
-		purchase = "new_device"
-	} else if !domain.In(purchase, "bundled_printhead", "standalone_printhead") {
-		return deny("incomplete", "Choose whether the printhead was bundled or purchased separately.")
+	if mode == "purchase_type" {
+		if kind == "device" {
+			purchase = "new_device"
+			mode = "activation_grace"
+		} else {
+			if !domain.In(purchase, "bundled_printhead", "standalone_printhead") {
+				return deny("incomplete", "Choose whether the printhead was bundled or purchased separately.")
+			}
+			if purchase == "standalone_printhead" {
+				mode = "delivery_next_day"
+			} else {
+				mode = "activation_grace"
+			}
+		}
 	}
-	start := delivered.AddDate(0, 0, 1)
-	if purchase != "standalone_printhead" {
-		start = delivered.AddDate(0, 0, int(domain.N(policy["graceDays"])))
+	key, label := "deliveredAt", "Delivery date"
+	if mode == "payment" {
+		key, label = "paidAt", "Payment date"
+	}
+	if mode == "activation" {
+		key, label = "activatedAt", "Activation date"
+	}
+	if domain.Str(evidence[key]) == "" {
+		return deny("incomplete", label+" is required to assess warranty eligibility.")
+	}
+	base := warrantyDate(evidence[key], label)
+	if base.After(today) {
+		return deny("incomplete", label+" cannot be in the future.")
+	}
+	start := base
+	if mode == "delivery_next_day" {
+		start = base.AddDate(0, 0, 1)
+	}
+	if mode == "activation_grace" {
+		start = base.AddDate(0, 0, int(grace))
 		if domain.Str(evidence["activatedAt"]) != "" {
 			activated := warrantyDate(evidence["activatedAt"], "Activation date")
-			if activated.Before(delivered) || activated.After(today) {
+			if activated.Before(base) || activated.After(today) {
 				return deny("incomplete", "Activation date must be between delivery and today.")
 			}
 			if activated.Before(start) {
@@ -182,8 +227,13 @@ func Assess(s, b M, now time.Time) M {
 			return deny("incomplete", "Activation date is required during the activation grace period.")
 		}
 	}
+	start = start.AddDate(0, 0, int(domain.N(selected["startOffsetDays"])))
 	end := addMonths(start, int(domain.N(selected["months"])))
-	result["evidence"] = M{"deliveredAt": delivered.Format("2006-01-02"), "activatedAt": domain.Str(evidence["activatedAt"]), "purchaseType": purchase, "market": market, "inheritedFromSn": domain.Text(evidence["inheritedFromSn"], 120)}
+	if selected["durationUnit"] == "days" {
+		end = start.AddDate(0, 0, int(domain.N(selected["days"])))
+	}
+	result["startMode"] = mode
+	result["evidence"] = M{"deliveredAt": domain.Str(evidence["deliveredAt"]), "paidAt": domain.Str(evidence["paidAt"]), "activatedAt": domain.Str(evidence["activatedAt"]), "purchaseType": purchase, "market": market, "inheritedFromSn": domain.Text(evidence["inheritedFromSn"], 120), "evidenceReference": domain.Text(evidence["evidenceReference"], 1000)}
 	result["startsAt"] = start.Format("2006-01-02")
 	result["endsAt"] = end.Format("2006-01-02")
 	result["pauseIntervals"] = []M{}
@@ -206,6 +256,27 @@ func saveWarranty(s, b M) M {
 	}
 	in := domain.Obj(b["policy"])
 	p := M{"id": "warranty", "revision": domain.N(old["revision"]) + 1, "graceDays": domain.Int(in["graceDays"], "Activation grace days", 0, 90)}
+	classes := warrantytypes.Definitions(in)
+	if len(classes) < 1 || len(classes) > 100 {
+		domain.Fail("Configure between 1 and 100 warranty types.")
+	}
+	classIDs := map[string]bool{}
+	definitions := []M{}
+	for _, cls := range classes {
+		id := domain.Required(cls["id"], "Warranty type key", 64)
+		if !safeKey(id) || id == "none" || classIDs[id] {
+			domain.Fail("Warranty type keys must be unique and cannot be none.")
+		}
+		classIDs[id] = true
+		definitions = append(definitions, M{"id": id, "name": domain.Required(cls["name"], "Warranty type name", 120)})
+	}
+	for _, product := range domain.Rows(s, "products") {
+		id := domain.Str(product["warrantyClass"])
+		if id != "" && id != "none" && !classIDs[id] {
+			domain.Fail("A warranty type assigned to products cannot be removed.")
+		}
+	}
+	p["classes"] = definitions
 	rows := domain.Rows(in, "rules")
 	if len(rows) < 1 || len(rows) > 100 {
 		domain.Fail("Configure between 1 and 100 warranty rules.")
@@ -223,7 +294,10 @@ func saveWarranty(s, b M) M {
 			domain.Fail("Enabled must be a boolean.")
 		}
 		products := stringList(r["productIds"], "Product IDs")
-		kind := domain.Choice(r["coverage"], "device", "printhead_1080", "printhead_3200")
+		kind := domain.Str(r["coverage"])
+		if !classIDs[kind] {
+			domain.Fail("Choose a configured warranty type.")
+		}
 		for _, id := range products {
 			product := domain.Find(s, "products", id)
 			if coverage(product) != kind {
@@ -243,7 +317,44 @@ func saveWarranty(s, b M) M {
 			}
 			scopes[key] = true
 		}
-		out = append(out, M{"id": id, "name": domain.Required(r["name"], "Rule name", 120), "coverage": kind, "months": domain.Int(r["months"], "Warranty months", 1, 120), "enabled": r["enabled"], "productIds": products, "market": market, "platform": platform})
+		eligibilityMode := domain.Str(r["eligibilityMode"])
+		if eligibilityMode == "" {
+			eligibilityMode = "timed"
+		}
+		domain.Choice(eligibilityMode, "timed", "exempt")
+		mode := domain.Str(r["startMode"])
+		if mode == "" {
+			mode = "purchase_type"
+		}
+		domain.Choice(mode, "purchase_type", "activation_grace", "delivery", "payment", "activation", "delivery_next_day")
+		if mode == "purchase_type" && !domain.In(kind, "device", "printhead_1080", "printhead_3200") {
+			domain.Fail("Choose an explicit start basis for this warranty type.")
+		}
+		unit := domain.Str(r["durationUnit"])
+		if unit == "" {
+			unit = "months"
+		}
+		domain.Choice(unit, "months", "days")
+		min := int64(0)
+		if domain.Bool(r["enabled"]) && r["eligibilityMode"] != "exempt" {
+			min = 1
+		}
+		duration := M{"months": int64(0), "days": int64(0)}
+		if unit == "months" {
+			duration["months"] = domain.Int(domain.Default(r["months"], 0), "Warranty months", min, 120)
+		} else {
+			duration["days"] = domain.Int(domain.Default(r["days"], 0), "Warranty days", min, 36500)
+		}
+		grace := domain.N(in["graceDays"])
+		if r["graceDays"] != nil {
+			grace = domain.Int(r["graceDays"], "Activation grace days", 0, 90)
+		}
+		if r["requireEvidence"] != nil {
+			if _, ok := r["requireEvidence"].(bool); !ok {
+				domain.Fail("Evidence flag must be a boolean.")
+			}
+		}
+		out = append(out, M{"id": id, "name": domain.Required(r["name"], "Rule name", 120), "coverage": kind, "months": duration["months"], "days": duration["days"], "durationUnit": unit, "startMode": mode, "startOffsetDays": domain.Int(domain.Default(r["startOffsetDays"], 0), "Start offset days", 0, 365), "graceDays": grace, "requireEvidence": r["requireEvidence"], "sourceReference": domain.Text(r["sourceReference"], 2000), "eligibilityMode": eligibilityMode, "enabled": r["enabled"], "productIds": products, "market": market, "platform": platform})
 	}
 	p["rules"] = out
 	c["warrantyPolicy"] = p

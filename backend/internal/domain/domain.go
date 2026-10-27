@@ -405,7 +405,11 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 			values["productType"] = "general"
 		}
 		if v, ok := b["warrantyClass"]; ok {
-			values["warrantyClass"] = Choice(v, "none", "printhead_1080", "printhead_3200")
+			allowed := []string{"none", "device", "printhead_1080", "printhead_3200"}
+			for _, cls := range Rows(Obj(Obj(s["supportConfig"])["warrantyPolicy"]), "classes") {
+				allowed = append(allowed, Str(cls["id"]))
+			}
+			values["warrantyClass"] = Choice(v, allowed...)
 		}
 		if v, ok := b["partKind"]; ok {
 			values["partKind"] = Choice(v, "other", "printhead", "accessory", "component")

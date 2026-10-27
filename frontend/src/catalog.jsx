@@ -317,13 +317,8 @@ function ProductDetail({ product: p, onClose }) {
                   value={v.warrantyClass}
                   onChange={(e) => set("warrantyClass", e.target.value)}
                 >
-                  {["none", "device", "printhead_1080", "printhead_3200"].map(
-                    (k) => (
-                      <option key={k} value={k}>
-                        {tr(k)}
-                      </option>
-                    ),
-                  )}
+                  <option value="none">{tr("none")}</option>
+                  {(state.supportConfig.warrantyPolicy.classes || []).map(cls => <option key={cls.id} value={cls.id}>{tr(cls.name)}</option>)}
                 </select>
               </label>
             </div>

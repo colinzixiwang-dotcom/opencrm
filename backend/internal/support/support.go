@@ -386,7 +386,6 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 				domain.Fail("Confirm the original order and affected item before creating the RMA.", 422)
 			}
 			domain.Required(b["solutionReason"], "Solution reason", 2000)
-			domain.Required(domain.Obj(b["warrantyEvidence"])["evidenceReference"], "Delivery evidence reference", 1000)
 			for _, n := range domain.Rows(solution, "nodes") {
 				expected := "send_device"
 				if solution["id"] == "parts" {
@@ -449,7 +448,7 @@ func Mutate(original M, action string, b, u M) (s, result M, err error) {
 		}
 		assessment := Assess(s, b, time.Now())
 		if domain.Str(b["draftId"]) != "" || solution["id"] == "reship_device" {
-			if assessment["status"] != "covered" && domain.Bool(assessment["eligible"]) {
+			if !domain.In(domain.Str(assessment["status"]), "covered", "exempt") && domain.Bool(assessment["eligible"]) {
 				domain.Fail("Warranty coverage must be confirmed before creating this RMA.", 422)
 			}
 			assessment["evidenceProvenance"] = M{"source": "agent_entered", "reference": domain.Obj(b["warrantyEvidence"])["evidenceReference"], "recordedById": u["id"], "recordedBy": u["name"], "recordedAt": domain.Now()}

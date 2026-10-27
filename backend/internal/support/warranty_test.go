@@ -147,3 +147,69 @@ func TestWarrantyMissingFutureAndStaleInputs(t *testing.T) {
 	p["graceDays"] = -1
 	reject(t, s, actor("admin", true), "warranty.save", M{"policy": p, "expectedRevision": 1}, "Activation grace days")
 }
+
+func TestConfiguredWarrantyDateModesAndExplicitExemption(t *testing.T) {
+	for _, tt := range []struct {
+		mode, unit, field, value, start, end string
+		duration, offset                     int
+	}{
+		{"delivery", "months", "deliveredAt", "2025-01-31", "2025-01-31", "2025-02-28", 1, 0},
+		{"payment", "days", "paidAt", "2025-01-01", "2025-01-03", "2025-02-02", 30, 2},
+		{"activation", "months", "activatedAt", "2025-01-02", "2025-01-02", "2026-01-02", 12, 0},
+		{"delivery_next_day", "days", "deliveredAt", "2025-01-01", "2025-01-02", "2025-04-02", 90, 0},
+		{"activation_grace", "months", "deliveredAt", "2025-01-01", "2025-01-08", "2026-01-08", 12, 0},
+	} {
+		t.Run(tt.mode, func(t *testing.T) {
+			s := fixture()
+			domain.Find(s, "products", "PRD-1")["warrantyClass"] = "halo_device"
+			rule := M{"id": "halo", "name": "Halo", "coverage": "halo_device", "enabled": true, "productIds": []string{}, "market": "", "platform": "", "startMode": tt.mode, "durationUnit": tt.unit, "months": tt.duration, "days": tt.duration, "graceDays": 7, "startOffsetDays": tt.offset, "requireEvidence": true}
+			policy := domain.Clone(domain.Obj(Config(s)["warrantyPolicy"]))
+			policy["rules"] = append(domain.Rows(policy, "rules"), rule)
+			run(t, &s, actor("admin", true), "warranty.save", M{"policy": policy, "expectedRevision": policy["revision"]})
+			b := input("parts")
+			b["warrantyEvidence"] = M{tt.field: tt.value, "evidenceReference": "Customer receipt"}
+			a := assessmentAt(t, s, b, "2025-02-01")
+			if a["eligible"] != true || a["startsAt"] != tt.start || a["endsAt"] != tt.end {
+				t.Fatal(a)
+			}
+			delete(domain.Obj(b["warrantyEvidence"]), "evidenceReference")
+			if a = assessmentAt(t, s, b, "2025-02-01"); a["eligible"] != false {
+				t.Fatal("missing evidence accepted", a)
+			}
+			saved := domain.Rows(domain.Obj(Config(s)["warrantyPolicy"]), "rules")
+			r := saved[len(saved)-1]
+			r["eligibilityMode"] = "exempt"
+			r["requireEvidence"] = false
+			b["warrantyEvidence"] = M{}
+			if a = assessmentAt(t, s, b, "2025-02-01"); a["status"] != "exempt" || a["eligible"] != true {
+				t.Fatal(a)
+			}
+			r["enabled"] = false
+			if a = assessmentAt(t, s, b, "2025-02-01"); a["eligible"] != false {
+				t.Fatal("disabled rule granted exemption", a)
+			}
+		})
+	}
+}
+
+func TestWarrantyTypeLifecycleAndPendingRules(t *testing.T) {
+	s := fixture()
+	policy := domain.Clone(domain.Obj(Config(s)["warrantyPolicy"]))
+	policy["classes"] = append(domain.Rows(policy, "classes"), M{"id": "future_part", "name": "Future accessory"})
+	rule := M{"id": "future", "name": "Future policy pending", "coverage": "future_part", "months": 0, "enabled": false, "startMode": "delivery", "productIds": []string{}}
+	policy["rules"] = append(domain.Rows(policy, "rules"), rule)
+	run(t, &s, actor("admin", true), "warranty.save", M{"policy": policy, "expectedRevision": policy["revision"]})
+	domain.Find(s, "products", "PRD-1")["warrantyClass"] = "future_part"
+	b := input("parts")
+	if a := assessmentAt(t, s, b, "2025-02-01"); a["eligible"] != false {
+		t.Fatal(a)
+	}
+	policy = domain.Clone(domain.Obj(Config(s)["warrantyPolicy"]))
+	definitions := domain.Rows(policy, "classes")
+	policy["classes"] = definitions[:len(definitions)-1]
+	reject(t, s, actor("admin", true), "warranty.save", M{"policy": policy, "expectedRevision": policy["revision"]}, "assigned to products")
+	policy = domain.Clone(domain.Obj(Config(s)["warrantyPolicy"]))
+	rows := domain.Rows(policy, "rules")
+	rows[len(rows)-1]["enabled"] = true
+	reject(t, s, actor("admin", true), "warranty.save", M{"policy": policy, "expectedRevision": policy["revision"]}, "Warranty months")
+}

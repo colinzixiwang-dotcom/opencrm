@@ -77,6 +77,13 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
   }, [signature]);
   const set = (k, v) => onChange({ ...value, [k]: v });
   const p = s.products.find((p) => p.id === payload.productId);
+  const rule = assessment?.ruleSnapshot;
+  const mode = rule?.startMode || "purchase_type";
+  const exempt = rule?.eligibilityMode === "exempt";
+  const legacyPrinthead = mode === "purchase_type" && ["printhead_1080", "printhead_3200"].includes(p?.warrantyClass);
+  const needsDelivery = !exempt && !["payment", "activation"].includes(mode);
+  const needsActivation = !exempt && ["activation", "activation_grace", "purchase_type"].includes(mode);
+  const needsReference = rule?.requireEvidence ?? !!payload.draftId;
   return (
     <section className="warranty-evidence">
       <h3>{tr("Warranty and solution eligibility")}</h3>
@@ -90,7 +97,7 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
             )}
           </Note>
           <div className="form-grid">
-            {p?.productType !== "device" && (
+            {legacyPrinthead && (
               <label>
                 {tr("Printhead purchase type")}
                 <select
@@ -109,7 +116,7 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
                 </select>
               </label>
             )}
-            {payload.draftId && (
+            {needsReference && (
               <label>
                 {tr("Delivery evidence reference")}
                 <input
@@ -120,7 +127,7 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
                 />
               </label>
             )}
-            <label>
+            {needsDelivery && <label>
               {tr("Delivery date")}
               <input
                 aria-label={tr("Delivery date")}
@@ -129,16 +136,18 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
                 value={value.deliveredAt || ""}
                 onChange={(e) => set("deliveredAt", e.target.value)}
               />
-            </label>
-            <label>
+            </label>}
+            {!exempt && mode === "payment" && <label>{tr("Payment date")}<input aria-label={tr("Payment date")} type="date" required value={value.paidAt || ""} onChange={e => set("paidAt",e.target.value)} /></label>}
+            {needsActivation && <label>
               {tr("Activation date")}
               <input
                 aria-label={tr("Activation date")}
                 type="date"
+                required={mode === "activation"}
                 value={value.activatedAt || ""}
                 onChange={(e) => set("activatedAt", e.target.value)}
               />
-            </label>
+            </label>}
             <label>
               {tr("Market")}
               <input
@@ -189,7 +198,7 @@ export function WarrantySettings() {
       <h2>{tr("Warranty rules")}</h2>
       <p>
         {tr(
-          "New devices start at activation or delivery + grace days, whichever is earlier. Bundled printheads use the device start; separately purchased printheads start the day after delivery. Replacement devices retain the original dates.",
+          "Configure warranty types, duration, start dates and evidence requirements. Disabled rules remain pending and do not grant coverage.",
         )}
       </p>
       <p>
@@ -213,6 +222,15 @@ export function WarrantySettings() {
         }}
       >
         <fieldset disabled={!editable || busy}>
+          <details className="warranty-type-editor">
+            <summary>{tr("Warranty types")} · {policy.classes?.length || 0}</summary>
+            <div className="warranty-type-list">{(policy.classes || []).map((cls,i) => <div className="warranty-type-row" key={i}>
+              <label>{tr("Warranty type key")}<input aria-label={`${tr("Warranty type key")} ${i+1}`} value={cls.id} required maxLength="64" pattern="[a-zA-Z0-9_-]+" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,id:e.target.value}:c)})} /></label>
+              <label>{tr("Warranty type name")}<input aria-label={`${tr("Warranty type name")} ${i+1}`} value={cls.name} required maxLength="120" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,name:e.target.value}:c)})} /></label>
+              <Button onClick={()=>setPolicy({...policy,classes:policy.classes.filter((_,j)=>i!==j)})}>{tr("Remove")}</Button>
+            </div>)}</div>
+            <Button onClick={()=>setPolicy({...policy,classes:[...(policy.classes||[]),{id:"type_"+newId(),name:""}]})}>{tr("Add warranty type")}</Button>
+          </details>
           <label>
             {tr("Activation grace days")}
             <input
@@ -228,7 +246,8 @@ export function WarrantySettings() {
             />
           </label>
           {policy.rules.map((r, i) => (
-            <section className="workflow-node" key={i}>
+            <details className="workflow-node warranty-rule" key={i} open={i === 0}>
+              <summary><strong>{tr(r.name || "New warranty rule")}</strong><span>{tr(r.enabled ? "Enabled" : "Pending confirmation")}</span></summary>
               <div className="form-grid">
                 <label>
                   {tr("Rule key")}
@@ -257,29 +276,23 @@ export function WarrantySettings() {
                     value={r.coverage}
                     onChange={(e) => update(i, "coverage", e.target.value)}
                   >
-                    <option value="device">{tr("New device")}</option>
-                    <option value="printhead_1080">
-                      {tr("Printhead 1080")}
-                    </option>
-                    <option value="printhead_3200">
-                      {tr("Printhead 3200")}
-                    </option>
+                    {(policy.classes || []).map(cls => <option value={cls.id} key={cls.id}>{tr(cls.name)}</option>)}
                   </select>
                 </label>
-                <label>
-                  {tr("Warranty months")}
-                  <input
-                    aria-label={tr("Warranty months")}
-                    type="number"
-                    min="1"
-                    max="120"
-                    required
-                    value={r.months}
-                    onChange={(e) =>
-                      update(i, "months", Number(e.target.value))
-                    }
-                  />
-                </label>
+                <label>{tr("Coverage requirement")}<select aria-label={tr("Coverage requirement")} value={r.eligibilityMode || "timed"} onChange={e=>update(i,"eligibilityMode",e.target.value)}>
+                  <option value="timed">{tr("Time-limited warranty")}</option><option value="exempt">{tr("Explicitly no warranty requirement")}</option>
+                </select></label>
+                {r.eligibilityMode !== "exempt" && <>
+                <label>{tr("Duration unit")}<select aria-label={tr("Duration unit")} value={r.durationUnit || "months"} onChange={e=>update(i,"durationUnit",e.target.value)}><option value="months">{tr("Calendar months")}</option><option value="days">{tr("Calendar days")}</option></select></label>
+                <label>{tr(r.durationUnit === "days" ? "Warranty days" : "Warranty months")}<input aria-label={tr(r.durationUnit === "days" ? "Warranty days" : "Warranty months")} type="number" min="1" max={r.durationUnit === "days" ? 36500 : 120} required={r.enabled} value={(r.durationUnit === "days" ? r.days : r.months) || ""} onChange={e=>update(i,r.durationUnit === "days" ? "days" : "months",e.target.value === "" ? 0 : Number(e.target.value))} /></label>
+                <label>{tr("Warranty start basis")}<select aria-label={tr("Warranty start basis")} value={r.startMode || "purchase_type"} onChange={e=>update(i,"startMode",e.target.value)}>
+                  {[["activation_grace","Activation or delivery plus grace"],["delivery","Delivery date"],["delivery_next_day","Day after delivery"],["payment","Payment date"],["activation","Activation date"],["purchase_type","Legacy purchase-type calculation"]].filter(([v])=>v!=="purchase_type" || ["device","printhead_1080","printhead_3200"].includes(r.coverage)).map(([v,label])=><option value={v} key={v}>{tr(label)}</option>)}
+                </select></label>
+                {["activation_grace","purchase_type"].includes(r.startMode || "purchase_type") && <label>{tr("Rule activation grace days")}<input aria-label={tr("Rule activation grace days")} type="number" min="0" max="90" value={r.graceDays ?? policy.graceDays} onChange={e=>update(i,"graceDays",Number(e.target.value))} /></label>}
+                <label>{tr("Start offset days")}<input aria-label={tr("Start offset days")} type="number" min="0" max="365" value={r.startOffsetDays || 0} onChange={e=>update(i,"startOffsetDays",Number(e.target.value))} /></label>
+                </>}
+                <label className="full-field">{tr("Policy source and notes")}<textarea aria-label={tr("Policy source and notes")} rows="2" maxLength="2000" value={r.sourceReference || ""} onChange={e=>update(i,"sourceReference",e.target.value)} /></label>
+                <label className="warranty-check"><input type="checkbox" checked={r.requireEvidence ?? true} onChange={e=>update(i,"requireEvidence",e.target.checked)} />{tr("Require warranty evidence reference")}</label>
                 <label>
                   {tr("Market (blank = all)")}
                   <input
@@ -326,7 +339,7 @@ export function WarrantySettings() {
                     ))}
                   </select>
                 </label>
-                <label>
+                <label className="warranty-check">
                   <input
                     type="checkbox"
                     checked={r.enabled}
@@ -345,7 +358,7 @@ export function WarrantySettings() {
               >
                 {tr("Remove rule")}
               </Button>
-            </section>
+            </details>
           ))}
           <Button
             onClick={() =>
@@ -356,9 +369,13 @@ export function WarrantySettings() {
                   {
                     id: "rule_" + newId(),
                     name: "",
-                    coverage: "device",
-                    months: 12,
-                    enabled: true,
+                    coverage: policy.classes?.[0]?.id || "device",
+                    months: 0,
+                    durationUnit: "months",
+                    startMode: "delivery",
+                    eligibilityMode: "timed",
+                    requireEvidence: true,
+                    enabled: false,
                     productIds: [],
                     market: "",
                     platform: "",
