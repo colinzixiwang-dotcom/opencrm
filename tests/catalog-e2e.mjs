@@ -89,6 +89,12 @@ try {
   assert.equal(await detail.getByLabel("Reshipment requires approval", {exact:true}).isChecked(),true);
   const binding = detail.locator(".catalog-device-options label").filter({hasText:"MORPHO-TEST"}).getByRole("checkbox");
   assert.equal(await binding.isChecked(),true);
+  const relationRow = detail.locator(".catalog-device-option").filter({hasText:"MORPHO-TEST"});
+  assert.equal(await relationRow.locator(".catalog-device-thumb").count(),1);
+  assert.match(await relationRow.locator(".catalog-device-copy strong").innerText(), /Original unit A/);
+  assert.equal(await relationRow.locator(".catalog-device-copy small").innerText(), "MORPHO-TEST");
+  assert((await relationRow.boundingBox()).height <= 90, "Compatibility choices should remain compact rows");
+  assert.equal((await binding.boundingBox()).width,16);
   await page.screenshot({path:"test-results/catalog-compatibility-detail-en.png"});
   await page.setViewportSize({width:390,height:844});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));

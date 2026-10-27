@@ -9,6 +9,8 @@ import {
   FilterControl,
   ListToolbar,
   Note,
+  Icon,
+  SearchControl,
 } from "./components";
 const sourceStatuses = {
   Automatic: "Automatically created",
@@ -131,6 +133,23 @@ export function CatalogSync() {
     </section>
   );
 }
+function RelatedProductRow({ product, checked, onChange }) {
+  const Tag = onChange ? "label" : "div";
+  return (
+    <Tag className={`catalog-device-option${checked ? " is-selected" : ""}${onChange ? "" : " is-readonly"}`}>
+      {onChange && <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />}
+      <span className="catalog-device-thumb" aria-hidden="true">
+        <Icon name="product" />
+        {product.image && <img src={product.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} />}
+      </span>
+      <span className="catalog-device-copy">
+        <strong>{product.name || product.nameEn || product.sku}</strong>
+        <small>{product.sku}</small>
+      </span>
+    </Tag>
+  );
+}
+
 function ProductDetail({ product: p, onClose }) {
   const { state, reload } = useWorkspace();
   const admin = state.currentUser.roles?.includes("admin");
@@ -174,6 +193,8 @@ function ProductDetail({ product: p, onClose }) {
   const policyValue = value => Array.isArray(value)
     ? value.map(id => state.products.find(item => item.id === id)?.sku || id).join(", ") || "—"
     : typeof value === "boolean" ? tr(value ? "Enabled" : "Disabled") : tr(value || "none");
+  const compatibleChoices = state.products.filter(d => d.productType === "device" && `${d.sku} ${d.name} ${d.nameEn || ""}`.toLowerCase().includes(deviceSearch.trim().toLowerCase()));
+  const compatibleParts = state.products.filter(x => ["part", "consumable"].includes(x.productType) && x.deviceIds?.includes(p.id));
   const source = p.sourceSnapshot || {};
   const audits = (state.audit || []).filter(
     (a) => a.action === "catalog.policy" && a.reference === p.id,
@@ -314,20 +335,25 @@ function ProductDetail({ product: p, onClose }) {
             </div>
             {["part", "consumable"].includes(v.productType) && (
               <div className="catalog-compatibility">
-                <label>{tr("Compatible devices")}
-                  <input aria-label={tr("Search compatible devices")} placeholder={tr("Search SKU or product name")} value={deviceSearch} onChange={e => setDeviceSearch(e.target.value)} />
-                </label>
+                <div className="catalog-compatibility-heading">
+                  <strong>{tr("Compatible devices")}</strong>
+                  <span>{tr("{count} devices selected", { count: v.deviceIds.length })}</span>
+                </div>
+                <SearchControl label="Search compatible devices" placeholder="Search SKU or product name" value={deviceSearch} onChange={setDeviceSearch} />
                 <div className="catalog-device-options">
-                  {state.products.filter(d => d.productType === "device" && `${d.sku} ${d.name} ${d.nameEn || ""}`.toLowerCase().includes(deviceSearch.toLowerCase())).map(d => (
-                    <label key={d.id}><input type="checkbox" checked={v.deviceIds.includes(d.id)} onChange={e => set("deviceIds", e.target.checked ? [...v.deviceIds, d.id] : v.deviceIds.filter(id => id !== d.id))} /><span>{d.sku}<small>{d.name}</small></span></label>
+                  {compatibleChoices.map(d => (
+                    <RelatedProductRow key={d.id} product={d} checked={v.deviceIds.includes(d.id)} onChange={checked => set("deviceIds", checked ? [...v.deviceIds, d.id] : v.deviceIds.filter(id => id !== d.id))} />
                   ))}
+                  {!compatibleChoices.length && <p className="catalog-device-empty">{tr("No matching products")}</p>}
                 </div>
                 <small>{tr("Select one or more devices. Unconfigured compatibility does not permit replacement for another product.")}</small>
               </div>
             )}
             {v.productType === "device" && (
               <div className="catalog-compatibility"><strong>{tr("Compatible accessories and consumables")}</strong>
-                <p>{state.products.filter(x => ["part", "consumable"].includes(x.productType) && x.deviceIds?.includes(p.id)).map(x => x.sku).join(" · ") || tr("No compatible items configured")}</p>
+                <div className="catalog-device-options">{compatibleParts.map(item => <RelatedProductRow key={item.id} product={item} />)}
+                  {!compatibleParts.length && <p className="catalog-device-empty">{tr("No compatible items configured")}</p>}
+                </div>
               </div>
             )}
             {admin && (

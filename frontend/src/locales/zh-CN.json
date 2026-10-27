@@ -1580,5 +1580,7 @@
   "A bundle keeps its sales SKU; components are not automatically expanded.": "保留套装销售 SKU，暂不自动拆分组件。",
   "No unique catalog match for this order item. Check SKU mapping.": "此订单商品未找到唯一目录映射，请核对 SKU；这不否定原订单的购买记录。",
   "Bundle flag must be a boolean.": "套装标记必须为布尔值。",
-  "Classification note must be at most 1000 characters.": "分类备注不能超过 1000 个字符。"
+  "Classification note must be at most 1000 characters.": "分类备注不能超过 1000 个字符。",
+  "{count} devices selected": "已选 {count} 个整机",
+  "No matching products": "没有匹配的商品"
 }
