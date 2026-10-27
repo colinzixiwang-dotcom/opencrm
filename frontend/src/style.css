@@ -3289,10 +3289,17 @@ td {
   overflow-wrap: anywhere;
 }
 .ticket-rma-links {
-  padding: 12px;
-  background: var(--lime);
-  border-radius: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 0 0 20px;
+  font-size: 12px;
+  line-height: 1.5;
 }
+.ticket-rma-label { color: var(--muted); flex: none; }
+.ticket-rma-items { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.ticket-rma-id { padding: 3px 8px; border: 1px solid var(--line); border-radius: 5px; background: #f8faf7; color: var(--green); overflow-wrap: anywhere; }
+@media (max-width: 600px) { .ticket-rma-links { flex-wrap: wrap; } }
 .ticket-detail > p,
 .ticket-detail > .form-error {
   margin: 20px;

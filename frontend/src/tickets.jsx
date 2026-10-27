@@ -435,9 +435,12 @@ function TicketDetail({ id, metadata, onClose, onDraft }) {
                   <ProblemDetails problem={problem} ticket={data.ticket} />
                 )}
                 {data.rmaIds?.length > 0 && (
-                  <p className="ticket-rma-links">
-                    {tr("Linked RMAs")}: {data.rmaIds.join(", ")}
-                  </p>
+                  <div className="ticket-rma-links" role="group" aria-label={tr("Linked RMAs")}>
+                    <span className="ticket-rma-label">{tr("Linked RMAs")}</span>
+                    <div className="ticket-rma-items">
+                      {data.rmaIds.map(rmaId => <span className="ticket-rma-id" key={rmaId}>{rmaId}</span>)}
+                    </div>
+                  </div>
                 )}
                 <section className="ticket-thread">
                   <PanelHeading
