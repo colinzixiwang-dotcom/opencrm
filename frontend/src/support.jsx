@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useWorkspace, api, money, title, formatDate, today } from "./context";
 import {
   FilterControl,
+  SearchControl,
   Heading,
   Panel,
   PanelHeading,
@@ -479,9 +480,10 @@ function ReshipLines({ solutionId, items, onChange, rmaProductId }) {
           {tr("Purchased item and reshipment items are saved separately.")}
         </small>
       </div>
-      <label className="reship-search">{tr("Search reshipment SKU")}
-        <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder={tr("Search SKU or product name")} />
-      </label>
+      <div className="reship-search">
+        <span>{tr("Search reshipment SKU")}</span>
+        <SearchControl label="Search reshipment SKU" placeholder="Search SKU or product name" value={search} onChange={setSearch} />
+      </div>
       {items.map((line, i) => (
         <div className="reship-line" key={i}>
           <label>

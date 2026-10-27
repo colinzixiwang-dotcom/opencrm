@@ -219,6 +219,11 @@ try {
     .locator(".modal-body")
     .evaluate((e) => (e.scrollTop = e.scrollHeight));
   await page.screenshot({ path: "test-results/catalog-reship-lines-en.png" });
+  await page.setViewportSize({width:390,height:844});
+  await d.locator(".reship-search").scrollIntoViewIfNeeded();
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({path:"test-results/catalog-reship-lines-mobile.png"});
+  await page.setViewportSize({width:1440,height:1000});
   await d.getByRole("button", { name: "Create RMA", exact: true }).click();
   await d.waitFor({ state: "hidden" });
   state = await (await page.request.get(app.base + "/api/bootstrap")).json();

@@ -4409,7 +4409,11 @@ td {
 }
 
 .catalog-compatibility { margin: 12px 0; font-size: 13px; }
-.reship-search { display: block; margin-bottom: 10px; }
+.reship-search { display: grid; gap: 8px; margin: 16px 0; min-width: 0; }
+.reship-search > span { font-size: 12px; font-weight: 600; color: var(--ink); }
+.reship-search .search-field { display: flex; width: 100%; min-width: 0; box-sizing: border-box; padding: 0 12px; }
+.reship-search .search-field .icon { flex: none; }
+.reship-search .search-field input { width: 100%; min-width: 0; min-height: 42px; padding: 8px 0; font-size: 13px; }
 
 /* Keep the catalog focused on choosing and configuring products. */
 .catalog-products td { padding-top: 20px; padding-bottom: 20px; }
