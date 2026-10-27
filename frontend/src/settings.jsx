@@ -14,7 +14,6 @@ import {
   Export,
 } from "./components";
 import { intlLocale } from "./i18n";
-import { WarrantySettings } from "./warranty";
 import { CatalogSync } from "./catalog";
 import { UdeskAccounts } from "./tickets";
 const col = (label, render, key) => ({ label, render, key });
@@ -24,7 +23,6 @@ export function Settings() {
     [error, setError] = useState("");
   const tabs = [
     ["company", "Company"],
-    ["warranty", "Warranty rules"],
     ["users", "Users & roles", s.users.length],
     ...(can("role.save")
       ? [["roles", "Role permissions", s.roles.length]]
@@ -57,9 +55,7 @@ export function Settings() {
       </Heading>
       <Tabs value={tab} onChange={setTab} items={tabs} />
       {(tab === "roles" || tab === "users") && <Note icon="users">{tr("Ticket center access and RMA creation are shared by all active CRM users. Other capabilities follow role permissions.")}</Note>}
-      {tab === "warranty" ? (
-        <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
-      ) : tab === "udesk" ? (
+      {tab === "udesk" ? (
         <UdeskAccounts />
       ) : tab === "users" ? (
         <>

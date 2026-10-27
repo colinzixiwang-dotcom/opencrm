@@ -40,7 +40,7 @@ try {
  assert.equal((await data()).rmas.length,1,'Retry must not duplicate RMA');
  await page.unroute('**/api/action');
  const original=(await data()).rmas[0].eligibilityAssessment;assert.equal(original.status,'covered');assert.equal(original.ruleSnapshot.months,12);
- await page.locator('a[href="#settings"]').click();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.getByLabel('Warranty months',{exact:true}).first().fill('24');await page.getByRole('button',{name:'Save warranty rules',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toasts')?.textContent.includes('Warranty rules saved.'));
+ await page.locator('a[href="#rmaconfig"]').click();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.getByLabel('Warranty months',{exact:true}).first().fill('24');await page.getByRole('button',{name:'Save warranty rules',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toasts')?.textContent.includes('Warranty rules saved.'));
  let s=await data();assert.equal(s.supportConfig.warrantyPolicy.revision,2);assert.equal(s.rmas[0].eligibilityAssessment.ruleSnapshot.months,12);
  await post('warranty.save',{policy:s.supportConfig.warrantyPolicy,expectedRevision:1},409);
  await post('rma.create',{...b,solutionId:'goodwill',taskInputs:{gift:{amountCents:100}}});assert.equal((await data()).rmas.length,2);

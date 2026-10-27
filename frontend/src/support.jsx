@@ -20,6 +20,7 @@ import {
   Tabs,
 } from "./components";
 import {
+  WarrantySettings,
   WarrantyEvidence,
   AssessmentSummary,
   warrantyRequired,
@@ -2419,6 +2420,7 @@ export function Benefits({ query = "" }) {
 const configTabs = [
   ["solutions", "Solutions & DAG"],
   ["rules", "Approval rules"],
+  ["warranty", "Warranty rules"],
   ["rootCauses", "Root causes"],
   ["platforms", "Platforms"],
   ["fields", "Custom fields"],
@@ -2447,6 +2449,14 @@ export function SupportConfig() {
       }}
     />
   );
+  if (tab === "warranty")
+    return (
+      <>
+        <Heading />
+        {navigation}
+        <WarrantySettings key={s.supportConfig.warrantyPolicy.revision} />
+      </>
+    );
   if (tab === "ticket-scope")
     return (
       <>
