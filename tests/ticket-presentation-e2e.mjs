@@ -253,7 +253,7 @@ try {
   assert.equal(
     await story
       .locator(".ticket-submission-fields")
-      .getByText("No", { exact: true })
+      .getByText("否", { exact: true })
       .count(),
     1,
   );
