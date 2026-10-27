@@ -113,6 +113,8 @@ func TestConfigureCompatibilityAndApproval(t *testing.T) {
 		t.Fatal(e)
 	}
 	b := config(part, "consumable", []any{device["id"]})
+	b["isBundle"] = true
+	b["classificationNote"] = "Consumable multipack; no automatic component expansion"
 	if e = svc.Configure(actor, b); e != nil {
 		t.Fatal(e)
 	}
@@ -121,7 +123,7 @@ func TestConfigureCompatibilityAndApproval(t *testing.T) {
 	}
 	state, _ = db.State()
 	saved := domain.Find(state, "products", domain.Str(part["id"]))
-	if saved["productType"] != "consumable" || !domain.ReshipApprovalRequired(saved) || len(domain.Strings(saved["deviceIds"])) != 1 {
+	if saved["productType"] != "consumable" || !domain.Bool(saved["isBundle"]) || saved["classificationNote"] != b["classificationNote"] || !domain.ReshipApprovalRequired(saved) || len(domain.Strings(saved["deviceIds"])) != 1 {
 		t.Fatal(saved)
 	}
 	b = config(saved, "consumable", []any{part["id"]})

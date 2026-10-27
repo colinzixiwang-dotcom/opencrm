@@ -295,7 +295,7 @@ func (s Service) Configure(actor, b M) error {
 			return fail("SKU policy changed. Reload before saving.", 409)
 		}
 		typ := domain.Str(b["productType"])
-		if !domain.In(typ, "general", "device", "part", "consumable") {
+		if !domain.In(typ, "general", "device", "part", "consumable", "other") {
 			return fail("Choose a valid SKU type.", 422)
 		}
 		kind := domain.Str(b["warrantyClass"])
@@ -336,7 +336,25 @@ func (s Service) Configure(actor, b M) error {
 				ids = append(ids, id)
 			}
 		}
-		if typ == "device" || typ == "general" {
+		for _, key := range []string{"isBundle"} {
+			if value, exists := b[key]; exists {
+				if _, valid := value.(bool); !valid {
+					return fail("Bundle flag must be a boolean.", 422)
+				}
+			} else {
+				b[key] = domain.Bool(p[key])
+			}
+		}
+		note := domain.Str(p["classificationNote"])
+		if value, exists := b["classificationNote"]; exists {
+			text, ok := value.(string)
+			if !ok || len([]rune(text)) > 1000 {
+				return fail("Classification note must be at most 1000 characters.", 422)
+			}
+			note = strings.TrimSpace(text)
+		}
+		b["classificationNote"] = note
+		if typ == "device" || typ == "general" || typ == "other" {
 			ids = []string{}
 		}
 		if p["productType"] == "device" && typ != "device" {
@@ -355,7 +373,7 @@ func (s Service) Configure(actor, b M) error {
 			return fail("A configuration reason is required.", 422)
 		}
 		before := domain.Clone(p)
-		for _, k := range []string{"productType", "warrantyClass", "reshipRequiresApproval", "deviceIds"} {
+		for _, k := range []string{"productType", "warrantyClass", "reshipRequiresApproval", "deviceIds", "isBundle", "classificationNote"} {
 			p[k] = b[k]
 		}
 		p["partKind"] = "other"

@@ -140,6 +140,8 @@ function ProductDetail({ product: p, onClose }) {
       warrantyClass: p.warrantyClass || "none",
       reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
       deviceIds: p.deviceIds || [],
+      isBundle: !!p.isBundle,
+      classificationNote: p.classificationNote || "",
       reason: "",
     }),
     [busy, setBusy] = useState(false),
@@ -265,9 +267,9 @@ function ProductDetail({ product: p, onClose }) {
                   value={v.productType}
                   onChange={(e) => set("productType", e.target.value)}
                 >
-                  {["general", "device", "part", "consumable"].map((k) => (
+                  {["general", "device", "part", "consumable", "other"].map((k) => (
                     <option key={k} value={k}>
-                      {tr(k === "general" ? "Unclassified" : k === "device" ? "Device" : k === "part" ? "Accessory" : "Consumable")}
+                      {tr(k === "general" ? "Unclassified" : k === "device" ? "Device" : k === "part" ? "Accessory" : k === "consumable" ? "Consumable" : "Other / service")}
                     </option>
                   ))}
                 </select>
@@ -289,7 +291,14 @@ function ProductDetail({ product: p, onClose }) {
                 </select>
               </label>
             </div>
+            <label className="catalog-classification-note">{tr("Classification notes")}
+              <textarea aria-label={tr("Classification notes")} rows="2" maxLength="1000" value={v.classificationNote} onChange={e => set("classificationNote", e.target.value)} />
+            </label>
             <div className="catalog-policy-options">
+            <label className={`catalog-check ${v.isBundle ? "is-selected" : ""}`}>
+              <input type="checkbox" checked={v.isBundle} onChange={e => set("isBundle", e.target.checked)} aria-label={tr("Sold as a bundle")} />
+              <span><strong>{tr("Sold as a bundle")}</strong><small>{tr("A bundle keeps its sales SKU; components are not automatically expanded.")}</small></span>
+            </label>
             <label className={`catalog-check ${v.reshipRequiresApproval ? "is-selected" : ""}`}>
               <input
                 type="checkbox"
@@ -354,6 +363,8 @@ function ProductDetail({ product: p, onClose }) {
                   "warrantyClass",
                   "reshipRequiresApproval",
                   "deviceIds",
+                  "isBundle",
+                  "classificationNote",
                 ]
                   .filter((k) => a.before?.[k] !== a.after?.[k])
                   .map((k) => (
@@ -364,6 +375,8 @@ function ProductDetail({ product: p, onClose }) {
                           warrantyClass: "Warranty class",
                           reshipRequiresApproval: "Reshipment requires approval",
                           deviceIds: "Compatible devices",
+                          isBundle: "Sold as a bundle",
+                          classificationNote: "Classification notes",
                         }[k],
                       )}
                       :{" "}
@@ -413,6 +426,7 @@ export function CatalogProducts() {
       masterSku: p.masterSku,
       aliases: (p.aliases || []).join(", "),
       productType: p.productType || "general",
+      isBundle: !!p.isBundle,
       reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
     }));
   return (
@@ -422,7 +436,7 @@ export function CatalogProducts() {
         <Table
           toolbarControls={<>
           <FilterControl label="SKU type" value={productType} onChange={setProductType} options={[
-            {value: "", label: "All types"}, {value: "device", label: "Device"}, {value: "part", label: "Accessory"}, {value: "consumable", label: "Consumable"}, {value: "general", label: "Unclassified"}
+            {value: "", label: "All types"}, {value: "device", label: "Device"}, {value: "part", label: "Accessory"}, {value: "consumable", label: "Consumable"}, {value: "other", label: "Other / service"}, {value: "general", label: "Unclassified"}
           ]} />
           <FilterControl
             label="Source status"
@@ -486,7 +500,7 @@ export function CatalogProducts() {
               ),
               "sourceStatus",
             ),
-            col("SKU type", p => tr(({device: "Device", part: "Accessory", consumable: "Consumable", general: "Unclassified"})[p.productType]), "productType"),
+            col("SKU type", p => <>{tr(({device: "Device", part: "Accessory", consumable: "Consumable", other: "Other / service", general: "Unclassified"})[p.productType])}{p.isBundle && <small className="cell-sub">{tr("Bundle")}</small>}</>, "productType"),
             col("Master SKU", p => p.masterSku || "—", "masterSku"),
             col("Reshipment approval", p => (
               <span className={p.reshipRequiresApproval ? "catalog-approval-required" : "catalog-approval-standard"}>

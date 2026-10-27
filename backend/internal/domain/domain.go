@@ -400,7 +400,7 @@ func Mutate(original M, action string, b, user M) (state, result M, err error) {
 		}
 
 		if v, ok := b["productType"]; ok {
-			values["productType"] = Choice(v, "general", "device", "part", "consumable")
+			values["productType"] = Choice(v, "general", "device", "part", "consumable", "other")
 		} else if p["productType"] == nil {
 			values["productType"] = "general"
 		}

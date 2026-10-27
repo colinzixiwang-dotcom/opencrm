@@ -4419,3 +4419,5 @@ td {
   .catalog-products .search-field { width: 100%; }
   .catalog-products table { min-width: 660px; }
 }
+
+.catalog-classification-note { display: grid; gap: 6px; margin-top: 12px; }

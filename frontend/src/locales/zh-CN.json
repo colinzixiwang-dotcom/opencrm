@@ -1572,5 +1572,13 @@
   "SKU requires reshipment approval": "商品配置要求补发审批",
   "Manage product types, compatible devices and reshipment approval.": "维护商品类型、适配关系与补发审批。",
   "Can be confirmed as the purchased item": "可确认为售后原商品",
-  "Disable only for invalid or non-product entries; discontinued products remain eligible for identification.": "仅对无效记录或非商品条目关闭；停售商品仍可确认为原购买商品。"
+  "Disable only for invalid or non-product entries; discontinued products remain eligible for identification.": "仅对无效记录或非商品条目关闭；停售商品仍可确认为原购买商品。",
+  "Other / service": "其他／服务",
+  "Classification notes": "分类依据与备注",
+  "Sold as a bundle": "组合套装",
+  "Bundle": "套装",
+  "A bundle keeps its sales SKU; components are not automatically expanded.": "保留套装销售 SKU，暂不自动拆分组件。",
+  "No unique catalog match for this order item. Check SKU mapping.": "此订单商品未找到唯一目录映射，请核对 SKU；这不否定原订单的购买记录。",
+  "Bundle flag must be a boolean.": "套装标记必须为布尔值。",
+  "Classification note must be at most 1000 characters.": "分类备注不能超过 1000 个字符。"
 }
