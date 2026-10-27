@@ -484,6 +484,7 @@ export function CatalogProducts() {
       masterSku: p.masterSku,
       aliases: (p.aliases || []).join(", "),
       productType: p.productType || "general",
+      warrantyClass: tr(s.supportConfig.warrantyPolicy.classes?.find((cls) => cls.id === p.warrantyClass)?.name || p.warrantyClass || "none"),
       isBundle: !!p.isBundle,
       reshipRequiresApproval: p.reshipRequiresApproval ?? !p.allowReship,
     }));
@@ -560,6 +561,7 @@ export function CatalogProducts() {
             ),
             col("SKU type", p => <>{tr(({device: "Device", part: "Accessory", consumable: "Consumable", other: "Other / service", general: "Unclassified"})[p.productType])}{p.isBundle && <small className="cell-sub">{tr("Bundle")}</small>}</>, "productType"),
             col("Master SKU", p => p.masterSku || "—", "masterSku"),
+            col("Warranty class", p => p.warrantyClass, "warrantyClass"),
             col("Reshipment approval", p => (
               <span className={p.reshipRequiresApproval ? "catalog-approval-required" : "catalog-approval-standard"}>
                 {tr(p.reshipRequiresApproval ? "Approval required" : "No approval required")}
