@@ -40,11 +40,12 @@ try {
  assert.equal((await data()).rmas.length,1,'Retry must not duplicate RMA');
  await page.unroute('**/api/action');
  const original=(await data()).rmas[0].eligibilityAssessment;assert.equal(original.status,'covered');assert.equal(original.ruleSnapshot.months,12);
- await page.locator('a[href="#rmaconfig"]').click();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.getByLabel('Warranty months',{exact:true}).first().fill('24');await page.getByRole('button',{name:'Save warranty rules',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toasts')?.textContent.includes('Warranty rules saved.'));
+ await page.locator('a[href="#settings"]').click();assert.equal(await page.getByRole('tab',{name:'Warranty rules',exact:true}).count(),0);
+ await page.locator('a[href="#rmaconfig"]').click();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();assert.equal(await page.locator('.warranty-rule-editor').count(),0);assert.equal(await page.getByRole('button',{name:'Save warranty rules',exact:true}).isDisabled(),true);await page.locator('.warranty-overview-row').first().getByRole('button',{name:'Edit',exact:true}).click();await page.getByLabel('Warranty months',{exact:true}).first().fill('24');await page.getByRole('button',{name:'Save warranty rules',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#toasts')?.textContent.includes('Warranty rules saved.'));
  let s=await data();assert.equal(s.supportConfig.warrantyPolicy.revision,2);assert.equal(s.rmas[0].eligibilityAssessment.ruleSnapshot.months,12);
  await post('warranty.save',{policy:s.supportConfig.warrantyPolicy,expectedRevision:1},409);
  await post('rma.create',{...b,solutionId:'goodwill',taskInputs:{gift:{amountCents:100}}});assert.equal((await data()).rmas.length,2);
- await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();assert.equal(await page.getByLabel('Warranty months',{exact:true}).first().inputValue(),'24');
+ await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.locator('.warranty-overview-row').first().getByRole('button',{name:'Edit',exact:true}).click();assert.equal(await page.getByLabel('Warranty months',{exact:true}).first().inputValue(),'24');
  // A new type and its business behavior must survive API/UI persistence.
  s=await data();
  const configured={id:'halo-payment-days',name:'Halo payment policy',coverage:'halo_device',durationUnit:'days',days:30,months:0,startMode:'payment',startOffsetDays:2,graceDays:0,requireEvidence:true,enabled:true,productIds:[],market:'',platform:'',sourceReference:'Isolated fixture policy'};
@@ -54,7 +55,7 @@ try {
  assert.equal((await evaluate({})).eligible,false);
  const paidAt=new Date(Date.now()-5*86400000).toISOString().slice(0,10);
  const checked=await evaluate({paidAt,evidenceReference:'Receipt'});assert.equal(checked.status,'covered');assert.equal(checked.ruleSnapshot.days,30);assert.equal(checked.startMode,'payment');
- await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();
+ await page.reload();await page.getByRole('tab',{name:'Warranty rules',exact:true}).click();await page.locator('.warranty-overview-row').first().getByRole('button',{name:'Edit',exact:true}).click();
  assert.equal(await page.getByLabel('Coverage class',{exact:true}).first().inputValue(),'halo_device');
  assert.equal(await page.getByLabel('Warranty days',{exact:true}).first().inputValue(),'30');
  assert.equal(await page.getByLabel('Warranty start basis',{exact:true}).first().inputValue(),'payment');

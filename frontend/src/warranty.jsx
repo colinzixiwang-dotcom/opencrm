@@ -179,13 +179,23 @@ export function WarrantyEvidence({ value, onChange, payload, onAssessment }) {
     </section>
   );
 }
+function WarrantySkuScope({ products, value, onChange }) {
+  const [query, setQuery] = useState("");
+  const rows = products.filter(p => `${p.sku} ${p.name}`.toLowerCase().includes(query.toLowerCase()));
+  return <div className="warranty-sku-picker full-field">
+    <div className="warranty-sku-heading"><strong>{tr("Applicable SKUs (empty = all)")}</strong><span>{value.length ? `${value.length} SKU` : tr("All SKUs in this type")}</span></div>
+    <input aria-label={tr("Search applicable SKUs")} placeholder={tr("Search by SKU or product name")} value={query} onChange={e=>setQuery(e.target.value)} />
+    <div className="warranty-sku-options">{rows.map(p=><label key={p.id}><input type="checkbox" checked={value.includes(p.id)} onChange={e=>onChange(e.target.checked ? [...value,p.id] : value.filter(id=>id!==p.id))} /><span><strong>{p.sku}</strong><small>{p.name}</small></span></label>)}{rows.length === 0 && <p>{tr("No matching SKUs")}</p>}</div>
+  </div>;
+}
 export function WarrantySettings() {
   const { state: s, act, can, busy } = useWorkspace();
   const [policy, setPolicy] = useState(() =>
       JSON.parse(JSON.stringify(s.supportConfig.warrantyPolicy)),
     ),
     [revision] = useState(s.supportConfig.warrantyPolicy.revision),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [editing, setEditing] = useState(null);
   const editable =
     can("warranty.save") && s.currentUser.roles.includes("admin");
   const update = (i, k, v) =>
@@ -193,19 +203,26 @@ export function WarrantySettings() {
       ...policy,
       rules: policy.rules.map((r, j) => (j === i ? { ...r, [k]: v } : r)),
     });
+  const startLabels = {
+    activation_grace: "Activation or delivery plus grace", delivery: "Delivery date",
+    delivery_next_day: "Day after delivery", payment: "Payment date",
+    activation: "Activation date", purchase_type: "Legacy purchase-type calculation",
+  };
+  const dirty = JSON.stringify(policy) !== JSON.stringify(s.supportConfig.warrantyPolicy);
+  const addRule = () => {
+    setEditing(policy.rules.length);
+    setPolicy({...policy, rules: [...policy.rules, {
+      id: "rule_" + newId(), name: "", coverage: policy.classes?.[0]?.id || "device",
+      months: 0, durationUnit: "months", startMode: "delivery", eligibilityMode: "timed",
+      requireEvidence: true, enabled: false, productIds: [], market: "", platform: "",
+    }]});
+  };
   return (
     <Panel className="warranty-settings">
-      <h2>{tr("Warranty rules")}</h2>
-      <p>
-        {tr(
-          "Configure warranty types, duration, start dates and evidence requirements. Disabled rules remain pending and do not grant coverage.",
-        )}
-      </p>
-      <p>
-        {tr(
-          "Coverage includes the start date and excludes the end date. Calendar-month ends are clamped. More specific SKU, market and platform rules take precedence; equal matches block creation.",
-        )}
-      </p>
+      <header className="warranty-heading">
+        <div><h2>{tr("Warranty rules")}</h2><p>{tr("Manage coverage by product type. Open a rule to edit its terms.")}</p></div>
+        <span className="warranty-revision">{tr("Policy revision ")}{revision}</span>
+      </header>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -222,32 +239,24 @@ export function WarrantySettings() {
         }}
       >
         <fieldset disabled={!editable || busy}>
-          <details className="warranty-type-editor">
-            <summary>{tr("Warranty types")} · {policy.classes?.length || 0}</summary>
-            <div className="warranty-type-list">{(policy.classes || []).map((cls,i) => <div className="warranty-type-row" key={i}>
-              <label>{tr("Warranty type key")}<input aria-label={`${tr("Warranty type key")} ${i+1}`} value={cls.id} required maxLength="64" pattern="[a-zA-Z0-9_-]+" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,id:e.target.value}:c)})} /></label>
-              <label>{tr("Warranty type name")}<input aria-label={`${tr("Warranty type name")} ${i+1}`} value={cls.name} required maxLength="120" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,name:e.target.value}:c)})} /></label>
-              <Button onClick={()=>setPolicy({...policy,classes:policy.classes.filter((_,j)=>i!==j)})}>{tr("Remove")}</Button>
-            </div>)}</div>
-            <Button onClick={()=>setPolicy({...policy,classes:[...(policy.classes||[]),{id:"type_"+newId(),name:""}]})}>{tr("Add warranty type")}</Button>
-          </details>
-          <label>
-            {tr("Activation grace days")}
-            <input
-              aria-label={tr("Activation grace days")}
-              type="number"
-              min="0"
-              max="90"
-              required
-              value={policy.graceDays}
-              onChange={(e) =>
-                setPolicy({ ...policy, graceDays: Number(e.target.value) })
-              }
-            />
-          </label>
-          {policy.rules.map((r, i) => (
-            <details className="workflow-node warranty-rule" key={i} open={i === 0}>
-              <summary><strong>{tr(r.name || "New warranty rule")}</strong><span>{tr(r.enabled ? "Enabled" : "Pending confirmation")}</span></summary>
+          <div className="warranty-list-toolbar">
+            <span>{policy.rules.length} {tr("Warranty rules")} · {policy.classes?.length || 0} {tr("Warranty types")}</span>
+            {editable && <Button onClick={addRule}>{tr("Add warranty rule")}</Button>}
+          </div>
+          <div className="warranty-overview" role="table" aria-label={tr("Warranty rules")}>
+            <div className="warranty-overview-head" role="row">{["Warranty class", "Coverage term", "Warranty start basis", "Scope", "Status", "Edit"].map(label=><span role="columnheader" key={label}>{tr(label)}</span>)}</div>
+            {policy.rules.map((r,i) => <div className={`warranty-overview-row ${editing === i ? "is-editing" : ""}`} role="row" key={i}>
+              <div role="cell"><strong>{tr(policy.classes?.find(c=>c.id===r.coverage)?.name || r.coverage)}</strong>{r.name && tr(r.name) !== tr(policy.classes?.find(c=>c.id===r.coverage)?.name || r.coverage) && <small>{tr(r.name)}</small>}</div>
+              <div role="cell" data-label={tr("Coverage term")}>{r.eligibilityMode === "exempt" ? tr("Exempt") : (r.durationUnit === "days" ? r.days : r.months) > 0 ? <><b>{r.durationUnit === "days" ? r.days : r.months}</b> {tr(r.durationUnit === "days" ? "Calendar days" : "Calendar months")}</> : <span className="warranty-muted">{tr("Pending confirmation")}</span>}</div>
+              <div role="cell" data-label={tr("Warranty start basis")} className="warranty-start-summary">{r.eligibilityMode === "exempt" || !r.enabled ? "—" : tr(startLabels[r.startMode || "purchase_type"])}{r.enabled && r.eligibilityMode !== "exempt" && ["activation_grace","purchase_type"].includes(r.startMode || "purchase_type") && <small>{tr("Activation grace days")}: {r.graceDays ?? policy.graceDays}</small>}</div>
+              <div role="cell" data-label={tr("Scope")}>{r.productIds?.length ? `${r.productIds.length} SKU` : tr("All SKUs in this type")}<small>{[r.market, r.platform].filter(Boolean).join(" · ") || tr("All markets and platforms")}</small></div>
+              <div role="cell"><span className={`warranty-state ${r.enabled ? "is-enabled" : "is-pending"}`}><i />{tr(r.enabled ? "Enabled" : "Pending confirmation")}</span></div>
+              <div role="cell"><Button onClick={()=>setEditing(editing===i?null:i)}>{tr(editing===i ? "Close" : "Edit")}</Button></div>
+            </div>)}
+          </div>
+          {policy.rules.map((r, i) => editing === i && (
+            <section className="warranty-rule-editor" key={i} aria-label={tr("Edit warranty rule")}>
+              <header><div><small>{tr("Edit warranty rule")}</small><h3>{tr(r.name || "New warranty rule")}</h3></div><Button onClick={()=>setEditing(null)}>{tr("Close")}</Button></header>
               <div className="form-grid">
                 <label>
                   {tr("Rule key")}
@@ -317,28 +326,7 @@ export function WarrantySettings() {
                     ))}
                   </select>
                 </label>
-                <label className="full-field">
-                  {tr("Applicable SKUs (empty = all)")}
-                  <select
-                    aria-label={tr("Applicable SKUs (empty = all)")}
-                    multiple
-                    size="4"
-                    value={r.productIds}
-                    onChange={(e) =>
-                      update(
-                        i,
-                        "productIds",
-                        Array.from(e.target.selectedOptions, (x) => x.value),
-                      )
-                    }
-                  >
-                    {s.products.map((p) => (
-                      <option value={p.id} key={p.id}>
-                        {p.sku} · {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <WarrantySkuScope products={s.products.filter(p=>p.warrantyClass===r.coverage || (r.coverage === "device" && p.source !== "mabang" && p.productType === "device" && (!p.warrantyClass || p.warrantyClass === "none")))} value={r.productIds || []} onChange={ids=>update(i,"productIds",ids)} />
                 <label className="warranty-check">
                   <input
                     type="checkbox"
@@ -349,43 +337,41 @@ export function WarrantySettings() {
                 </label>
               </div>
               <Button
-                onClick={() =>
-                  setPolicy({
-                    ...policy,
-                    rules: policy.rules.filter((_, j) => j !== i),
-                  })
-                }
+                onClick={() => {
+                  setPolicy({...policy, rules: policy.rules.filter((_, j) => j !== i)});
+                  setEditing(null);
+                }}
               >
                 {tr("Remove rule")}
               </Button>
-            </details>
+            </section>
           ))}
-          <Button
-            onClick={() =>
-              setPolicy({
-                ...policy,
-                rules: [
-                  ...policy.rules,
-                  {
-                    id: "rule_" + newId(),
-                    name: "",
-                    coverage: policy.classes?.[0]?.id || "device",
-                    months: 0,
-                    durationUnit: "months",
-                    startMode: "delivery",
-                    eligibilityMode: "timed",
-                    requireEvidence: true,
-                    enabled: false,
-                    productIds: [],
-                    market: "",
-                    platform: "",
-                  },
-                ],
-              })
-            }
-          >
-            {tr("Add warranty rule")}
-          </Button>
+          <details className="warranty-advanced">
+            <summary>{tr("Types and default settings")}</summary>
+          <details className="warranty-type-editor">
+            <summary>{tr("Warranty types")} · {policy.classes?.length || 0}</summary>
+            <div className="warranty-type-list">{(policy.classes || []).map((cls,i) => <div className="warranty-type-row" key={i}>
+              <label>{tr("Warranty type key")}<input aria-label={`${tr("Warranty type key")} ${i+1}`} value={cls.id} required maxLength="64" pattern="[a-zA-Z0-9_-]+" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,id:e.target.value}:c)})} /></label>
+              <label>{tr("Warranty type name")}<input aria-label={`${tr("Warranty type name")} ${i+1}`} value={cls.name} required maxLength="120" onChange={e => setPolicy({...policy,classes:policy.classes.map((c,j)=>j===i?{...c,name:e.target.value}:c)})} /></label>
+              <Button onClick={()=>setPolicy({...policy,classes:policy.classes.filter((_,j)=>i!==j)})}>{tr("Remove")}</Button>
+            </div>)}</div>
+            <Button onClick={()=>setPolicy({...policy,classes:[...(policy.classes||[]),{id:"type_"+newId(),name:""}]})}>{tr("Add warranty type")}</Button>
+          </details>
+          <label>
+            {tr("Activation grace days")}
+            <input
+              aria-label={tr("Activation grace days")}
+              type="number"
+              min="0"
+              max="90"
+              required
+              value={policy.graceDays}
+              onChange={(e) =>
+                setPolicy({ ...policy, graceDays: Number(e.target.value) })
+              }
+            />
+          </label>
+          </details>
         </fieldset>
         {error && (
           <p className="form-error" role="alert">
@@ -393,16 +379,12 @@ export function WarrantySettings() {
           </p>
         )}
         {editable && (
-          <button className="btn primary" type="submit" disabled={busy}>
+          <footer className="warranty-savebar"><span>{tr(dirty ? "Unsaved changes" : "All changes saved")}</span><button className="btn primary" type="submit" disabled={busy || !dirty}>
             {tr("Save warranty rules")}
-          </button>
+          </button></footer>
         )}
       </form>
-      <Note>
-        {tr(
-          "Rules apply to new RMAs. Historical assessments retain their policy snapshot. Warranty corrections requiring approval and repair pause adjustments are not available here.",
-        )}
-      </Note>
+      <details className="warranty-help"><summary>{tr("Calculation and policy notes")}</summary><p>{tr("Coverage includes the start date and excludes the end date. Calendar-month ends are clamped. More specific SKU, market and platform rules take precedence; equal matches block creation.")}</p><p>{tr("Rules apply to new RMAs. Historical assessments retain their policy snapshot. Warranty corrections requiring approval and repair pause adjustments are not available here.")}</p></details>
     </Panel>
   );
 }

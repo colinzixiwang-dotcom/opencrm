@@ -1625,5 +1625,18 @@
   "Warranty type has no configured rules.": "此质保类型尚未配置规则。",
   "New warranty rule": "新质保规则",
   "Pending confirmation": "待确认",
-  "Choose an explicit start basis for this warranty type.": "请为此质保类型选择明确的起算方式。"
+  "Choose an explicit start basis for this warranty type.": "请为此质保类型选择明确的起算方式。",
+  "Manage coverage by product type. Open a rule to edit its terms.": "按商品类型管理质保，选择规则后编辑具体条款。",
+  "Coverage term": "质保期限",
+  "All markets and platforms": "全部市场及平台",
+  "Edit warranty rule": "编辑质保规则",
+  "Types and default settings": "类型及默认设置",
+  "Unsaved changes": "有未保存的修改",
+  "All changes saved": "所有修改已保存",
+  "Calculation and policy notes": "计算口径与政策说明",
+  "Exempt": "免期限校验",
+  "All SKUs in this type": "本类型全部 SKU",
+  "Search applicable SKUs": "搜索适用 SKU",
+  "Search by SKU or product name": "按 SKU 或商品名称搜索",
+  "No matching SKUs": "没有匹配的 SKU"
 }
