@@ -4292,7 +4292,7 @@ td {
 .rma-wizard-dialog > form {flex:1;min-height:0;}
 .rma-wizard-dialog .modal-body {flex:1;min-height:0;max-height:none;}
 @media(max-width:700px){.rma-wizard-dialog .form-grid {grid-template-columns:1fr;}}
-.catalog-products table{table-layout:fixed;width:100%;min-width:850px}.catalog-products th:nth-child(1){width:38%}.catalog-products th:nth-child(2){width:16%}.catalog-products th:nth-child(3){width:12%}.catalog-products th:nth-child(4){width:18%}.catalog-products th:nth-child(5){width:16%}.catalog-products td{white-space:normal;overflow-wrap:anywhere}.catalog-products .catalog-product-cell{width:100%;min-width:0}.catalog-product-cell img{flex-shrink:0}.catalog-product-cell>span{min-width:0}.catalog-aliases{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.6;font-size:11px}.catalog-products .catalog-policy-labels{line-height:1.6}
+.catalog-products table{table-layout:fixed;width:100%;min-width:0}.catalog-products th:nth-child(1){width:36%}.catalog-products th:nth-child(2){width:14%}.catalog-products th:nth-child(3){width:9%}.catalog-products th:nth-child(4){width:13%}.catalog-products th:nth-child(5){width:14%}.catalog-products th:nth-child(6){width:14%}.catalog-products td{white-space:normal;overflow-wrap:anywhere}.catalog-products .catalog-product-cell{width:100%;min-width:0}.catalog-product-cell img{flex-shrink:0}.catalog-product-cell>span{min-width:0}.catalog-aliases{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.6;font-size:11px}.catalog-products .catalog-policy-labels{line-height:1.6}
 @media(max-width:700px){.catalog-products table{min-width:0}.catalog-products tbody tr{min-width:0}.catalog-products td{min-width:0}.catalog-aliases{max-width:180px}}
 
 /* Ticket RMA: compact order lookup and native-sized item choices. */
@@ -4418,7 +4418,12 @@ td {
 .reship-search .search-field input { width: 100%; min-width: 0; min-height: 42px; padding: 8px 0; font-size: 13px; }
 
 /* Keep the catalog focused on choosing and configuring products. */
-.catalog-products td { padding-top: 20px; padding-bottom: 20px; }
+.catalog-products th, .catalog-products td { padding-inline: 14px; }
+.catalog-products th { white-space: normal; overflow-wrap: normal; }
+.catalog-products .catalog-status { display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: normal; box-sizing: border-box; }
+.catalog-products td { padding-top: 18px; padding-bottom: 18px; line-height: 1.5; }
+.catalog-products td:last-child { overflow-wrap: normal; word-break: normal; }
+.catalog-products td:last-child > span { white-space: normal; word-break: keep-all; }
 .catalog-products .catalog-product-cell { max-width: none; }
 .catalog-products .catalog-product-cell small { margin-top: 3px; }
 .catalog-products .list-controls { flex-wrap: wrap; }
@@ -4428,7 +4433,7 @@ td {
 @media(max-width:700px) {
   .catalog-products .list-controls { width: 100%; }
   .catalog-products .search-field { width: 100%; }
-  .catalog-products table { min-width: 660px; }
+  .catalog-products table { min-width: 0; }
 }
 
 .catalog-classification-note { display: grid; gap: 6px; margin-top: 12px; }
@@ -4543,3 +4548,19 @@ td {
 .warranty-sku-options strong { display: block; font-size: 11px; }
 .warranty-sku-options small { display: block; margin-top: 3px; font-size: 10px; color: var(--muted); font-weight: 400; }
 .warranty-sku-options > p { padding: 12px; font-size: 12px; color: var(--muted); }
+
+/* Narrow screens use product summaries, so every field stays in view. */
+@media(max-width:1050px) {
+  .catalog-products table, .catalog-products tbody { display: block; width: 100%; min-width: 0; }
+  .catalog-products thead { display: none; }
+  .catalog-products tbody tr { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px 20px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+  .catalog-products tbody tr:last-child { border-bottom: 0; }
+  .catalog-products td { display: block; padding: 0; border: 0; min-width: 0; }
+  .catalog-products td:first-child, .catalog-products td[colspan] { grid-column: 1 / -1; }
+  .catalog-products td:not(:first-child)::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--muted); font-size: 10px; }
+  .catalog-products .catalog-product-cell { padding-bottom: 2px; }
+  .catalog-products .catalog-product-cell img { width: 42px; height: 42px; }
+  .catalog-products .catalog-product-cell strong { font-size: 12px; }
+  .catalog-products .catalog-product-cell small { font-size: 11px; }
+  .catalog-products .pagination { flex-wrap: wrap; }
+}

@@ -121,7 +121,15 @@ try {
     path: "test-results/catalog-products-zh.png",
     fullPage: true,
   });
-  await page.locator(".language-switcher select").selectOption("en");
+  for (const locale of ["zh-CN", "en"]) {
+    await page.locator(".language-switcher select").selectOption(locale);
+    for (const width of [1440, 1100, 390]) {
+      await page.setViewportSize({width, height:1000});
+      assert(await page.locator(".catalog-products .table-scroll").evaluate(el => el.scrollWidth <= el.clientWidth + 1), `Catalog must not require horizontal scrolling: ${locale}, ${width}px`);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    }
+  }
+  await page.setViewportSize({width:1440,height:1000});
   assert.equal(await page.locator('a.nav-item[href="#warehouse"]').count(), 0);
   // Existing bookmarks must lead to products, where stock can still be queried.
   await page.evaluate(() => { location.hash = "warehouse"; });

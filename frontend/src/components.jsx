@@ -633,7 +633,7 @@ export function Table({
               visible.map((r, i) => (
                 <tr key={r[idKey] ?? i} data-row-id={r[idKey]}>
                   {columns.map((c, j) => (
-                    <td key={j}>{c.render(r)}</td>
+                    <td key={j} data-label={tr(c.label)}>{c.render(r)}</td>
                   ))}
                 </tr>
               ))
