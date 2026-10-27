@@ -59,29 +59,13 @@ let operatorContext, otherContext;
 try {
   await login(page, "admin");
   await nav(page, "product");
-  const addProduct = async (sku, name, type, part = false) => {
-    await page
-      .getByRole("button", { name: "Add product", exact: true })
-      .click();
-    const d = dialog(page);
-    for (const [k, v] of Object.entries({
-      sku,
-      name,
-      category: "Support",
-      costCents: "5.00",
-      priceCents: "20.00",
-      reorderPoint: "2",
-      leadDays: "7",
-    }))
-      await d.locator(`[name=${k}]`).fill(v);
-    await d.locator("[name=productType]").selectOption(type);
-    if (part) {
-      await d.locator("[name=partKind]").selectOption("printhead");
-      await d.locator("[name=deviceIds]").selectOption(device.id);
-    }
-    await save(page);
-    return (await data(page)).products.find((x) => x.sku === sku);
-  };
+  // Set up local support fixtures through the API; the product page now shows
+  // imported ERP identities and its configuration is covered by catalog-e2e.
+  const addProduct = (sku, name, type, part = false) => post(page, "product.create", {
+    sku, name, category: "Support", costCents: 500, priceCents: 2000,
+    reorderPoint: 2, leadDays: 7, productType: type,
+    partKind: part ? "printhead" : "other", deviceIds: part ? [device.id] : [],
+  });
   const device = await addProduct(
       "SUP-DEVICE-001",
       "Support Test Printer",
@@ -93,10 +77,9 @@ try {
       "part",
       true,
     );
-  await page.getByLabel("Filter SKU type").selectOption("part");
-  assert.equal(await page.locator("tbody tr[data-row-id]").count(), 1);
-  assert.match(await page.locator("tbody").innerText(), /SUP-HEAD-001/);
-  pass("device and custom printhead SKUs, compatibility, and product filters");
+  assert.equal(part.productType, "part");
+  assert.deepEqual(part.deviceIds, [device.id]);
+  pass("device and printhead support fixtures with explicit compatibility");
   await nav(page, "rmaconfig");
   await page.getByRole("tab", { name: "Custom fields", exact: true }).click();
   await page.getByRole("button", { name: "Add field", exact: true }).click();
@@ -393,14 +376,7 @@ try {
       await d.getByLabel("Applies to task type").selectOption("gift_card");
     await save(page, "Save configuration");
   }
-  await nav(page, "product");
-  await page
-    .getByRole("button", { name: "Edit SUP-DEVICE-001", exact: true })
-    .click();
-  await dialog(page)
-    .getByLabel("Support tier", { exact: true })
-    .fill("Premium");
-  await save(page, "Save changes");
+  await post(page, "product.update", {...device, customFields: {support_tier: "Premium"}});
   assert.equal(
     (await data(page)).products.find((p) => p.id === device.id).customFields
       .support_tier,

@@ -54,22 +54,14 @@ try {
       .waitFor();
   }
   await page.locator('nav a[href="#product"]').click();
-  await page.getByRole("button", { name: "Add product", exact: true }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.locator("[name=sku]").fill("CURRENT-SMOKE");
-  await dialog.locator("[name=name]").fill("Retained product workflow");
-  await dialog.locator("[name=category]").fill("Test");
-  await dialog
-    .getByRole("button", { name: "Save record", exact: true })
-    .click();
-  await dialog.waitFor({ state: "detached" });
-  const state = await (
-    await page.request.get(app.base + "/api/bootstrap")
-  ).json();
-  assert.ok(state.products.some((p) => p.sku === "CURRENT-SMOKE"));
+  // Catalog identity is imported from ERP; local product creation is no longer
+  // exposed on this page. Import/edit/inventory flows have their own catalog suite.
+  await page.locator(".catalog-products").waitFor();
+  assert.equal(await page.getByRole("button", { name: "Add product", exact: true }).count(), 0);
+  await page.getByText("No imported SKUs yet. Synchronize the Mabang catalog first.", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS current workspace: 13 visible modules, seven hidden routes, retained product creation and no JavaScript errors",
+    "PASS current workspace: 13 visible modules, seven hidden routes, ERP catalog entry and no JavaScript errors",
   );
 } finally {
   await browser.close();

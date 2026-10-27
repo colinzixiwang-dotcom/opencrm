@@ -34,8 +34,11 @@ try {
  for(const sol of s.supportConfig.solutions){await dialog().getByLabel('Proposed solution').selectOption(sol.id);assert.equal(await dialog().locator('.workflow-node').count(),sol.nodes.length);}
  await close();await page.unroute('**/api/bootstrap');await page.reload();
  pass('all shipped solutions render even with legacy null dependencies; PostgreSQL preserves arrays');
- const createForm=async(sol,index)=>{await nav('rma');await page.getByRole('button',{name:'Create RMA',exact:true}).click();const d=dialog();await d.getByLabel('Support ticket number').fill('AUDIT-TICKET-'+index);await d.getByLabel('Order number',{exact:true}).fill('AUDIT-ORDER-'+index);await d.getByLabel('Purchased platform').selectOption('Amazon');await d.getByLabel('Affected device / part SKU').selectOption(device.id);await d.getByLabel('Root cause',{exact:true}).selectOption(s.supportConfig.rootCauses[0].id);await d.getByLabel('Description',{exact:true}).fill('Regression test for shipped solution '+sol.id);await d.getByLabel('Proposed solution').selectOption(sol.id);if(await d.getByLabel('Delivery date',{exact:true}).count())await d.getByLabel('Delivery date',{exact:true}).fill(new Date(Date.now()-30*86400000).toISOString().slice(0,10));for(const input of await d.getByLabel('Value ($)',{exact:true}).all())await input.fill('100.01');for(const select of await d.getByLabel('Task SKU',{exact:true}).all()){if(!(await select.inputValue()))await select.selectOption(part.id);} };
- for(const [i,sol] of s.supportConfig.solutions.entries()){
+ const createForm=async(sol,index)=>{await nav('rma');await page.getByRole('button',{name:'Create RMA',exact:true}).click();const d=dialog();await d.getByLabel('Support ticket number').fill('AUDIT-TICKET-'+index);await d.getByLabel('Order number',{exact:true}).fill('AUDIT-ORDER-'+index);await d.getByLabel('Purchased platform').selectOption('Amazon');await d.getByLabel('Affected device / part SKU').selectOption(device.id);await d.getByLabel('Root cause',{exact:true}).selectOption(s.supportConfig.rootCauses[0].id);await d.getByLabel('Description',{exact:true}).fill('Regression test for shipped solution '+sol.id);await d.getByLabel('Proposed solution').selectOption(sol.id);if(await d.getByLabel('Delivery date',{exact:true}).count())await d.getByLabel('Delivery date',{exact:true}).fill(new Date(Date.now()-30*86400000).toISOString().slice(0,10));if(await d.getByLabel('Delivery evidence reference',{exact:true}).count())await d.getByLabel('Delivery evidence reference',{exact:true}).fill('Isolated fixture delivery receipt');for(const input of await d.getByLabel('Value ($)',{exact:true}).all())await input.fill('100.01');for(const select of await d.getByLabel('Task SKU',{exact:true}).all()){if(!(await select.inputValue()))await select.selectOption(sol.nodes.some(n=>n.typeId==='send_device')?device.id:part.id);} };
+ // ERP reship_device requires a confirmed original order and is exercised by
+ // mabang-e2e/catalog-e2e, rather than this legacy manual starter-form audit.
+ const starterSolutions=s.supportConfig.solutions.filter(sol=>sol.id!=='reship_device');
+ for(const [i,sol] of starterSolutions.entries()){
   await createForm(sol,i);
   if(i===0){
    // Commit succeeds but the following reload fails. Retrying must reuse the receipt.
@@ -44,8 +47,8 @@ try {
    assert.equal(disk().rmas.length,1);await save('Create RMA');await page.unroute('**/api/bootstrap');assert.equal(disk().rmas.length,1);
   }else await save('Create RMA');
  }
- s=await data();assert.equal(s.rmas.length,4);assert.equal(s.rmaTasks.length,7);assert.deepEqual(disk().rmas,s.rmas);
- pass('all four starter RMAs submit; rapid double-clicks and retry after a committed request create exactly one RMA');
+ s=await data();assert.equal(s.rmas.length,starterSolutions.length);assert.equal(s.rmaTasks.length,starterSolutions.reduce((n,sol)=>n+sol.nodes.length,0));assert.deepEqual(disk().rmas,s.rmas);
+ pass('all configured starter RMAs submit; rapid double-clicks and retry after a committed request create exactly one RMA');
  await nav('rmatasks');
  const openTask=async id=>page.locator(`tr[data-row-id="${id}"]`).getByRole('button',{name:'Open task',exact:true}).click();
  for(const t of s.rmaTasks.filter(t=>t.approval==='pending')){await openTask(t.id);await dialog().getByRole('tab',{name:'Review approval',exact:true}).click();await dialog().getByLabel('Review reason').fill('Audit approval');await save('Save review');}

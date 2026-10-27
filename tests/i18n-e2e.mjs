@@ -45,29 +45,21 @@ try {
     );
   }
   await page.locator('a[href="#product"]').click();
-  await page.getByRole("button", { name: "新增商品", exact: true }).click();
-  let d = page.getByRole("dialog");
-  await d.locator("[name=sku]").fill("BILINGUAL-1080");
-  await d.locator("[name=name]").fill("Customer entered 中文 Product");
-  await d.locator("[name=category]").fill("Test category");
-  await d.locator("[name=productType]").selectOption("part");
-  await d.locator("[name=partKind]").selectOption("printhead");
-  await d.locator("[name=warrantyClass]").selectOption("printhead_1080");
-  await d.getByLabel("语言", { exact: true }).selectOption("en");
-  assert.equal(await d.locator("[name=sku]").inputValue(), "BILINGUAL-1080");
-  assert.equal(
-    await d.locator("[name=warrantyClass]").inputValue(),
-    "printhead_1080",
-  );
-  await d.getByRole("button", { name: "Save record", exact: true }).click();
-  await d.waitFor({ state: "detached" });
+  // Catalog creation moved to ERP import. Prepare a local identity fixture via
+  // API and verify language switching never translates its persisted values.
+  const productResponse = await page.request.post(app.base + "/api/action", {data: {
+    action: "product.create", payload: {sku: "BILINGUAL-1080", name: "Customer entered 中文 Product", category: "Test category", costCents: 0, priceCents: 0, reorderPoint: 0, leadDays: 0, productType: "part", partKind: "printhead", warrantyClass: "printhead_1080"},
+  }});
+  assert.equal(productResponse.status(), 200, await productResponse.text());
+  await page.locator(".language-switcher select").selectOption("en");
+  let d;
   let s = await (await page.request.get(app.base + "/api/bootstrap")).json();
   const p = s.products.find((p) => p.sku === "BILINGUAL-1080");
   assert.equal(p.name, "Customer entered 中文 Product");
   assert.equal(p.productType, "part");
   assert.equal(p.warrantyClass, "printhead_1080");
   await page.getByLabel("Language", { exact: true }).selectOption("zh-CN");
-  await page.locator('a[href="#settings"]').click();
+  await page.locator('a[href="#rmaconfig"]').click();
   await page.getByRole("tab", { name: "质保规则", exact: true }).click();
   await page.getByRole("heading", { name: "质保规则", exact: true }).waitFor();
   await page.reload();
@@ -126,7 +118,7 @@ try {
   await d.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByLabel("Language", { exact: true }).selectOption("zh-CN");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('a[href="#settings"]').evaluate((a) => a.click());
+  await page.locator('a[href="#rmaconfig"]').evaluate((a) => a.click());
   await page.getByRole("tab", { name: "质保规则", exact: true }).click();
   assert.equal(
     await page.evaluate(

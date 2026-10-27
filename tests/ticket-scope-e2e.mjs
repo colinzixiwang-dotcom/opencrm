@@ -90,7 +90,8 @@ try {
     await actor.getByRole('button',{name:'Create RMA draft',exact:true}).click();
     const dialog=actor.getByRole('dialog');await dialog.waitFor();
     assert.equal(await dialog.getByLabel('Ticket number',{exact:true}).count(),0);
-    assert.equal(await dialog.getByLabel('Support ticket number',{exact:true}).inputValue(),'#105');
+    assert.equal(await dialog.getByLabel('Support ticket number',{exact:true}).count(),0);
+    await dialog.locator('.rma-steps').getByText('Support ticket #105',{exact:true}).waitFor();
     await dialog.getByRole('button',{name:'Save draft',exact:true}).click();await dialog.getByText('Draft saved',{exact:true}).waitFor();
     const drafts=await(await actor.request.get(app.base+'/api/intake-drafts')).json();assert.equal(drafts.items.length,1);
     for(const path of ['/api/tickets/102','/api/tickets/102/replies','/api/tickets/102/attachment?ref=https%3A%2F%2Fexample.com%2Fa.jpg','/api/tickets/lookup?number=%23102'])assert.equal((await actor.request.get(app.base+path)).status(),404);
